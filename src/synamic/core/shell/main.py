@@ -1,29 +1,34 @@
 import os
 import sys
-from . import default_site_config
-from . import scan
 
-class Synamic:
-    instance = None
-    def __init__(self, SITE_BASE_PATH=None):
-        self.SITE_BASE_PATH = SITE_BASE_PATH
+import synamic.core.synamic_config
+from synamic import SynamicConfig
+from synamic.core.synamic import Synamic
 
-    def get_base_path(self):
-        return self.SITE_BASE_PATH
+"""
+REMEMBER:
+- the content_modules that has no dependency must be loaded first.
+-> meta contents: variables, tags, categories have no dependency
+<-> templates has dependency on above
+<- contents: texts, series, and-whatever-else-added later have dependency on meta contents || plain html has no dependency on others. But keep that loaded at this phase.
 
-    def scan(self):
-        pass
+* Actually only contents is rendered. So, you /run/ content module - not others*
 
-    @classmethod
-    def get_synamic_instance(cls):
-        if cls.instance is None:
-            cls.instance = cls()
-        return cls.instance
+[
+    
+]
+"""
+
+def get_synamic(base_path):
+    assert not (base_path != "" or base_path is not None), "Base path cannot be empty"
+    assert os.path.exists(base_path), "Base path is non existent in the file system"
+    return Synamic(SynamicConfig(base_path))
+
 
 class SynamicInitProject:
     def __init__(self, synamic_obj):
         """        
-        :param SITE_BASE_PATH: 
+        :param __site_root: 
         """
         SITE_BASE_PATH = synamic_obj.get_base_path()
 
@@ -98,14 +103,14 @@ class SynamicInitProject:
         """
         root_level_paths = [x.lower() for x in os.listdir(self.SITE_BASE_PATH)]
         for path in root_level_paths:
-            if path in default_site_config.ROOT_LEVEL_PATHS_LOWER:
+            if path in synamic.core.synamic_config.ROOT_LEVEL_PATHS:
                 if not do_force:
                     print("The directory contains projects paths/directories. Use -force or clean yourself to init."
                           " Forcing will not delete existing files/directories.", file=sys.stderr)
                     return
 
             else:
-                for path2 in default_site_config.ROOT_LEVEL_DIRS_LOWER:
+                for path2 in synamic.core.synamic_config.ROOT_LEVEL_DIRS:
                     if os.path.exists(os.path.join(self.SITE_BASE_PATH, path2)):
                         continue
                     else:
@@ -114,7 +119,7 @@ class SynamicInitProject:
         self._create_config_files()
 
     def _create_config_files(self):
-        for path in default_site_config.ROOT_LEVEL_FILES_LOWER:
+        for path in synamic.core.synamic_config.ROOT_LEVEL_FILES:
             if not os.path.exists(os.path.join(self.SITE_BASE_PATH, path)):
                 with open(os.path.join(self.SITE_BASE_PATH, path), "wb") as f:
                     pass

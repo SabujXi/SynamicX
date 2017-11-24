@@ -1,5 +1,6 @@
 import unittest
-from synamic.frontmatter.front_matter import parse_front_matter
+
+from synamic.core.frontmatter import parse_front_matter
 
 
 class TestFrontMatterParser(unittest.TestCase):
