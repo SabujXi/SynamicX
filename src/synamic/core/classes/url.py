@@ -1,10 +1,7 @@
-import re
-
-from synamic.core.contracts.url import UrlContract
-import os
+from synamic.core.contracts.url import ContentUrlContract
 
 
-class Url(UrlContract):
+class ContentUrl(ContentUrlContract):
     def __init__(self, config, content, url_str, url_name, is_dir=True):
         self.__config = config
         self.__content = content

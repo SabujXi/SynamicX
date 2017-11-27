@@ -1,7 +1,7 @@
 import abc
 
 
-class UrlContract(abc.ABC):
+class ContentUrlContract(abc.ABC):
     """
         For YAML provided urls
             url can be of string or another map.

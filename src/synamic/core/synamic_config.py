@@ -1,24 +1,40 @@
 import os
-
+import sys
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.contracts import (
     ContentModuleContract,
     MetaContentModuleContract,
     TemplateModuleContract,
-    UrlContract
+    ContentUrlContract
 )
-
 from synamic.core.exceptions import InvalidModuleType
 from synamic.core.functions.decorators import loaded, not_loaded
+from synamic.content_modules.texts import Texts
+from synamic.template_modules.synamic_template import SynamicTemplate
+from synamic.content_modules.statics import Statics
+from synamic.core.functions.normalizers import normalize_key
+from synamic.core.dependency_resolver import create_dep_list
+from synamic.core.classes.site_settings import SiteSettings
+from collections import namedtuple
 
 
 class SynamicConfig(object):
+    KEY_URLS_BY_NAME = sys.intern("key-URLS_BY_NAME")
+    KEY_URLS_BY_PATH = sys.intern("key-URLS_BY_PATH")
+    KEY_URLS_BY_REAL_PATH = sys.intern("key-URLS_BY_REAL_PATH")
+    KEY_URLS_BY_CONTENT_ID = sys.intern("key-URLS_BY_CONTENT_ID")
+    KEY_URLS = sys.intern("key-URLS")
 
-    def __init__(self, _site_root):
-        assert os.path.exists(_site_root), "Base path must not be non existent"
-        self.__site_root = _site_root
+    # module types
+    MODULE_TYPE_CONTENT = ContentModuleContract
+    MODULE_TYPE_TEMPLATE = TemplateModuleContract
+    MODULE_TYPE_META = MetaContentModuleContract
 
-        # modules
+    def __init__(self, site_root):
+        assert os.path.exists(site_root), "Base path must not be non existent"
+        self.__site_root = site_root
+
+        # modules: key => module.name, value => module
         self.__modules_map = {}
         self.__content_modules_map = {}
         self.__template_modules_map = {}
@@ -26,8 +42,11 @@ class SynamicConfig(object):
 
         # URL store
         self.__url_map = {
-            "names": set(),
-            "urls": {}  # key => full url path, value => url object
+            self.KEY_URLS_BY_NAME: dict(),
+            self.KEY_URLS_BY_PATH: dict(),
+            self.KEY_URLS_BY_REAL_PATH: dict(),
+            self.KEY_URLS_BY_CONTENT_ID: dict(),
+            self.KEY_URLS: set()
         }
 
         # setting path tree
@@ -35,69 +54,40 @@ class SynamicConfig(object):
 
         # key values
         self.__key_values = {}
-
         self.__is_loaded = False
         self.__dependency_list = None
 
+        # site settings
+        self.__site_settings = None
+
+        # module root dirs
+        # Initiate module root dirs
+        ModuleRootDirs = namedtuple("ModuleRootDirs",
+                                    ['CONTENT_MODULE_ROOT_DIR',
+                                     'META_MODULE_ROOT_DIR',
+                                     'TEMPLATE_MODULE_ROOT_DIR'])
+        self.__module_root_dirs = ModuleRootDirs(
+            'content',
+            'meta',
+            'template'
+        )
+
         # initializing
-        self._populate_with_initial_settings()
+        self.__initiate()
 
-    def _populate_with_initial_settings(self):
-
-        # Loading Root Modules
-        # for cls in RootModuleInfo.info_list:
-        #     _mod = importlib.import_module(cls.dotted_path)
-        #     _class = _mod.Module
-        #     mod = _class(self)
-        #     self.add_module(mod)
-        from synamic.content_modules.texts import Texts
-        from synamic.template_modules.synamic_template import SynamicTemplate
-        from synamic.content_modules.statics import Statics
+    def __initiate(self):
         self.add_module(Texts(self))
         self.add_module(SynamicTemplate(self))
         self.add_module(Statics(self))
 
-        # Populating with
-        from synamic.core.functions.root_config import get_site_root_settings
-        obj = get_site_root_settings(self)
-        self.update(obj)
+        # site settings
+        self.__site_settings = SiteSettings(self)
+        # obj = get_site_root_settings(self)
+        # self.update(obj)
 
-    def __normalize_key(self, key: str):
-        return key.lower()
-
-    def get(self, key, default=None):
-        key = self.__normalize_key(key)
-        return self.__key_values.get(key, default)
-
-    def set(self, key, value):
-        key = self.__normalize_key(key)
-        self.__key_values[key] = value
-
-    def delete(self, key):
-        key = self.__normalize_key(key)
-        del self.__key_values[key]
-
-    def update(self, obj: dict):
-        for key, value in obj.items():
-            self.set(key, value)
-
-    def contains(self, key):
-        key = self.__normalize_key(key)
-        if key in self.__key_values:
-            return True
-        return False
-
-    def __getitem__(self, key):
-        return self.get(key)
-
-    def __setitem__(self, key, value):
-        self.set(key, value)
-
-    def __delitem__(self, key):
-        return self.delete(key)
-
-    def __contains__(self, item):
-        return self.contains(item)
+    @property
+    def site_settings(self):
+        return self.__site_settings
 
     @property
     @loaded
@@ -119,10 +109,32 @@ class SynamicConfig(object):
     def meta_modules(self):
         return list(self.__meta_modules_map.values()).copy()
 
-    def get_module(self, name):
-        name = name.lower()
-        mod = self.__modules_map[name]
-        return mod
+    @property
+    def module_types(self):
+        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE, self.MODULE_TYPE_META}
+
+    def get_module_type(self, mod_instance):
+        """Returns the type of the module as the contract class"""
+        if isinstance(mod_instance, self.MODULE_TYPE_CONTENT):
+            typ = self.MODULE_TYPE_CONTENT
+        elif isinstance(mod_instance, self.MODULE_TYPE_META):
+            typ = self.MODULE_TYPE_META
+        else:
+            typ = self.MODULE_TYPE_TEMPLATE
+            assert isinstance(mod_instance, self.MODULE_TYPE_TEMPLATE)
+        return typ
+
+    def get_module_root_dir(self, mod_instance):
+        mod_type = self.get_module_type(mod_instance)
+        if mod_type is self.MODULE_TYPE_CONTENT:
+            return self.content_dir
+        elif mod_type is self.MODULE_TYPE_META:
+            return self.meta_dir
+        else:
+            return self.template_dir
+
+    def get_module_dir(self, mod_instance):
+        return os.path.join(self.get_module_root_dir(mod_instance), mod_instance.directory_name)
 
     @property
     def path_tree(self):
@@ -136,7 +148,6 @@ class SynamicConfig(object):
     def load(self):
         # """Load must be called after dependency list is built"""
         # assert not self.is_loaded, "Cannot be loaded twice"
-        from synamic.core.dependency_resolver import create_dep_list
         self.__dependency_list = create_dep_list(self.__modules_map)
 
         self.__is_loaded = True
@@ -148,32 +159,16 @@ class SynamicConfig(object):
             print(":: loading module: %s" % mod.name)
             mod.load()
 
-
-    # def render(self):
-    #     assert self.is_loaded, "Everything must be loaded before render() on config or synamic object can be invoked"
-    #     for mod_name in self.__dependency_list:
-    #         mod = self.__modules_map[mod_name]
-    #         if isinstance(mod, ContentModuleContract):
-    #             print(":: rendering module: %s" % mod.name)
-    #             mod.render()
-
+    @loaded
     def initialize_site_dirs(self):
         dirs = [
             self.path_tree.get_full_path(self.output_dir),
         ]
         for mod in self.modules:
-            if isinstance(mod, ContentModuleContract):
-                mod_root_dir = self.content_dir
-            elif issubclass(mod, MetaContentModuleContract):
-                mod_root_dir = self.meta_dir
-            else:
-                mod_root_dir = self.template_dir
-                assert isinstance(mod, TemplateModuleContract)
-
-            if mod.directory_name:
-                dir = self.path_tree.get_full_path(mod_root_dir, mod.directory_name)
-                dirs.append(dir)
-
+            mod_root_dir = self.get_module_root_dir(mod)
+            # if mod.directory_name:
+            dir = self.path_tree.get_full_path(self.get_module_dir(mod))
+            dirs.append(dir)
         for dir in dirs:
             if not os.path.exists(dir):
                 os.makedirs(dir)
@@ -181,22 +176,27 @@ class SynamicConfig(object):
     def add_module(self, mod_obj):
         """Module type can be contract classes or any subclass of them. At the end, the contract class will be the key 
         of the map"""
-        if not (isinstance(mod_obj, ContentModuleContract)
-                or isinstance(mod_obj, MetaContentModuleContract)
-                or isinstance(mod_obj, TemplateModuleContract)):
+        mod_type = self.get_module_type(mod_obj)
+        mod_name = normalize_key(mod_type.name)
+        if mod_type not in self.module_types:
             raise InvalidModuleType("The module type you provided is not valid: %s" % str(type(mod_obj)))
-        assert mod_obj.name not in self.__modules_map
-        self.__modules_map[mod_obj.name] = mod_obj
 
-        if isinstance(mod_obj, ContentModuleContract):
-            self.__content_modules_map[mod_obj.name] = mod_obj
-        elif issubclass(mod_obj, MetaContentModuleContract):
-            self.__meta_modules_map[mod_obj.name] = mod_obj
+        assert mod_name not in self.__modules_map, "Mod name cannot already exist"
+
+        self.__modules_map[mod_name] = mod_obj
+
+        if mod_type is self.MODULE_TYPE_CONTENT:
+            self.__content_modules_map[mod_name] = mod_obj
+        elif mod_type is self.MODULE_TYPE_META:
+            self.__meta_modules_map[mod_name] = mod_obj
         else:
-            assert isinstance(mod_obj, TemplateModuleContract)
-            self.__template_modules_map[mod_obj.name] = mod_obj
+            self.__template_modules_map[mod_name] = mod_obj
 
-    def add_url(self, url: UrlContract):
+    def get_module(self, mod_name):
+        mod_name = normalize_key(mod_name)
+        return self.__modules_map[mod_name]
+
+    def add_url(self, url: ContentUrlContract):
         if url.name is not None and url.name != "":
             print("Adding url name: ", url.name)
             assert url.name not in self.__url_map["names"], "Multiple resource with the same url name cannot live together"
@@ -212,22 +212,22 @@ class SynamicConfig(object):
 
     @property
     def content_dir(self):
-        return "content"
+        return self.__module_root_dirs.CONTENT_MODULE_ROOT_DIR
 
     @property
     def meta_dir(self):
-        return "meta_content"
+        return self.__module_root_dirs.META_MODULE_ROOT_DIR
 
     @property
     def template_dir(self):
-        return "templates"
+        return self.__module_root_dirs.TEMPLATE_MODULE_ROOT_DIR
 
     @property
     def output_dir(self):
         return "_html"
 
     @property
-    def root_config_file_name(self):
+    def settings_file_name(self):
         return "settings.yaml"
 
     @property
@@ -257,3 +257,35 @@ class SynamicConfig(object):
                 f.write(stream.read())
                 print("Wrote: %s" % f.name)
                 stream.close()
+
+    def get(self, key, default=None):
+        key = normalize_key(key)
+        return self.__key_values.get(key, default)
+
+    def set(self, key, value):
+        key = normalize_key(key)
+        self.__key_values[key] = value
+
+    def delete(self, key):
+        key = normalize_key(key)
+        del self.__key_values[key]
+
+    def update(self, obj: dict):
+        for key, value in obj.items():
+            self.set(key, value)
+
+    def contains(self, key):
+        key = normalize_key(key)
+        return key in self.__key_values
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
+
+    def __delitem__(self, key):
+        return self.delete(key)
+
+    def __contains__(self, item):
+        return self.contains(item)

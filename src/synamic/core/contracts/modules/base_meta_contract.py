@@ -20,10 +20,10 @@ class MetaContentModuleContract(abc.ABC):
         :return: 
         """
         pass
-
-    @property
-    @abc.abstractmethod
-    def dotted_path(self): pass
+    #
+    # @property
+    # @abc.abstractmethod
+    # def dotted_path(self): pass
 
     @property
     @abc.abstractmethod

@@ -21,15 +21,15 @@ class TemplateModuleContract(ABC):
         :return: 
         """
         pass
-
-    @property
-    @abc.abstractmethod
-    def directory_path(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def dotted_path(self): pass
+    #
+    # @property
+    # @abc.abstractmethod
+    # def directory_path(self):
+    #     pass
+    #
+    # @property
+    # @abc.abstractmethod
+    # def dotted_path(self): pass
 
     @property
     @abc.abstractmethod

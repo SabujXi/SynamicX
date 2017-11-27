@@ -12,6 +12,11 @@ class ContentContract(abc.ABC):
     def path(self):
         pass
 
+    @property
+    @abc.abstractmethod
+    def content_id(self):
+        pass
+
     @abc.abstractmethod
     def get_stream(self):
         """

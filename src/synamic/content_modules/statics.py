@@ -1,5 +1,5 @@
 import mimetypes
-from synamic.core.classes.url import Url
+from synamic.core.classes.url import ContentUrl
 from synamic.core.contracts import ContentContract, ContentModuleContract
 from synamic.core.functions.decorators import loaded, not_loaded
 
@@ -67,7 +67,7 @@ class Statics(ContentModuleContract):
             print("File path is: ", file_path.relative_path)
             print("Is file: ", file_path.is_file)
             static = Static(self.__config, self, file_path)
-            url = Url(self.__config, static, (self.root_path + file_path.relative_path), None, False)
+            url = ContentUrl(self.__config, static, (self.root_url_path + file_path.relative_path), None, False)
             static.set_url_obj(url)
             self.__config.add_url(url)
         # Add static files
@@ -90,5 +90,5 @@ class Statics(ContentModuleContract):
         return 'synamic.content_modules.statics.Statics'
 
     @property
-    def root_path(self):
+    def root_url_path(self):
         return ''

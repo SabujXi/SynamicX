@@ -114,5 +114,5 @@ class Texts(ContentModuleContract):
         return {'md', 'markdown'}
 
     @property
-    def root_path(self):
+    def root_url_path(self):
         return ""

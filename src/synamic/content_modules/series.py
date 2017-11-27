@@ -49,7 +49,7 @@ class Chapter:
 
     @property
     def for_url(self):
-        """returns an url or UrlContract instance?"""
+        """returns an url or ContentUrlContract instance?"""
         # A lot of processing here
         return None
 

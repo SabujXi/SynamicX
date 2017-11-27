@@ -88,7 +88,7 @@ class PathTree(object):
         self.__paths_by_content_modules = {}
         self.__other_paths = set()
 
-    def __list_paths(self, path_container: set, next_relative_root="", prefix_relative_root=""):
+    def __list_paths_recursive(self, path_container: set, next_relative_root="", prefix_relative_root=""):
         """A function to get all paths recursively starting from abs_root but returns a list of paths relative to the 
         .root"""
 
@@ -110,26 +110,26 @@ class PathTree(object):
             elif os.path.isdir(path_abs):
                 path_obj = Path(path_rel, path_abs, False)
                 # Recurse
-                self.__list_paths(path_container, next_relative_root=path_rel, prefix_relative_root=prefix_relative_root)
+                self.__list_paths_recursive(path_container, next_relative_root=path_rel, prefix_relative_root=prefix_relative_root)
             else:
                 raise Exception("Path is neither dir, nor file")
             path_container.add(path_obj)
 
-    def list_paths(self, relative_root="", prefix_relative_root=""):
+    def __list_paths(self, relative_root="", prefix_relative_root=""):
         path_container = set()
-        self.__list_paths(path_container, relative_root, prefix_relative_root=prefix_relative_root)
+        self.__list_paths_recursive(path_container, relative_root, prefix_relative_root=prefix_relative_root)
         return path_container
 
-    def list_files(self, relative_root="", prefix_relative_root=""):
-        paths = self.list_paths(relative_root=relative_root, prefix_relative_root=prefix_relative_root)
+    def __list_files(self, relative_root="", prefix_relative_root=""):
+        paths = self.__list_paths(relative_root=relative_root, prefix_relative_root=prefix_relative_root)
         file_paths = set()
         for path in paths:
             if path.is_file:
                 file_paths.add(path)
         return file_paths
 
-    def list_dirs(self, relative_root="", prefix_relative_root=""):
-        paths = self.list_paths(relative_root=relative_root, prefix_relative_root=prefix_relative_root)
+    def __list_dirs(self, relative_root="", prefix_relative_root=""):
+        paths = self.__list_paths(relative_root=relative_root, prefix_relative_root=prefix_relative_root)
         dir_paths = set()
         for path in paths:
             if path.is_dir:
@@ -156,12 +156,7 @@ class PathTree(object):
         return True if os.path.exists(full_path) and os.path.isdir(full_path) else False
 
     def get_module_paths(self, mod_obj):
-        print("Modules that have paths: ", self.__paths_by_content_modules.keys())
-
-        print("Query for mod name: ", mod_obj.name)
         paths = self.__paths_by_content_modules.get(mod_obj.name)
-        print("Paths by content modules get_module_paths(): ", self.__paths_by_content_modules)
-        print("Paths for mod `%s`: " % mod_obj.name, paths)
         assert paths is not None, "Module name must exist"
         return paths
 
@@ -170,12 +165,10 @@ class PathTree(object):
 
     def load(self):
         content_modules = self.__config.content_modules
-        # print("Content modules: ", content_modules)
-        # mod_names = set([mod.name for mod in content_modules])
         for mod in content_modules:
             self.__paths_by_content_modules[mod.name] = set()
             # dir = mod.directory_name
-            file_paths = self.list_files(relative_root=mod.directory_name, prefix_relative_root=mod.parent_dir)
+            file_paths = self.__list_files(relative_root=mod.directory_name, prefix_relative_root=self.__config.get_module_root_dir(mod))
 
             if mod.extensions is None:
                 # take all
@@ -187,10 +180,3 @@ class PathTree(object):
                         self.__paths_by_content_modules[mod.name].add(x)
                     else:
                         self.__other_paths.add(x)
-
-        print("Paths by content modules: ", self.__paths_by_content_modules)
-        print()
-        print("Other paths: ", self.__other_paths)
-        print()
-        # print(self.__config.)
-

@@ -2,7 +2,7 @@ import re
 from synamic.core.functions.frontmatter import parse_front_matter
 from synamic.core.functions.yaml_processor import load_yaml
 from synamic.core.classes.frontmatter import Frontmatter
-from synamic.core.classes.url import Url
+from synamic.core.classes.url import ContentUrl
 from synamic.core.functions.date_time import parse_datetime
 
 
@@ -66,10 +66,9 @@ class MarkedDocument(object):
 
     @property
     def frontmatter(self):
-        fm = self.__frontmatter
-        if not fm:
-            fm = self.__frontmatter = Frontmatter(load_yaml(self.raw_frontmatter))
-        return fm
+        if not self.__frontmatter:
+            self.__frontmatter = Frontmatter(load_yaml(self.raw_frontmatter))
+        return self.__frontmatter
 
     @property
     def body(self):
@@ -109,10 +108,10 @@ class MarkedDocument(object):
                     is_dir = False
             # url_str = url_str.rstrip('/')  # Don't do this - commenting for now
 
-            if self.__content.module.root_path:
-                url_str += self.__content.module.root_path
+            if self.__content.module.root_url_path:
+                url_str += self.__content.module.root_url_path
 
-            url = Url(self.__config, self.__content, url_str, url_name, is_dir)
+            url = ContentUrl(self.__config, self.__content, url_str, url_name, is_dir)
             self.__url = url
 
         return self.__url
