@@ -7,7 +7,7 @@ from synamic.core.exceptions import (
     InvalidFileNameFormat,
     DuplicateContentId
 )
-from synamic.core.frontmatter import Document
+from synamic.core.classes.document import MarkedDocument
 
 """
 # Other frontmatter like texts
@@ -49,7 +49,7 @@ class Chapter:
 
     @property
     def for_url(self):
-        """returns an url or Url instance?"""
+        """returns an url or UrlContract instance?"""
         # A lot of processing here
         return None
 
@@ -152,11 +152,11 @@ class AllSeries(ContentModuleContract):
         for fn in file_names:
             with open(fn, "r", encoding=self.get_encoding()) as f:
                 _text = f.read()
-                doc = Document(_text)
-                if not doc.has_valid_front_matter:
+                doc = MarkedDocument(_text)
+                if not doc.has_valid_frontmatter:
                     raise InvalidFrontMatter("Front matter is corrupted or invalid")
                 else:
-                    front_map = doc.front_map
+                    front_map = doc.frontmatter
 
                     for field in front_map.keys():
                         if field not in self.get_text_fileds():

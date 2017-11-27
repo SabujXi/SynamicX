@@ -21,9 +21,15 @@ class ContentModuleContract(abc.ABC):
         """
         pass
 
+    # @property
+    # @abc.abstractmethod
+    # def directory_path(self):
+    #     """Relative directory path"""
+    #     pass
+
     @property
     @abc.abstractmethod
-    def directory_path(self):
+    def parent_dir(self):
         """Relative directory path"""
         pass
 
@@ -48,10 +54,31 @@ class ContentModuleContract(abc.ABC):
     @abc.abstractmethod
     def extensions(self): pass
 
+    # @abc.abstractmethod
+    # def render(self, url_obj):
+    #     """
+    #         Unlike C2, render will accept a Url object and do rendering accordingly.
+    #         render() will return a file like closable object - instead of writing to the file system as in the C2 commit.
+    #     """
+    #     new decision: instead of render, get stream on contentcontract will be invoked
+
+    @property
     @abc.abstractmethod
-    def render(self): pass
-
-
-
-
-
+    def root_path(self):
+        """
+            Url of the contents will be constructed based on this. Later on I can add per module root path in settings.yaml
+            
+            root_path will directly be appended to the url of the content.
+            
+            e.g. 1:
+                content url: me/mo  # initial '/' is always stripped off
+                path_root: meau
+                
+                final url: meaume/mo
+                
+            e.g 2:
+                content url: me/mo  # initial '/' is always stripped off
+                path_root: meau
+                
+                final url: meau/me/mo
+        """

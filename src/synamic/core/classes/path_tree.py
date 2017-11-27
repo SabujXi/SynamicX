@@ -1,5 +1,4 @@
 import os
-# from synamic.core.synamic_config import SynamicConfig
 import re
 
 regex_type = type(re.compile(""))
@@ -84,49 +83,58 @@ class PathTree(object):
         assert os.path.isdir(_cfg.site_root), "FileTree.__init__: _root must be a directory, `%s`" % _cfg.site_root
         self.__config = _cfg
 
-    def __list_paths(self, path_container: set, _relative_root=None):
+        # Paths are reserved by modules.
+        # Once a module reserves a path other modules cannot use that.
+        self.__paths_by_content_modules = {}
+        self.__other_paths = set()
+
+    def __list_paths(self, path_container: set, next_relative_root="", prefix_relative_root=""):
         """A function to get all paths recursively starting from abs_root but returns a list of paths relative to the 
         .root"""
-        relative_root = _relative_root if _relative_root is not None else ""
-        absolute_root = self.get_full_path(relative_root)
-        assert os.path.exists(absolute_root), "Relative root must exist"
 
-        paths = os.listdir(self.__config.site_root) if relative_root is None else os.listdir(absolute_root)
+        """
+        prefix_relative_root is fixed on every recursion
+        BUT next_relative_root isn't
+        """
 
-        for path in paths:
-            path_rel = os.path.join(relative_root, path)
-            path_abs = self.get_full_path(path_rel)
+        absolute_root = self.get_full_path(prefix_relative_root, next_relative_root)
+        print("Absolute root: ", absolute_root)
+        assert os.path.exists(absolute_root), "Absolute root must exist"
+
+        for path in os.listdir(absolute_root):
+            path_rel = os.path.join(next_relative_root, path)
+            path_abs = self.get_full_path(prefix_relative_root, path_rel)
 
             if os.path.isfile(path_abs):
                 path_obj = Path(path_rel, path_abs, True)
             elif os.path.isdir(path_abs):
                 path_obj = Path(path_rel, path_abs, False)
                 # Recurse
-                self.__list_paths(path_container, _relative_root=path_rel)
+                self.__list_paths(path_container, next_relative_root=path_rel, prefix_relative_root=prefix_relative_root)
             else:
                 raise Exception("Path is neither dir, nor file")
             path_container.add(path_obj)
 
-    def list_paths(self, relative_root=None):
+    def list_paths(self, relative_root="", prefix_relative_root=""):
         path_container = set()
-        self.__list_paths(path_container, relative_root)
+        self.__list_paths(path_container, relative_root, prefix_relative_root=prefix_relative_root)
         return path_container
 
-    def list_files(self, relative_root=None):
-        paths = self.list_paths(relative_root=relative_root)
+    def list_files(self, relative_root="", prefix_relative_root=""):
+        paths = self.list_paths(relative_root=relative_root, prefix_relative_root=prefix_relative_root)
         file_paths = set()
         for path in paths:
             if path.is_file:
                 file_paths.add(path)
-        return paths
+        return file_paths
 
-    def list_dirs(self, relative_root=None):
-        paths = self.list_paths(relative_root=relative_root)
-        file_paths = set()
+    def list_dirs(self, relative_root="", prefix_relative_root=""):
+        paths = self.list_paths(relative_root=relative_root, prefix_relative_root=prefix_relative_root)
+        dir_paths = set()
         for path in paths:
             if path.is_dir:
-                file_paths.add(path)
-        return paths
+                dir_paths.add(path)
+        return dir_paths
 
     def get_full_path(self, *_path):
         """Comma separated arguments of path components or os.sep separated paths"""
@@ -146,4 +154,43 @@ class PathTree(object):
     def exists_dir(self, _path):
         full_path = self.get_full_path(*_path)
         return True if os.path.exists(full_path) and os.path.isdir(full_path) else False
+
+    def get_module_paths(self, mod_obj):
+        print("Modules that have paths: ", self.__paths_by_content_modules.keys())
+
+        print("Query for mod name: ", mod_obj.name)
+        paths = self.__paths_by_content_modules.get(mod_obj.name)
+        print("Paths by content modules get_module_paths(): ", self.__paths_by_content_modules)
+        print("Paths for mod `%s`: " % mod_obj.name, paths)
+        assert paths is not None, "Module name must exist"
+        return paths
+
+    def get_untracked_content_paths(self):
+        return self.__other_paths
+
+    def load(self):
+        content_modules = self.__config.content_modules
+        # print("Content modules: ", content_modules)
+        # mod_names = set([mod.name for mod in content_modules])
+        for mod in content_modules:
+            self.__paths_by_content_modules[mod.name] = set()
+            # dir = mod.directory_name
+            file_paths = self.list_files(relative_root=mod.directory_name, prefix_relative_root=mod.parent_dir)
+
+            if mod.extensions is None:
+                # take all
+                for x in file_paths:
+                    self.__paths_by_content_modules[mod.name].add(x)
+            else:
+                for x in file_paths:
+                    if x.extension.lower() in mod.extensions:
+                        self.__paths_by_content_modules[mod.name].add(x)
+                    else:
+                        self.__other_paths.add(x)
+
+        print("Paths by content modules: ", self.__paths_by_content_modules)
+        print()
+        print("Other paths: ", self.__other_paths)
+        print()
+        # print(self.__config.)
 
