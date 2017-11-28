@@ -30,6 +30,19 @@ class ContentUrlContract(abc.ABC):
     @property
     @abc.abstractmethod
     def path(self):
+        """Normalized path"""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def generalized_path(self):
+        """Generalized/lower path"""
+        pass
+
+    @property
+    @abc.abstractmethod
+    def generalized_real_path(self):
+        """Generalized/lower real path"""
         pass
 
     @property
@@ -45,6 +58,8 @@ class ContentUrlContract(abc.ABC):
     @abc.abstractmethod
     def real_path(self):
         """
+        Must all, including this path, be normalized.
+        
         e.g:
             path: me/one
             real_path: me/one/index.html
@@ -78,8 +93,20 @@ class ContentUrlContract(abc.ABC):
 
     @property
     @abc.abstractmethod
+    def is_dir(self):
+        pass
+
+    @property
+    @abc.abstractmethod
     def content(self):
         """
             Urls are associated only with some kind of content.
              This will return the content object (maybe, so that we can call render() on it later)
+        """
+
+    @property
+    @abc.abstractmethod
+    def to_file_path(self):
+        """
+            Must return a file name with os.sep specific to the running platform 
         """

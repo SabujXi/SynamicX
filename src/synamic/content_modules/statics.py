@@ -23,6 +23,9 @@ class Static(ContentContract):
     def path(self):
         return self.__path
 
+    @property
+    def content_id(self):
+        return self.module.name + ":" + self.path.relative_path  # Should be more intelligent? Ok, let's think about that later.
 
     def get_stream(self):
         file = open(self.path.absolute_path, 'rb')

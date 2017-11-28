@@ -4,7 +4,7 @@ import mimetypes
 
 from synamic.core.contracts import ContentModuleContract, ContentContract
 from synamic.core.classes.document import MarkedDocument
-from synamic.core.synamic_config import SynamicConfig
+# from synamic.core.synamic_config import SynamicConfig
 from synamic.core.functions.decorators import loaded, not_loaded
 """
 Text files must start with a number. The initial zero of the number will be stripped off
@@ -32,8 +32,8 @@ class Text(ContentContract, MarkedDocument):
         return self.__path
 
     @property
-    def text_id(self):
-        return self.__text_id
+    def content_id(self):
+        return self.module.name + ":" + str(self.__text_id)
 
     def get_stream(self):
         template_module, template_name = self.template
@@ -55,7 +55,7 @@ class Texts(ContentModuleContract):
 
     _file_name_regex = re.compile("^(?P<id>[0-9]+)\. ?(.+)")
 
-    def __init__(self, _cfg: SynamicConfig):
+    def __init__(self, _cfg):
         self.__config = _cfg
         self.__text_map = {}
 

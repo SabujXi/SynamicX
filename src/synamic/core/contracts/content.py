@@ -15,6 +15,9 @@ class ContentContract(abc.ABC):
     @property
     @abc.abstractmethod
     def content_id(self):
+        """
+            Content id will not be of type int, it will be kept as string because there may be string id many time in our program. 
+        """
         pass
 
     @abc.abstractmethod

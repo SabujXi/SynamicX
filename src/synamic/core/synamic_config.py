@@ -21,7 +21,7 @@ from collections import namedtuple
 class SynamicConfig(object):
     KEY_URLS_BY_NAME = sys.intern("key-URLS_BY_NAME")
     KEY_URLS_BY_PATH = sys.intern("key-URLS_BY_PATH")
-    KEY_URLS_BY_REAL_PATH = sys.intern("key-URLS_BY_REAL_PATH")
+    KEY_URLS_BY_GENERALIZED_REAL_PATH = sys.intern("key-URLS_BY_GENERALIZED_REAL_PATH")
     KEY_URLS_BY_CONTENT_ID = sys.intern("key-URLS_BY_CONTENT_ID")
     KEY_URLS = sys.intern("key-URLS")
 
@@ -44,7 +44,7 @@ class SynamicConfig(object):
         self.__url_map = {
             self.KEY_URLS_BY_NAME: dict(),
             self.KEY_URLS_BY_PATH: dict(),
-            self.KEY_URLS_BY_REAL_PATH: dict(),
+            self.KEY_URLS_BY_GENERALIZED_REAL_PATH: dict(),
             self.KEY_URLS_BY_CONTENT_ID: dict(),
             self.KEY_URLS: set()
         }
@@ -69,7 +69,7 @@ class SynamicConfig(object):
         self.__module_root_dirs = ModuleRootDirs(
             'content',
             'meta',
-            'template'
+            'templates'
         )
 
         # initializing
@@ -165,9 +165,10 @@ class SynamicConfig(object):
             self.path_tree.get_full_path(self.output_dir),
         ]
         for mod in self.modules:
-            mod_root_dir = self.get_module_root_dir(mod)
+
+            mod_dir = self.get_module_dir(mod)
             # if mod.directory_name:
-            dir = self.path_tree.get_full_path(self.get_module_dir(mod))
+            dir = self.path_tree.get_full_path(mod_dir)
             dirs.append(dir)
         for dir in dirs:
             if not os.path.exists(dir):
@@ -177,7 +178,7 @@ class SynamicConfig(object):
         """Module type can be contract classes or any subclass of them. At the end, the contract class will be the key 
         of the map"""
         mod_type = self.get_module_type(mod_obj)
-        mod_name = normalize_key(mod_type.name)
+        mod_name = normalize_key(mod_obj.name)
         if mod_type not in self.module_types:
             raise InvalidModuleType("The module type you provided is not valid: %s" % str(type(mod_obj)))
 
@@ -197,14 +198,46 @@ class SynamicConfig(object):
         return self.__modules_map[mod_name]
 
     def add_url(self, url: ContentUrlContract):
+        # Checking/Validation and addition
+        # 1. Url Name
         if url.name is not None and url.name != "":
-            print("Adding url name: ", url.name)
-            assert url.name not in self.__url_map["names"], "Multiple resource with the same url name cannot live together"
-        assert url.path not in self.__url_map["urls"], "Multiple resource with the same full url cannot coexist"
+            assert url.name not in self.__url_map[self.KEY_URLS_BY_NAME], "Multiple resource with the same url name cannot live together"
+            self.__url_map[self.KEY_URLS_BY_NAME][url.name] = url
+        # 2. Url path
+        assert url.path not in self.__url_map[self.KEY_URLS_BY_PATH]
+        self.__url_map[self.KEY_URLS_BY_PATH][url.path] = url
 
-        if url.name is not None or url.name != "":
-            self.__url_map["names"].add(url.name)
-        self.__url_map["urls"][url.path] = url
+        # 3. Generalized real path
+        assert url.generalized_real_path not in self.__url_map[self.KEY_URLS_BY_GENERALIZED_REAL_PATH], "Multiple resource with the same full url cannot coexist"
+        self.__url_map[self.KEY_URLS_BY_GENERALIZED_REAL_PATH][url.generalized_real_path] = url
+
+        # 4. Content id
+        if url.content.content_id is not None and url.content.content_id != "":
+            assert url.content.content_id not in self.__url_map[self.KEY_URLS_BY_CONTENT_ID], "Duplicate content id cannot exist"
+            self.__url_map[self.KEY_URLS_BY_CONTENT_ID][url.content.content_id] = url
+
+        # 5. Urls set
+        self.__url_map[self.KEY_URLS].add(url)
+
+    def get_url(self, name_or_id):
+        """
+        Finds a url depending on name/content-id
+        
+        Search priority:
+            1. Name
+            2. ID
+        """
+
+        # 1. Into name
+        name = normalize_key(name_or_id)
+        if name in self.__url_map[self.KEY_URLS_BY_NAME]:
+            return self.__url_map[self.KEY_URLS_BY_NAME][name]
+        # 2. Content id
+        elif name_or_id in self.__url_map[self.KEY_URLS_BY_CONTENT_ID]:
+            return self.__url_map[self.KEY_URLS_BY_CONTENT_ID][name_or_id]
+        else:
+            # Should raise exception or just return None/False
+            raise Exception("Url could not be found by url name or content id")
 
     @property
     def site_root(self):
@@ -245,8 +278,8 @@ class SynamicConfig(object):
     @loaded
     def build(self):
         self.initialize_site_dirs()
-        for url in self.__url_map['urls'].values():
-            print("Going to Write url: ", url.path)
+        for url in self.__url_map[self.KEY_URLS]:
+            print("BUILD():: Going to Write url: ", url.path)
             dir = os.path.join(self.site_root, '_html', *url.dir_components)
             if not os.path.exists(dir):
                 os.makedirs(dir)
@@ -255,7 +288,7 @@ class SynamicConfig(object):
             with open(fs_path, 'wb') as f:
                 stream = url.content.get_stream()
                 f.write(stream.read())
-                print("Wrote: %s" % f.name)
+                print("BUILD():: Wrote: %s" % f.name)
                 stream.close()
 
     def get(self, key, default=None):
