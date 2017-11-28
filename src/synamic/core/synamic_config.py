@@ -12,7 +12,7 @@ from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.content_modules.texts import Texts
 from synamic.template_modules.synamic_template import SynamicTemplate
 from synamic.content_modules.statics import Statics
-from synamic.core.functions.normalizers import normalize_key
+from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path
 from synamic.core.dependency_resolver import create_dep_list
 from synamic.core.classes.site_settings import SiteSettings
 from collections import namedtuple
@@ -238,6 +238,15 @@ class SynamicConfig(object):
         else:
             # Should raise exception or just return None/False
             raise Exception("Url could not be found by url name or content id")
+
+    def get_url_by_path(self, path):
+        path = normalize_content_url_path(path)
+        print("Path requested: %s (normalized)" % path)
+        if path in self.__url_map[self.KEY_URLS_BY_PATH]:
+            url = self.__url_map[self.KEY_URLS_BY_PATH][path]
+        else:
+            url = None
+        return url
 
     @property
     def site_root(self):

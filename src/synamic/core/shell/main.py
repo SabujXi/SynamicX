@@ -2,22 +2,25 @@ import os
 import sys
 
 import synamic.core.synamic_config
-from synamic import SynamicConfig
+from synamic.core.synamic_config import SynamicConfig
 from synamic.core.synamic import Synamic
 
 """
 REMEMBER:
+====deprecated===
 - the content_modules that has no dependency must be loaded first.
 -> meta contents: variables, tags, categories have no dependency
 <-> templates has dependency on above
 <- contents: texts, series, and-whatever-else-added later have dependency on meta contents || plain html has no dependency on others. But keep that loaded at this phase.
+=================
+A dependency resolver has been developed.
 
 * Actually only contents is rendered. So, you /run/ content module - not others*
-
 [
     
 ]
 """
+
 
 def get_synamic(base_path):
     assert not (base_path != "" or base_path is not None), "Base path cannot be empty"
@@ -85,7 +88,7 @@ class SynamicInitProject:
 
     def start_unittest(self):
         import unittest
-        from . import test
+        from synamic import test
         loader = unittest.TestLoader()
         suite = loader.discover(os.path.dirname(test.__file__), pattern="test_*.py")
         test_runner = unittest.runner.TextTestRunner()
