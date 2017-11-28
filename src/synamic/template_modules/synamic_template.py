@@ -1,6 +1,7 @@
 import jinja2
 from synamic.core.contracts.modules.base_template_contract import TemplateModuleContract
 from synamic.core.functions.decorators import loaded
+from synamic.core.classes.template_tags import GetUrlExtension
 
 
 class SynamicTemplate(TemplateModuleContract):
@@ -35,10 +36,11 @@ class SynamicTemplate(TemplateModuleContract):
             loader=jinja2.FileSystemLoader(
                 self.__config.path_tree.get_full_path(self.__config.template_dir, self.directory_name),
                 encoding='utf-8', followlinks=False),
-            autoescape=jinja2.select_autoescape(['html', 'xml'])
+            autoescape=jinja2.select_autoescape(['html', 'xml']),
+            extensions=[GetUrlExtension]
         )
         # setting config object to global of environment
-        self.__template_env.globals['config'] = self.__config
+        self.__template_env.synamic_config = self.__config
 
         self.__is_loaded = True
 

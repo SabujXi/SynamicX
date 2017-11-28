@@ -1,2 +1,5 @@
-1. Resolve content id. ::done::
+- Resolve content id. ::done::
+- Template tags (e.g. url resolver tag) ::geturl done::
+- Development server 
+
 
