@@ -18,7 +18,7 @@ from synamic.core.classes.filter_content import filter_dispatcher, parse_rules
 from synamic.core.contracts.content import content_is_dynamic
 import enum
 from synamic.core.contracts.document import MarkedDocumentContract
-
+from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
 
 class SynamicConfig(object):
     @enum.unique
@@ -62,6 +62,8 @@ class SynamicConfig(object):
 
         # site settings
         self.__site_settings = None
+
+        self.__frontmatter_value_parser = {}
 
         # module root dirs
         # Initiate module root dirs
@@ -143,6 +145,9 @@ class SynamicConfig(object):
     def load(self):
         # """Load must be called after dependency list is built"""
         self.__dependency_list = create_dep_list(self.__modules_map)
+
+        # Registering front matter value parsers
+        DefaultFrontmatterValueParsers.register_default_value_parsers(self)
 
         self.__is_loaded = True
 
@@ -431,3 +436,12 @@ class SynamicConfig(object):
                 print("Creating auxiliary: %s" % i)
                 self.add_url(auxiliary_content.url_object)
                 i += 1
+
+    def register_frontmatter_value_parser(self, key, _callable):
+        key = normalize_key(key)
+        assert key not in self.__frontmatter_value_parser, 'A parser is already there for key: %s' % key
+        self.__frontmatter_value_parser[key] = _callable
+
+    def get_frontmatter_value_parser(self, key):
+        key = normalize_key(key)
+        return self.__frontmatter_value_parser[key]

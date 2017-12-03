@@ -13,8 +13,6 @@ from synamic.core.functions.frontmatter import parse_front_matter
 from synamic.core.functions.yaml_processor import load_yaml
 from synamic.core.classes.frontmatter import Frontmatter
 from synamic.core.classes.url import ContentUrl
-from synamic.core.functions.date_time import parse_datetime
-
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 """
@@ -89,7 +87,7 @@ class TextContent(MarkedDocumentContract):
         # return self.module_object.name + ":" + str(self.__text_id)
 
     def get_stream(self):
-        template_module, template_name = self.template_module_object, self.template_name.split(":")[0] if len(self.template_name.split(":")) == 1 else self.template_name.split(":")[1]
+        template_module, template_name = self.template_module_object, self.template_name
         res = template_module.render(template_name, body=self.body)
         f = io.BytesIO(res.encode('utf-8'))
         return f
@@ -138,7 +136,7 @@ class TextContent(MarkedDocumentContract):
     @property
     def frontmatter(self):
         if not self.__frontmatter:
-            self.__frontmatter = Frontmatter(load_yaml(self.raw_frontmatter))
+            self.__frontmatter = Frontmatter(self.__config, load_yaml(self.raw_frontmatter))
         return self.__frontmatter
 
     @property
@@ -147,19 +145,13 @@ class TextContent(MarkedDocumentContract):
 
     @property
     def title(self):
-        if self.__title is None:
-            ttl = self.frontmatter.get("title")
-            if ttl is None:
-                self.__title = ""
-            else:
-                self.__title = ttl
-        return self.__title
+        return self.frontmatter.get("title", None)
 
     def _create_url_object(self):
         url_str = ''
         url_name = None
         is_dir = True
-        yaml_url_obj = self.frontmatter['url']  # need to change to path
+        yaml_url_obj = self.frontmatter['permalink']  # need to change to path
 
         if isinstance(yaml_url_obj, str):
             url_str = yaml_url_obj
@@ -206,77 +198,34 @@ class TextContent(MarkedDocumentContract):
 
     @property
     def created_on(self):
-        if self.frontmatter.get('created-on'):
-            if self.__created_on is None:
-                self.__created_on = parse_datetime(
-                    self.frontmatter['created-on']
-                )
-        else:
-            return None
-        return self.__created_on
+        return self.frontmatter.get('created-on', None)
 
     @property
     def updated_on(self):
-        if self.frontmatter.get('updated-on'):
-            if self.__updated_on is None:
-                self.__updated_on = parse_datetime(
-                    self.frontmatter['updated-on']
-                )
-        else:
-            return None
-        return self.__updated_on
+        return self.frontmatter.get('updated-on')
 
     @property
     def summary(self):
-        if self.__summary is None:
-            self.__summary = self.frontmatter.get('summary', "")
-        return self.__summary
+        return self.frontmatter.get('summary', None)
 
     @property
     def tags(self):
-        if self.__tags is None:
-            tgs = self.frontmatter.get('tags', '')
-            if tgs:
-                self.__tags = [x.strip() for x in tgs.split(',')]
-            else:
-                self.__tags = []
-        return self.__tags
+        return self.frontmatter.get('tags', None)
 
     @property
     def categories(self):
-        if self.__categories is None:
-            ctgs = self.frontmatter.get('categories', '')
-            if ctgs:
-                self.__categories = [x.strip() for x in ctgs.split()]
-            else:
-                self.__categories = []
-
-        return self.__categories
+        return self.frontmatter.get('categories', None)
 
     @property
     def template_name(self):
-        tmplt = self.frontmatter.get('template')
-        # print("tmplt: ", tmplt)
-        # print("FM Keys: ", self.frontmatter.keys())
-        assert tmplt, "Template must exist"
-        return tmplt
+        res = self.frontmatter.get('template', None)
+        return res.template_name
 
     @property
     def template_module_object(self):
-        tmplt = self.template_name
-        l = tmplt.split(":")
-        if len(l) > 1:
-            template_module_name = l[0]
-            template_name = l[1]
-        else:
-            template_module_name = 'synamic-template'
-            template_name = l[0]
-        template_mod = self.__config.get_module(template_module_name)
-        # res = (template_mod, template_name)
-        return template_mod
-        # template_mod = self.__config.get_module(template_module_name)
-        # res = template_mod.render(template_name, body=self.body)
-        # return res
+        res = self.frontmatter.get('template', None)
+        mod_name = res.module_name
+        return self.__config.get_module(mod_name)
 
 
 class TextModule(ContentModuleContract):

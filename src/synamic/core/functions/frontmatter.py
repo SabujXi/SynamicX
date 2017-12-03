@@ -1,7 +1,7 @@
 import re
 
-start_pattern = re.compile(r"^\s*(-{3,})[\n\r]+", re.IGNORECASE|re.DOTALL)
-end_pattern = re.compile(r"[\n\r]+(-{3,})[\n\r]+", re.IGNORECASE|re.DOTALL)
+start_pattern = re.compile(r"^\s*(-{3,})[\n\r]+", re.IGNORECASE | re.DOTALL)
+end_pattern = re.compile(r"[\n\r]+(-{3,})[\n\r]+", re.IGNORECASE | re.DOTALL)
 
 
 def parse_front_matter(text):

@@ -8,8 +8,11 @@
     (* very minimal server added *)
     
 4. Module name validations.
+5. Front Matter Parsing By Callable Registration
 
 # TO-DOs
+2. Pagination Object
+3. Parser/Lexer/Compiler for filter rule parsing
 
 # Random TO DOs
 

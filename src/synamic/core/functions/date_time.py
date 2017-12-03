@@ -8,7 +8,8 @@ _datetime_pattern = re.compile(r"^(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<date>\d
 
 
 def parse_datetime(txt):
-    m = re.match(txt)
+    txt = txt.strip()
+    m = _datetime_pattern.match(txt)
     assert m, "Datetime format did not match"
     year = int(m.group('year'))
     month = int(m.group('month'))

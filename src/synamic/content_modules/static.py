@@ -97,7 +97,7 @@ class StaticModule(ContentModuleContract):
             print("File path root relative is: ", file_path.relative_path_from_root)
             assert file_path.is_file  # Remove in prod
             static = StaticContent(self.__config, self, file_path)
-            url = ContentUrl(self.__config, (self.root_url_path + file_path.relative_path_from_module_root), False)
+            url = ContentUrl(self.__config, (self.root_url_path + file_path.relative_path_from_module_root.replace('\\', '/')), False)
             print("URL: %s" % url.path)
             static.url_object = url
             self.__config.add_document(static)
