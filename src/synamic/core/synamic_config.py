@@ -250,7 +250,7 @@ class SynamicConfig(object):
             # Should raise exception or just return None/False
             raise Exception("Url could not be found by url_object name or content id")
 
-    def get_url_by_path(self, path):
+    def get_content_by_url_path(self, path):
         path = normalize_content_url_path(path)
         print("ContentPath requested: %s (normalized)" % path)
         if path in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH]:

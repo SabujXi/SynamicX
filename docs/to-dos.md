@@ -9,10 +9,12 @@
     
 4. Module name validations.
 5. Front Matter Parsing By Callable Registration
+6. Pagination Object
 
 # TO-DOs
-2. Pagination Object
+
 3. Parser/Lexer/Compiler for filter rule parsing
+4. Get content id & name from frontmatter, get id from file name - frontmatter gets higher priority
 
 # Random TO DOs
 

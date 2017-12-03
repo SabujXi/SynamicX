@@ -6,6 +6,8 @@ class Pagination:
         self.__position = position
         self.__per_page = per_page
         self.__hosting_content = None
+        self.__next_page = None
+        self.__prev_page = None
 
     @property
     def total_pagination(self):
@@ -20,15 +22,16 @@ class Pagination:
         return self.__position
 
     @property
-    def per_page(self):
+    def contents_per_page(self):
         return self.__per_page
 
     @property
-    def hosting_content(self):
+    def host_page(self):
         return self.__hosting_content
 
-    @hosting_content.setter
-    def hosting_content(self, hos_con):
+    @host_page.setter
+    def host_page(self, hos_con):
+        assert self.__hosting_content is None
         self.__hosting_content = hos_con
 
     # Synthetic ones
@@ -59,24 +62,38 @@ class Pagination:
         return False
 
     @property
+    def next_page(self):
+        return self.__next_page
+
+    @next_page.setter
+    def next_page(self, np):
+        assert self.__next_page is None
+        self.__next_page = np
+
+    @property
     def has_previous(self):
         if self.__position > 0:
             return True
         return False
 
+    @property
+    def previous_page(self):
+        return self.__prev_page
+
+    @previous_page.setter
+    def previous_page(self, pp):
+        assert self.__prev_page is None
+        self.__prev_page = pp
+
 
 class PaginationStream:
-    def __init__(self, config, filter_txt, contents_per_page=2):
+    def __init__(self, config, starting_content, filter_txt, contents_per_page=2):
         self.__config = config
-        # self.__starting_content = starting_content
+        self.__starting_content = starting_content
         self.__filter_txt = filter_txt
         self.__paginations = []
-        pgs = self._paginate(self.__filter_txt, contents_per_page)
-        i = 0
 
-        for pg in pgs:
-            self.__paginations.append(Pagination(len(pgs), pg, i, contents_per_page))
-            i += 1
+        self._paginate(self.__filter_txt, contents_per_page)
 
     @property
     def paginations(self):
@@ -105,16 +122,39 @@ class PaginationStream:
                     print("IDX %s - %s" % (idx, cnts))
                     _cts.append(cnts[idx])
                 paginated_contents.append(tuple(_cts))
-        print("Paginated contents: %s" % paginated_contents)
-        # if paginated_contents:
-        #     i = 1
-        #     for page in paginated_contents:
-        #         auxiliary_content = content_obj.create_auxiliary(str(i))  # Currently it is creating paginated content
-        #         # relative to every cloned
-        #         print("Creating auxiliary: %s" % i)
-        #         self.add_url(auxiliary_content.url_object)
-        #         i += 1
-        print("\n~~~~~~~~~~~~~~~~| Paginated contents: %s |~~~~~~~~~~~~~\n" % paginated_contents)
-        return paginated_contents
 
+        prev_page = None
+        prev_pg = None
 
+        if paginated_contents:
+            i = 0
+            for _page_contents in paginated_contents:
+
+                pagination = Pagination(len(paginated_contents), _page_contents, i, per_page)
+                self.__paginations.append(pagination)
+
+                if i == 0:
+                    self.__starting_content.pagination = pagination
+                    pagination.host_page = self.__starting_content
+                    prev_page = self.__starting_content
+
+                else:
+                    aux = self.__starting_content.create_auxiliary()
+
+                    aux.pagination = pagination
+                    pagination.host_page = aux
+                    prev_page = aux
+
+                    pagination.previous_page = prev_page
+
+                    aux.url_object.append_component('part-%s' % pagination.position)
+                    print("\n~~~~~~~~~~~~~~~~Aux content added: %s ~~~~~~~~~~~~~\n" % aux)
+
+                    if prev_page:
+                        prev_pg.next_page = aux
+
+                    self.__config.add_document(aux)
+
+                prev_pg = pagination
+
+                i += 1

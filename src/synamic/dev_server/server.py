@@ -13,13 +13,13 @@ class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
         if path == '/':
             path = '/index.html'
 
-        url = self.server.synamic_config.get_url_by_path(path)
-        if not url:
-            url = self.server.synamic_config.get_url_by_path(path + "/index.html")
-        if url:
+        cont = self.server.synamic_config.get_content_by_url_path(path)
+        if not cont:
+            cont = self.server.synamic_config.get_content_by_url_path(path + "/index.html")
+        if cont:
             self.send_response(200, message="OK")
             self.end_headers()
-            stream = url.content.get_stream()
+            stream = cont.get_stream()
             while True:
                 byts = stream.read(60*1024)
                 if not byts:
