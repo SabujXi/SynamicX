@@ -97,3 +97,7 @@ class MarkedDocumentContract(BaseDocumentContract):
         Returns template module_object
         """
 
+    @abstractmethod
+    def trigger_pagination(self):
+        pass
+

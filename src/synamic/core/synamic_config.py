@@ -404,38 +404,6 @@ class SynamicConfig(object):
                 sorted_content = sorted(accepted_contents, reverse=reverse)
         return sorted_content
 
-    def paginate(self, content_obj, rules_txt, per_page=2):
-        cnts = self.filter_content(rules_txt)
-
-        paginated_contents = []
-
-        if cnts:
-            print("Contents: %s" % cnts)
-            q, r = divmod(len(cnts), per_page)
-            divs = q
-            if r > 0:
-                divs += 1
-            print("Divs: %s" % divs)
-
-            for i in range(divs):
-                _cts = []
-                for j in range(per_page):
-                    idx = (i*per_page) + j           # (row * NUMCOLS) + column        #(i * divs) + j
-                    print("idx: %s" % idx)
-                    if idx >= len(cnts):
-                        break
-                    print("IDX %s - %s" % (idx, cnts))
-                    _cts.append(cnts[idx])
-                paginated_contents.append(tuple(_cts))
-        print("Paginated contents: %s" % paginated_contents)
-        if paginated_contents:
-            i = 1
-            for page in paginated_contents:
-                auxiliary_content = content_obj.create_auxiliary(str(i))  # Currently it is creating paginated content
-                # relative to every cloned
-                print("Creating auxiliary: %s" % i)
-                self.add_url(auxiliary_content.url_object)
-                i += 1
 
     def register_frontmatter_value_parser(self, key, _callable):
         key = normalize_key(key)

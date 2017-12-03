@@ -34,7 +34,7 @@ class TextContent(MarkedDocumentContract):
 
         self.__content_type = ContentContract.types.DYNAMIC
         self.__file_content = file_content
-        self.__paginated_contents = None
+        self.__pagination = None
 
         self.__url_suffix = url_suffix
 
@@ -67,6 +67,7 @@ class TextContent(MarkedDocumentContract):
         self.__summary = None
         self.__tags = None
         self.__categories = None
+
 
     @property
     def module_object(self):
@@ -109,8 +110,8 @@ class TextContent(MarkedDocumentContract):
         assert self.__content_type is ContentContract.types.DYNAMIC, "The content type of text content is initially dynamic"
         self.__content_type = ContentContract.types.AUXILIARY
 
-    def create_auxiliary(self, url_suffix):
-        auxiliary_clone = self.__class__(self.__config, self.__module, self.__path, self.__file_content, url_suffix=url_suffix)
+    def create_auxiliary(self):
+        auxiliary_clone = self.__class__(self.__config, self.__module, self.__path, self.__file_content)
         auxiliary_clone._set_auxiliary()
         return auxiliary_clone
 
@@ -227,6 +228,35 @@ class TextContent(MarkedDocumentContract):
         mod_name = res.module_name
         return self.__config.get_module(mod_name)
 
+    def trigger_pagination(self):
+        print("\n~~~~~~~~~~~~~~~~pagination triggered~~~~~~~~~~~~~\n")
+        rules_txt = self.frontmatter.get('pagination-filter', None)
+        print("\n~~~~~~~~~~~~~~~~Rules txt: %s~~~~~~~~~~~~~\n" % rules_txt)
+        if rules_txt:
+            per_page = self.frontmatter.get('pagination-content-per-page', None)
+            if not per_page:
+                per_page = 1  # later we will take the default from config
+            from synamic.core.classes.pagination import PaginationStream
+            pg_stream = PaginationStream(self.__config, rules_txt, per_page)
+            print("\n~~~~~~~~~~~~~~~~pg_stream.paginations %s~~~~~~~~~~~~~\n" % pg_stream.paginations)
+            for pg in pg_stream.paginations:
+                if pg.is_start:
+                    self.__pagination = pg
+                    pg.hosting_content = self
+                else:
+                    aux = self.create_auxiliary()
+                    aux.url_object.append_component('part-%s' % pg.position)
+                    pg.hosting_content = aux
+                    self.__config.add_document(aux)
+                    print("\n~~~~~~~~~~~~~~~~Aux content added: %s ~~~~~~~~~~~~~\n" % aux)
+
+    @property
+    def pagination(self):
+        return self.__pagination
+
+
+
+
 
 class TextModule(ContentModuleContract):
 
@@ -279,11 +309,16 @@ class TextModule(ContentModuleContract):
             with open(file_path.absolute_path, "r", encoding="utf-8") as f:
                 text = f.read()
                 text_obj = TextContent(self.__config, self, file_path, text)
+
                 if not text_obj.has_valid_frontmatter:
                     print(text_obj.raw_frontmatter)
                     raise Exception("Front matter is corrupted or invalid")
                 self.__text_map[text_id] = text_obj
                 self.__config.add_document(text_obj)
+
+        # TODO: must be moved to config.load later
+        for text_obj in self.__text_map.values():
+            text_obj.trigger_pagination()
 
         self.__is_loaded = True
 

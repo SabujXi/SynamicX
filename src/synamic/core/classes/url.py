@@ -21,6 +21,19 @@ class ContentUrl(ContentUrlContract):
         if not is_dir:
             assert not self.__url_str.endswith('/'), "A file url_object path cannot end with '/'"
 
+    def append_component(self, component):
+        # self.__is_dir = True
+        if self.__is_dir:
+            if self.__url_str.endswith('/'):
+                self.__url_str += component + '/'
+            else:
+                self.__url_str += '/' + component + '/'
+        else:  # file
+            if self.__url_str.endswith('/'):
+                self.__url_str = self.__url_str.rstrip('/')
+            self.__url_str += '-' + component + '/'
+            self.__is_dir = True
+
     @property
     def absolute_url(self):
         raise NotImplemented
