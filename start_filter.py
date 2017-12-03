@@ -6,7 +6,7 @@ print("SITE-ROOT: %s" % site_root)
 
 syn = Synamic(site_root)
 syn.load()
-a_cnt = syn.filter_content("(texts:: tags in x, y)")[0]
-print(a_cnt.path.relative_path)
-syn.paginate(a_cnt, "(texts)", per_page=1)
-syn.build()
+cnts = syn.filter_content("(texts:: tags in 'x') // (texts:: tags not in z)")
+
+for cnt in cnts:
+    print(cnt.path.relative_path)

@@ -13,6 +13,10 @@ class Frontmatter:
         self.__map = obj
         normalize_keys(self.__map)
 
+    def __contains__(self, item):
+        key = normalize_key(item)
+        return key in self.__map
+
     def __getitem__(self, key):
         key = normalize_key(key)
         return self.__map[key]

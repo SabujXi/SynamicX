@@ -3,7 +3,7 @@ import sys
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.contracts import (
     ContentModuleContract,
-    MetaContentModuleContract,
+    # MetaContentModuleContract,
     TemplateModuleContract,
     ContentUrlContract
 )
@@ -16,6 +16,8 @@ from synamic.core.functions.normalizers import normalize_key, normalize_content_
 from synamic.core.dependency_resolver import create_dep_list
 from synamic.core.classes.site_settings import SiteSettings
 from collections import namedtuple
+import re
+from synamic.core.classes.filter_content import filter_dispatcher, parse_rules, combinators
 
 
 class SynamicConfig(object):
@@ -28,7 +30,7 @@ class SynamicConfig(object):
     # module types
     MODULE_TYPE_CONTENT = ContentModuleContract
     MODULE_TYPE_TEMPLATE = TemplateModuleContract
-    MODULE_TYPE_META = MetaContentModuleContract
+    # MODULE_TYPE_META = MetaContentModuleContract
 
     def __init__(self, site_root):
         assert os.path.exists(site_root), "Base path must not be non existent"
@@ -38,7 +40,7 @@ class SynamicConfig(object):
         self.__modules_map = {}
         self.__content_modules_map = {}
         self.__template_modules_map = {}
-        self.__meta_modules_map = {}
+        # self.__meta_modules_map = {}
 
         # URL store
         self.__url_map = {
@@ -64,11 +66,11 @@ class SynamicConfig(object):
         # Initiate module root dirs
         ModuleRootDirs = namedtuple("ModuleRootDirs",
                                     ['CONTENT_MODULE_ROOT_DIR',
-                                     'META_MODULE_ROOT_DIR',
+                                     # 'META_MODULE_ROOT_DIR',
                                      'TEMPLATE_MODULE_ROOT_DIR'])
         self.__module_root_dirs = ModuleRootDirs(
             'content',
-            'meta',
+            # 'meta',
             'templates'
         )
 
@@ -96,6 +98,11 @@ class SynamicConfig(object):
 
     @property
     @loaded
+    def module_names(self):
+        return set(self.__modules_map.keys()).copy()
+
+    @property
+    @loaded
     def content_modules(self):
         return list(self.__content_modules_map.values()).copy()
 
@@ -104,21 +111,21 @@ class SynamicConfig(object):
     def template_modules(self):
         return list(self.__template_modules_map.values()).copy()
 
-    @property
-    @loaded
-    def meta_modules(self):
-        return list(self.__meta_modules_map.values()).copy()
+    # @property
+    # @loaded
+    # def meta_modules(self):
+    #     return list(self.__meta_modules_map.values()).copy()
 
     @property
     def module_types(self):
-        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE, self.MODULE_TYPE_META}
+        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE}  #, self.MODULE_TYPE_META}
 
     def get_module_type(self, mod_instance):
         """Returns the type of the module as the contract class"""
         if isinstance(mod_instance, self.MODULE_TYPE_CONTENT):
             typ = self.MODULE_TYPE_CONTENT
-        elif isinstance(mod_instance, self.MODULE_TYPE_META):
-            typ = self.MODULE_TYPE_META
+        # elif isinstance(mod_instance, self.MODULE_TYPE_META):
+        #     typ = self.MODULE_TYPE_META
         else:
             typ = self.MODULE_TYPE_TEMPLATE
             assert isinstance(mod_instance, self.MODULE_TYPE_TEMPLATE)
@@ -128,8 +135,8 @@ class SynamicConfig(object):
         mod_type = self.get_module_type(mod_instance)
         if mod_type is self.MODULE_TYPE_CONTENT:
             return self.content_dir
-        elif mod_type is self.MODULE_TYPE_META:
-            return self.meta_dir
+        # elif mod_type is self.MODULE_TYPE_META:
+        #     return self.meta_dir
         else:
             return self.template_dir
 
@@ -177,6 +184,7 @@ class SynamicConfig(object):
     def add_module(self, mod_obj):
         """Module type can be contract classes or any subclass of them. At the end, the contract class will be the key 
         of the map"""
+
         mod_type = self.get_module_type(mod_obj)
         mod_name = normalize_key(mod_obj.name)
         if mod_type not in self.module_types:
@@ -184,12 +192,17 @@ class SynamicConfig(object):
 
         assert mod_name not in self.__modules_map, "Mod name cannot already exist"
 
+        # module name validation
+        valid_mod_name_pattern = re.compile(r'^[a-z0-9_-]+$', re.I)
+        assert valid_mod_name_pattern.match(mod_obj.name), "Invalid module name that does not go with %s" % valid_mod_name_pattern.pattern()
+        # < module name validation
+
         self.__modules_map[mod_name] = mod_obj
 
         if mod_type is self.MODULE_TYPE_CONTENT:
             self.__content_modules_map[mod_name] = mod_obj
-        elif mod_type is self.MODULE_TYPE_META:
-            self.__meta_modules_map[mod_name] = mod_obj
+        # elif mod_type is self.MODULE_TYPE_META:
+        #     self.__meta_modules_map[mod_name] = mod_obj
         else:
             self.__template_modules_map[mod_name] = mod_obj
 
@@ -241,7 +254,7 @@ class SynamicConfig(object):
 
     def get_url_by_path(self, path):
         path = normalize_content_url_path(path)
-        print("Path requested: %s (normalized)" % path)
+        print("ContentPath requested: %s (normalized)" % path)
         if path in self.__url_map[self.KEY_URLS_BY_PATH]:
             url = self.__url_map[self.KEY_URLS_BY_PATH][path]
         else:
@@ -256,9 +269,9 @@ class SynamicConfig(object):
     def content_dir(self):
         return self.__module_root_dirs.CONTENT_MODULE_ROOT_DIR
 
-    @property
-    def meta_dir(self):
-        return self.__module_root_dirs.META_MODULE_ROOT_DIR
+    # @property
+    # def meta_dir(self):
+    #     return self.__module_root_dirs.META_MODULE_ROOT_DIR
 
     @property
     def template_dir(self):
@@ -331,3 +344,103 @@ class SynamicConfig(object):
 
     def __contains__(self, item):
         return self.contains(item)
+
+    @loaded
+    def filter_content(self, filter_txt):
+        """Filters only is_dynamic content"""
+        parsed_rules, sort = parse_rules(filter_txt, self.module_names)
+        needed_module_names = set([rule.module_name for rule in parsed_rules])
+        contents_map = {}
+        for mod_name in needed_module_names:
+            contents_map[mod_name] = set()
+
+        for u in self.__url_map[self.KEY_URLS]:
+            cnt = u.content
+            if cnt.is_dynamic and cnt.module.name in needed_module_names:
+                contents_map[cnt.module.name].add(cnt)
+
+        accepted_contents_combination = []
+
+        for rule in parsed_rules:
+            contents = contents_map[rule.module_name]
+            passed_contents = set()
+            for cnt in contents:
+                if filter_dispatcher(cnt, rule.filter, rule.operator, rule.value_s):
+                    passed_contents.add(cnt)
+            accepted_contents_combination.append((passed_contents, rule.combinator))
+
+        accepted_contents = set()
+        i = 0
+        previous_combinator = None
+        while i < len(accepted_contents_combination):
+
+            contents = accepted_contents_combination[i][0]
+            combinator = accepted_contents_combination[i][1]
+            if previous_combinator is None:
+                accepted_contents.update(contents)
+                if combinator is None:
+                    break
+                previous_combinator = combinator
+            else:
+                if previous_combinator == '&&':
+                    accepted_contents = accepted_contents.intersection(contents)
+                elif previous_combinator == '//':
+                    accepted_contents = accepted_contents.union(contents)
+
+                if combinator is None:
+                    break
+            i += 1
+        # sort
+        # sorted_content = None
+        if not sort:
+            # sort by created on in desc
+            sorted_content = sorted(accepted_contents, key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=True)
+        else:
+            reverse = False
+            if sort.order == 'desc':
+                reverse = True
+
+            if sort.by_filter == 'created-on':
+                sorted_content = sorted(accepted_contents,
+                                        key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=reverse)
+            else:
+                sorted_content = sorted(accepted_contents, reverse=reverse)
+        return sorted_content
+
+    def paginate(self, content_obj, rules_txt, per_page=2):
+        cnts = self.filter_content(rules_txt)
+
+        paginated_contents = []
+
+        if cnts:
+            print("Contents: %s" % cnts)
+            q, r = divmod(len(cnts), per_page)
+            divs = q
+            if r > 0:
+                divs += 1
+            print("Divs: %s" % divs)
+
+            for i in range(divs):
+                _cts = []
+                for j in range(per_page):
+                    idx = (i*per_page) + j           #(row * NUMCOLS) + column        #(i * divs) + j
+                    print("idx: %s" % idx)
+                    if idx >= len(cnts):
+                        break
+                    print("IDX %s - %s" % (idx, cnts))
+                    _cts.append(cnts[idx])
+                paginated_contents.append(tuple(_cts))
+        print("Paginated contents: %s" % paginated_contents)
+        if paginated_contents:
+            i = 1
+            for page in paginated_contents:
+                auxiliary_content = content_obj.create_auxiliary(str(i))  # Currently it is creating paginated content relative to every cloned
+                print("Creating auxiliary: %s" % i)
+                self.add_url(auxiliary_content.url)
+                i += 1
+
+
+
+
+
+

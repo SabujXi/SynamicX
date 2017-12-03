@@ -10,10 +10,11 @@ _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
 
 class MarkedDocument(object):
-    def __init__(self, string, config, content):
+    def __init__(self, string, config, content, url_suffix=""):
         self.__string = string
         self.__config = config
         self.__content = content
+        self.__url_suffix = url_suffix
 
         self.__front_text = ""
         self.__body_text = ""
@@ -97,9 +98,16 @@ class MarkedDocument(object):
             else:
                 assert isinstance(yaml_url_obj, dict), "url_representing_obj must be dict object at this phase"
                 url_str = yaml_url_obj['url']
-                url_name = yaml_url_obj['name']
+                url_name = yaml_url_obj['name'] if not self.__content.is_auxiliary else None
             assert not _invalid_url.match(url_str), "url cannot have scheme"
             # url_str = url_str.lstrip('/')  # Don't do this
+
+            # for suffix for auxiliary
+            if self.__url_suffix:
+                if url_str.endswith('/'):
+                    url_str += self.__url_suffix
+                else:
+                    url_str += "-page/" + self.__url_suffix
 
             if url_str.endswith('/'):
                 is_dir = True

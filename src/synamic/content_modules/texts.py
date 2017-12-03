@@ -15,13 +15,18 @@ the rest is the file name you want to give to it.
 
 
 class Text(ContentContract, MarkedDocument):
-    def __init__(self, config, module, path, text_id, file_content: str):
-        super().__init__(file_content, config, self)
+    def __init__(self, config, module, path, text_id, file_content: str, url_suffix=""):
+        super().__init__(file_content, config, self, url_suffix=url_suffix)
         self.__text_id = text_id
         self.__config = config
 
         self.__module = module
         self.__path = path
+
+        self.__is_auxiliary = False
+        self.__is_dynamic = True
+        self.__file_content = file_content
+        self.__paginated_contents = None
 
     @property
     def module(self):
@@ -33,7 +38,10 @@ class Text(ContentContract, MarkedDocument):
 
     @property
     def content_id(self):
-        return self.module.name + ":" + str(self.__text_id)
+        if not self.is_auxiliary:
+            return self.module.name + ":" + str(self.__text_id)
+        else:
+            return None
 
     def get_stream(self):
         template_module, template_name = self.template
@@ -50,6 +58,36 @@ class Text(ContentContract, MarkedDocument):
             mime_type = type
         return mime_type
 
+    @property
+    def is_dynamic(self):
+        return self.__is_dynamic
+
+    @property
+    def is_static(self):
+        return False
+
+    @property
+    def is_auxiliary(self):
+        return self.__is_auxiliary
+
+    def set_auxiliary(self):
+        self.__is_auxiliary = True
+        self.__is_dynamic = False
+
+    def create_auxiliary(self, url_suffix):
+        auxiliary_clone = self.__class__(self.__config, self.__module, self.__path, self.__text_id, self.__file_content, url_suffix=url_suffix)
+        auxiliary_clone.set_auxiliary()
+        return auxiliary_clone
+
+    @property
+    def paginated_contents(self):
+        return self.__paginated_contents
+
+    @paginated_contents.setter
+    def paginated_contents(self, cnts):
+        assert self.__paginated_contents is None
+        self.__paginated_contents = cnts
+
 
 class Texts(ContentModuleContract):
 
@@ -64,6 +102,14 @@ class Texts(ContentModuleContract):
     @property
     def name(self):
         return "texts"
+
+    @property
+    def config(self):
+        return self.__config
+
+    @property
+    def content_class(self):
+        return Text
 
     @property
     def directory_name(self):
@@ -98,7 +144,7 @@ class Texts(ContentModuleContract):
             text_id = file_base_match.group('id').lstrip('0')
             if text_id in text_ids:
                 raise Exception("Two different texts files cannot have the same text id")
-
+            print("::::: %s" % file_path.absolute_path)
             with open(file_path.absolute_path, "r", encoding="utf-8") as f:
                 text = f.read()
                 text_obj = Text(self.__config,  self, file_path, text_id, text)

@@ -40,6 +40,19 @@ class Static(ContentContract):
             mime_type = type
         return mime_type
 
+    @property
+    def is_static(self):
+        return True
+
+    @property
+    def is_auxiliary(self):
+        return False
+
+    @property
+    def is_dynamic(self):
+        return False
+
+
 
 class Statics(ContentModuleContract):
 
@@ -47,9 +60,6 @@ class Statics(ContentModuleContract):
         self.__config = config
         self.__is_loaded = False
 
-    @property
-    def generic_name(self):
-        return 'content'
 
     @property
     def extensions(self):
@@ -57,7 +67,15 @@ class Statics(ContentModuleContract):
 
     @property
     def name(self):
-        return 'statics'
+        return 'static'
+
+    @property
+    def content_class(self):
+        return Static
+
+    @property
+    def config(self):
+        return self.__config
 
     @property
     def is_loaded(self):
@@ -67,10 +85,12 @@ class Statics(ContentModuleContract):
     def load(self):
         paths = self.__config.path_tree.get_module_paths(self)
         for file_path in paths:
-            print("File path is: ", file_path.relative_path)
-            print("Is file: ", file_path.is_file)
+            print("File path relative is: ", file_path.relative_path)
+            print("File path root relative is: ", file_path.relative_path_from_root)
+            assert file_path.is_file  # Remove in prod
             static = Static(self.__config, self, file_path)
-            url = ContentUrl(self.__config, static, (self.root_url_path + file_path.relative_path), None, False)
+            url = ContentUrl(self.__config, static, (self.root_url_path + file_path.relative_path_from_module_root), None, False)
+            print("URL: %s" % url.path)
             static.set_url_obj(url)
             self.__config.add_url(url)
         # Add static files

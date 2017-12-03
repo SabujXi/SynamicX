@@ -1,5 +1,5 @@
 import jinja2
-from synamic.core.contracts.modules.base_template_contract import TemplateModuleContract
+from synamic.core.contracts import TemplateModuleContract
 from synamic.core.functions.decorators import loaded
 from synamic.core.classes.template_tags import GetUrlExtension
 
@@ -13,6 +13,10 @@ class SynamicTemplate(TemplateModuleContract):
     @property
     def name(self):
         return "synamic-template"
+
+    @property
+    def config(self):
+        return self.__config
 
     @property
     def directory_name(self):
