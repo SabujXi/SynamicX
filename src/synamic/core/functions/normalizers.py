@@ -33,7 +33,7 @@ _schemed_url = re.compile(r'^[a-z]+://', re.I)
 
 def normalize_content_url_path(url_str):
     """
-    Normalized content url path:
+    Normalized content url_object path:
       1. Replace all '\' with '/'
       2. A preceding '/' will be added if not present (No relative path in this framework as we are not writing any raw html: md, template and raw html).
       3. TO-DO: Resolve ./, ../../../ and the like.

@@ -17,7 +17,7 @@ from synamic.core.classes.document import MarkedDocument
 Chapters: # case insensitive
     - Chapter: # Starts with 'chapter', anything may follow it.
         title: # if the value is <get> then it is get from the text if the 'for' key refers to some text
-        for: # may contain a numeric id, relative url, full (optionally external) url.
+        for: # may contain a numeric id, relative url_object, full (optionally external) url_object.
         
     -Section xyZ:
         title: what title
@@ -49,7 +49,7 @@ class Chapter:
 
     @property
     def for_url(self):
-        """returns an url or ContentUrlContract instance?"""
+        """returns an url_object or ContentUrlContract instance?"""
         # A lot of processing here
         return None
 
@@ -177,7 +177,7 @@ class AllSeries(ContentModuleContract):
     def get_text_fileds(self):
         return {
             'title',
-            'url',
+            'url_object',
         }
 
 Module = AllSeries

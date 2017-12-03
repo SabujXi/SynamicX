@@ -19,18 +19,6 @@ class SynamicTemplate(TemplateModuleContract):
         return self.__config
 
     @property
-    def directory_name(self):
-        return "synamic-templates"
-
-    @property
-    def directory_path(self):
-        return self.__config.path_tree.join(self.__config.template_dir, self.directory_name)
-
-    @property
-    def dotted_path(self):
-        return "synamic.template_modules.synamic_template.SynamicTemplate"
-
-    @property
     def dependencies(self):
         return set()
 
@@ -38,7 +26,7 @@ class SynamicTemplate(TemplateModuleContract):
         assert not self.__is_loaded, "Module cannot be loaded twice"
         self.__template_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(
-                self.__config.path_tree.get_full_path(self.__config.template_dir, self.directory_name),
+                self.__config.path_tree.get_full_path(self.__config.template_dir, self.name),
                 encoding='utf-8', followlinks=False),
             autoescape=jinja2.select_autoescape(['html', 'xml']),
             extensions=[GetUrlExtension]
@@ -54,7 +42,7 @@ class SynamicTemplate(TemplateModuleContract):
 
     @loaded
     def render(self, template_name, context=None, **kwargs):
-        assert self.__is_loaded, "Render cannot work until the template module is loaded"
+        assert self.__is_loaded, "Render cannot work until the template module_object is loaded"
         context = {} if context is None else context
         context.update(kwargs)
         # test
@@ -62,3 +50,5 @@ class SynamicTemplate(TemplateModuleContract):
         # test 2
         template = self.__template_env.get_template(template_name)
         return template.render(context)
+
+

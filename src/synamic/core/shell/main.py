@@ -15,7 +15,7 @@ REMEMBER:
 =================
 A dependency resolver has been developed.
 
-* Actually only contents is rendered. So, you /run/ content module - not others*
+* Actually only contents is rendered. So, you /run/ content module_object - not others*
 [
     
 ]

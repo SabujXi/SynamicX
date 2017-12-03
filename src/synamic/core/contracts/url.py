@@ -4,19 +4,19 @@ import abc
 class ContentUrlContract(abc.ABC):
     """
         For YAML provided urls
-            url can be of string or another map.
+            url_object can be of string or another map.
             eg:
-                url: /my/path/to/file
+                url_object: /my/path/to/file
             or:
-                url:
-                    url: /my/path/to/file
+                url_object:
+                    url_object: /my/path/to/file
                     name: my_awesome_url_name  # this name must conform to identifier as in variables
 
             - a '/' will be added at the end of the urls if it is not there.
     """
     @property
     @abc.abstractmethod
-    def full_url(self):
+    def absolute_url(self):
         """
             With the scheme and domain and path 
         """
@@ -24,13 +24,10 @@ class ContentUrlContract(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def name(self):
-        pass
-
-    @property
-    @abc.abstractmethod
     def path(self):
-        """Normalized path"""
+        """
+        Root relative path
+        Normalized path"""
         pass
 
     @property
@@ -49,7 +46,7 @@ class ContentUrlContract(abc.ABC):
     @abc.abstractmethod
     def url_encoded_path(self):
         """
-        :return: url-encoded version of path
+        :return: url_object-encoded version of path
          
          Note: real_path does not need this because they do need to be present in html.
         """
@@ -96,13 +93,13 @@ class ContentUrlContract(abc.ABC):
     def is_dir(self):
         pass
 
-    @property
-    @abc.abstractmethod
-    def content(self):
-        """
-            Urls are associated only with some kind of content.
-             This will return the content object (maybe, so that we can call render() on it later)
-        """
+    # @property
+    # @abc.abstractmethod
+    # def content(self):
+    #     """
+    #         Urls are associated only with some kind of content.
+    #          This will return the content object (maybe, so that we can call render() on it later)
+    #     """
 
     @property
     @abc.abstractmethod

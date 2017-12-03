@@ -20,4 +20,4 @@ class GetUrlExtension(Extension):
 
     def _get_url(self, url_name_or_id):
         url_obj = self.environment.synamic_config.get_url(url_name_or_id)
-        return url_obj.path
+        return url_obj.path_object

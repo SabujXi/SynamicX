@@ -1,36 +1,37 @@
 import os
-import sys
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.contracts import (
     ContentModuleContract,
-    # MetaContentModuleContract,
     TemplateModuleContract,
-    ContentUrlContract
 )
 from synamic.core.exceptions import InvalidModuleType
 from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.content_modules.texts import Texts
+from synamic.content_modules.text import TextModule
 from synamic.template_modules.synamic_template import SynamicTemplate
-from synamic.content_modules.statics import Statics
+from synamic.content_modules.static import StaticModule
 from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path
 from synamic.core.dependency_resolver import create_dep_list
 from synamic.core.classes.site_settings import SiteSettings
 from collections import namedtuple
 import re
-from synamic.core.classes.filter_content import filter_dispatcher, parse_rules, combinators
+from synamic.core.classes.filter_content import filter_dispatcher, parse_rules
+from synamic.core.contracts.content import content_is_dynamic
+import enum
+from synamic.core.contracts.document import MarkedDocumentContract
 
 
 class SynamicConfig(object):
-    KEY_URLS_BY_NAME = sys.intern("key-URLS_BY_NAME")
-    KEY_URLS_BY_PATH = sys.intern("key-URLS_BY_PATH")
-    KEY_URLS_BY_GENERALIZED_REAL_PATH = sys.intern("key-URLS_BY_GENERALIZED_REAL_PATH")
-    KEY_URLS_BY_CONTENT_ID = sys.intern("key-URLS_BY_CONTENT_ID")
-    KEY_URLS = sys.intern("key-URLS")
+    @enum.unique
+    class KEY(enum.Enum):
+        CONTENTS_BY_ID = 0
+        CONTENTS_BY_NAME = 1
+        CONTENTS_BY_URL_PATH = 2
+        CONTENTS_BY_GENERALIZED_URL_PATH = 3
+        CONTENTS_SET = 4
 
     # module types
     MODULE_TYPE_CONTENT = ContentModuleContract
     MODULE_TYPE_TEMPLATE = TemplateModuleContract
-    # MODULE_TYPE_META = MetaContentModuleContract
 
     def __init__(self, site_root):
         assert os.path.exists(site_root), "Base path must not be non existent"
@@ -42,13 +43,13 @@ class SynamicConfig(object):
         self.__template_modules_map = {}
         # self.__meta_modules_map = {}
 
-        # URL store
-        self.__url_map = {
-            self.KEY_URLS_BY_NAME: dict(),
-            self.KEY_URLS_BY_PATH: dict(),
-            self.KEY_URLS_BY_GENERALIZED_REAL_PATH: dict(),
-            self.KEY_URLS_BY_CONTENT_ID: dict(),
-            self.KEY_URLS: set()
+        # Content Map
+        self.__content_map = {
+            self.KEY.CONTENTS_BY_ID: dict(),
+            self.KEY.CONTENTS_BY_NAME: dict(),
+            self.KEY.CONTENTS_BY_URL_PATH: dict(),
+            self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH: dict(),
+            self.KEY.CONTENTS_SET: set()
         }
 
         # setting path tree
@@ -66,11 +67,9 @@ class SynamicConfig(object):
         # Initiate module root dirs
         ModuleRootDirs = namedtuple("ModuleRootDirs",
                                     ['CONTENT_MODULE_ROOT_DIR',
-                                     # 'META_MODULE_ROOT_DIR',
                                      'TEMPLATE_MODULE_ROOT_DIR'])
         self.__module_root_dirs = ModuleRootDirs(
             'content',
-            # 'meta',
             'templates'
         )
 
@@ -78,14 +77,12 @@ class SynamicConfig(object):
         self.__initiate()
 
     def __initiate(self):
-        self.add_module(Texts(self))
+        self.add_module(TextModule(self))
         self.add_module(SynamicTemplate(self))
-        self.add_module(Statics(self))
+        self.add_module(StaticModule(self))
 
         # site settings
         self.__site_settings = SiteSettings(self)
-        # obj = get_site_root_settings(self)
-        # self.update(obj)
 
     @property
     def site_settings(self):
@@ -111,21 +108,14 @@ class SynamicConfig(object):
     def template_modules(self):
         return list(self.__template_modules_map.values()).copy()
 
-    # @property
-    # @loaded
-    # def meta_modules(self):
-    #     return list(self.__meta_modules_map.values()).copy()
-
     @property
     def module_types(self):
-        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE}  #, self.MODULE_TYPE_META}
+        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE}
 
     def get_module_type(self, mod_instance):
-        """Returns the type of the module as the contract class"""
+        """Returns the type of the module_object as the contract class"""
         if isinstance(mod_instance, self.MODULE_TYPE_CONTENT):
             typ = self.MODULE_TYPE_CONTENT
-        # elif isinstance(mod_instance, self.MODULE_TYPE_META):
-        #     typ = self.MODULE_TYPE_META
         else:
             typ = self.MODULE_TYPE_TEMPLATE
             assert isinstance(mod_instance, self.MODULE_TYPE_TEMPLATE)
@@ -135,13 +125,11 @@ class SynamicConfig(object):
         mod_type = self.get_module_type(mod_instance)
         if mod_type is self.MODULE_TYPE_CONTENT:
             return self.content_dir
-        # elif mod_type is self.MODULE_TYPE_META:
-        #     return self.meta_dir
         else:
             return self.template_dir
 
     def get_module_dir(self, mod_instance):
-        return os.path.join(self.get_module_root_dir(mod_instance), mod_instance.directory_name)
+        return os.path.join(self.get_module_root_dir(mod_instance), mod_instance.name)
 
     @property
     def path_tree(self):
@@ -154,7 +142,6 @@ class SynamicConfig(object):
     @not_loaded
     def load(self):
         # """Load must be called after dependency list is built"""
-        # assert not self.is_loaded, "Cannot be loaded twice"
         self.__dependency_list = create_dep_list(self.__modules_map)
 
         self.__is_loaded = True
@@ -163,7 +150,7 @@ class SynamicConfig(object):
 
         for mod_name in self.__dependency_list:
             mod = self.__modules_map[mod_name]
-            print(":: loading module: %s" % mod.name)
+            print(":: loading module_object: %s" % mod.name)
             mod.load()
 
     @loaded
@@ -174,7 +161,6 @@ class SynamicConfig(object):
         for mod in self.modules:
 
             mod_dir = self.get_module_dir(mod)
-            # if mod.directory_name:
             dir = self.path_tree.get_full_path(mod_dir)
             dirs.append(dir)
         for dir in dirs:
@@ -188,21 +174,19 @@ class SynamicConfig(object):
         mod_type = self.get_module_type(mod_obj)
         mod_name = normalize_key(mod_obj.name)
         if mod_type not in self.module_types:
-            raise InvalidModuleType("The module type you provided is not valid: %s" % str(type(mod_obj)))
+            raise InvalidModuleType("The module_object type you provided is not valid: %s" % str(type(mod_obj)))
 
         assert mod_name not in self.__modules_map, "Mod name cannot already exist"
 
         # module name validation
         valid_mod_name_pattern = re.compile(r'^[a-z0-9_-]+$', re.I)
-        assert valid_mod_name_pattern.match(mod_obj.name), "Invalid module name that does not go with %s" % valid_mod_name_pattern.pattern()
+        assert valid_mod_name_pattern.match(mod_obj.name), "Invalid module_object name that does not go with %s" % valid_mod_name_pattern.pattern()
         # < module name validation
 
         self.__modules_map[mod_name] = mod_obj
 
         if mod_type is self.MODULE_TYPE_CONTENT:
             self.__content_modules_map[mod_name] = mod_obj
-        # elif mod_type is self.MODULE_TYPE_META:
-        #     self.__meta_modules_map[mod_name] = mod_obj
         else:
             self.__template_modules_map[mod_name] = mod_obj
 
@@ -210,31 +194,39 @@ class SynamicConfig(object):
         mod_name = normalize_key(mod_name)
         return self.__modules_map[mod_name]
 
-    def add_url(self, url: ContentUrlContract):
+    def add_content(self, content):
+        self.add_document(content)
+
+    def add_document(self, document: MarkedDocumentContract):
+        url_object = document.url_object
         # Checking/Validation and addition
-        # 1. Url Name
-        if url.name is not None and url.name != "":
-            assert url.name not in self.__url_map[self.KEY_URLS_BY_NAME], "Multiple resource with the same url name cannot live together"
-            self.__url_map[self.KEY_URLS_BY_NAME][url.name] = url
+        # 1. Content Name
+
+        if document.content_name is not None and document.content_name != "":
+            assert document.content_name not in self.__content_map[self.KEY.CONTENTS_BY_NAME],\
+                "Multiple resource with the same content name cannot live together"
+            self.__content_map[self.KEY.CONTENTS_BY_NAME][document.content_name] = document
         # 2. Url path
-        assert url.path not in self.__url_map[self.KEY_URLS_BY_PATH]
-        self.__url_map[self.KEY_URLS_BY_PATH][url.path] = url
+        assert document.url_object.path not in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH]
+        self.__content_map[self.KEY.CONTENTS_BY_URL_PATH][document.url_object.path] = document
 
         # 3. Generalized real path
-        assert url.generalized_real_path not in self.__url_map[self.KEY_URLS_BY_GENERALIZED_REAL_PATH], "Multiple resource with the same full url cannot coexist"
-        self.__url_map[self.KEY_URLS_BY_GENERALIZED_REAL_PATH][url.generalized_real_path] = url
+        assert url_object.generalized_real_path not in self.__content_map[self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH],\
+            "Multiple resource with the same generalized url cannot coexist"
+        self.__content_map[self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.generalized_real_path] = document
 
         # 4. Content id
-        if url.content.content_id is not None and url.content.content_id != "":
-            assert url.content.content_id not in self.__url_map[self.KEY_URLS_BY_CONTENT_ID], "Duplicate content id cannot exist"
-            self.__url_map[self.KEY_URLS_BY_CONTENT_ID][url.content.content_id] = url
+        if document.content_id is not None and document.content_id != "":
+            assert document.content_id not in self.__content_map[self.KEY.CONTENTS_BY_ID],\
+                "Duplicate content id cannot exist"
+            self.__content_map[self.KEY.CONTENTS_BY_ID][document.content_id] = document
 
         # 5. Urls set
-        self.__url_map[self.KEY_URLS].add(url)
+        self.__content_map[self.KEY.CONTENTS_SET].add(document)
 
     def get_url(self, name_or_id):
         """
-        Finds a url depending on name/content-id
+        Finds a url_object depending on name/content-id
         
         Search priority:
             1. Name
@@ -243,20 +235,21 @@ class SynamicConfig(object):
 
         # 1. Into name
         name = normalize_key(name_or_id)
-        if name in self.__url_map[self.KEY_URLS_BY_NAME]:
-            return self.__url_map[self.KEY_URLS_BY_NAME][name]
+
+        if name in self.__content_map[self.KEY.CONTENTS_BY_NAME]:
+            return self.__content_map[self.KEY.CONTENTS_BY_NAME][name]
         # 2. Content id
-        elif name_or_id in self.__url_map[self.KEY_URLS_BY_CONTENT_ID]:
-            return self.__url_map[self.KEY_URLS_BY_CONTENT_ID][name_or_id]
+        elif name_or_id in self.__content_map[self.KEY.CONTENTS_BY_ID]:
+            return self.__content_map[self.KEY.CONTENTS_BY_ID][name_or_id]
         else:
             # Should raise exception or just return None/False
-            raise Exception("Url could not be found by url name or content id")
+            raise Exception("Url could not be found by url_object name or content id")
 
     def get_url_by_path(self, path):
         path = normalize_content_url_path(path)
         print("ContentPath requested: %s (normalized)" % path)
-        if path in self.__url_map[self.KEY_URLS_BY_PATH]:
-            url = self.__url_map[self.KEY_URLS_BY_PATH][path]
+        if path in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH]:
+            url = self.__content_map[self.KEY.CONTENTS_BY_URL_PATH][path]
         else:
             url = None
         return url
@@ -268,10 +261,6 @@ class SynamicConfig(object):
     @property
     def content_dir(self):
         return self.__module_root_dirs.CONTENT_MODULE_ROOT_DIR
-
-    # @property
-    # def meta_dir(self):
-    #     return self.__module_root_dirs.META_MODULE_ROOT_DIR
 
     @property
     def template_dir(self):
@@ -300,15 +289,17 @@ class SynamicConfig(object):
     @loaded
     def build(self):
         self.initialize_site_dirs()
-        for url in self.__url_map[self.KEY_URLS]:
-            print("BUILD():: Going to Write url: ", url.path)
+
+        for cont in self.__content_map[self.KEY.CONTENTS_SET]:
+            url = cont.url_object
+            print("BUILD():: Going to Write cont: ", url.path)
             dir = os.path.join(self.site_root, '_html', *url.dir_components)
             if not os.path.exists(dir):
                 os.makedirs(dir)
 
             fs_path = os.path.join(self.site_root, '_html', url.real_path.lstrip('\\/'))
             with open(fs_path, 'wb') as f:
-                stream = url.content.get_stream()
+                stream = cont.get_stream()
                 f.write(stream.read())
                 print("BUILD():: Wrote: %s" % f.name)
                 stream.close()
@@ -354,10 +345,10 @@ class SynamicConfig(object):
         for mod_name in needed_module_names:
             contents_map[mod_name] = set()
 
-        for u in self.__url_map[self.KEY_URLS]:
-            cnt = u.content
-            if cnt.is_dynamic and cnt.module.name in needed_module_names:
-                contents_map[cnt.module.name].add(cnt)
+        for cont in self.__content_map[self.KEY.CONTENTS_SET]:
+            cnt = cont
+            if content_is_dynamic(cnt) and cnt.module_object.name in needed_module_names:
+                contents_map[cnt.module_object.name].add(cnt)
 
         accepted_contents_combination = []
 
@@ -394,7 +385,8 @@ class SynamicConfig(object):
         # sorted_content = None
         if not sort:
             # sort by created on in desc
-            sorted_content = sorted(accepted_contents, key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=True)
+            sorted_content = sorted(accepted_contents, key=lambda cont: 0 if cont.created_on is None
+                                    else cnt.created_on.toordinal, reverse=True)
         else:
             reverse = False
             if sort.order == 'desc':
@@ -423,7 +415,7 @@ class SynamicConfig(object):
             for i in range(divs):
                 _cts = []
                 for j in range(per_page):
-                    idx = (i*per_page) + j           #(row * NUMCOLS) + column        #(i * divs) + j
+                    idx = (i*per_page) + j           # (row * NUMCOLS) + column        #(i * divs) + j
                     print("idx: %s" % idx)
                     if idx >= len(cnts):
                         break
@@ -434,13 +426,8 @@ class SynamicConfig(object):
         if paginated_contents:
             i = 1
             for page in paginated_contents:
-                auxiliary_content = content_obj.create_auxiliary(str(i))  # Currently it is creating paginated content relative to every cloned
+                auxiliary_content = content_obj.create_auxiliary(str(i))  # Currently it is creating paginated content
+                # relative to every cloned
                 print("Creating auxiliary: %s" % i)
-                self.add_url(auxiliary_content.url)
+                self.add_url(auxiliary_content.url_object)
                 i += 1
-
-
-
-
-
-

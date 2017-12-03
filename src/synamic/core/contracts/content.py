@@ -2,7 +2,7 @@ import abc
 import enum
 
 
-class ContentContract(abc.ABC):
+class ContentContract(metaclass=abc.ABCMeta):
     @enum.unique
     class types(enum.Enum):
         # later, intending the use of auto() - currently this project in 3.5 and auto() is available in 3.6
@@ -12,17 +12,23 @@ class ContentContract(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def module(self):
+    def module_object(self):
         pass
 
     @property
     @abc.abstractmethod
-    def path(self):
+    def path_object(self):
         """
         This is a path object associated with the file (for static the path, for dynamic the path to things like .md
          and for auxiliary - i need to think about that :p )
         """
         pass
+
+    @property
+    @abc.abstractmethod
+    def content_name(self):
+        """ 
+        """
 
     @property
     @abc.abstractmethod
@@ -42,33 +48,55 @@ class ContentContract(abc.ABC):
 
     @property
     @abc.abstractmethod
-    def content_type(self):
+    def mime_type(self):
         """
          return mime/type
          
-         this can be determined by the extension of real_path() on the url object.
+         this can be determined by the extension of real_path() on the url_object object.
         """
 
     @property
     @abc.abstractmethod
-    def is_static(self):
+    def content_type(self):
         """
-        Static files that need not extra processing and can be handled by static module.
-         
-        With the help of this, static files can be send by dev server or sendfile instead of streaming.
+        Instance of types enum
         """
+        pass
 
-    @property
-    @abc.abstractmethod
-    def is_dynamic(self):
-        """
-        For example, created with the help of .md files in text module
-        """
+    # @property
+    # @abc.abstractmethod
+    # def is_static(self):
+    #     """
+    #     Static files that need not extra processing and can be handled by static module.
+    #
+    #     With the help of this, static files can be send by dev server or sendfile instead of streaming.
+    #     """
+    #
+    # @property
+    # @abc.abstractmethod
+    # def is_dynamic(self):
+    #     """
+    #     For example, created with the help of .md files in text module
+    #     """
+    #
+    # @property
+    # @abc.abstractmethod
+    # def is_auxiliary(self):
+    #     """
+    #     For example, created invoking paginate.
+    #     """
+    #
 
-    @property
-    @abc.abstractmethod
-    def is_auxiliary(self):
-        """
-        For example, created invoking paginate. 
-        """
+
+def content_is_dynamic(content):
+    return content.content_type is ContentContract.types.DYNAMIC
+
+
+def content_is_static(content):
+    return content.content_type is ContentContract.types.STATIC
+
+
+def content_is_auxiliary(content):
+    return content.content_type is ContentContract.types.AUXILIARY
+
 

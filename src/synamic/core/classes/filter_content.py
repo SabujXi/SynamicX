@@ -215,7 +215,7 @@ def parse_rules(rules_txt, mod_names):
             mod_name, checks = name_n_checks
             assert len(name_n_checks) == 2
         checks = checks.strip()
-        assert mod_name in mod_names, "Invalid module name: %s" % mod_name
+        assert mod_name in mod_names, "Invalid module_object name: %s" % mod_name
         # filter
         filter = None
         if checks:

@@ -5,24 +5,24 @@ from synamic.core.functions.normalizers import normalize_content_url_path, gener
 
 
 class ContentUrl(ContentUrlContract):
-    def __init__(self, config, content, url_str, url_name, is_dir=True):
+    def __init__(self, config, url_str, is_dir=True):
         self.__config = config
-        self.__content = content
+        # self.__content = content_object
         self.__url_str = url_str
-        self.__url_name = url_name
+        # self.__url_name = url_name
         self.__is_dir = is_dir
 
         self.__url_str = normalize_content_url_path(self.__url_str)
-        if self.__url_name:
-            self.__url_name = normalize_key(self.__url_name)
+        # if self.__url_name:
+        #     self.__url_name = normalize_key(self.__url_name)
 
         # validation
         # if it is not is_dir - that is is_file - it must not end with a '/'
         if not is_dir:
-            assert not self.__url_str.endswith('/'), "A file url path cannot end with '/'"
+            assert not self.__url_str.endswith('/'), "A file url_object path cannot end with '/'"
 
     @property
-    def full_url(self):
+    def absolute_url(self):
         raise NotImplemented
 
     @property
@@ -49,13 +49,9 @@ class ContentUrl(ContentUrlContract):
     def generalized_real_path(self):
         return generalize_content_url_path(self.real_path)
 
-    @property
-    def name(self):
-        return self.__url_name
-
-    @property
-    def content(self):
-        return self.__content
+    # @property
+    # def content(self):
+    #     return self.__content
 
     @property
     def real_path(self):

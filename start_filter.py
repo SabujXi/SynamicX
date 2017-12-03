@@ -9,4 +9,4 @@ syn.load()
 cnts = syn.filter_content("(texts:: tags in 'x') // (texts:: tags not in z)")
 
 for cnt in cnts:
-    print(cnt.path.relative_path)
+    print(cnt.path_object.relative_path)

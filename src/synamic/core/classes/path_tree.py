@@ -31,7 +31,7 @@ class ContentPath:
     @property
     def relative_path(self):
         """
-        Relative paths are relative to own module.
+        Relative paths are relative to own module_object.
         """
         return self.__relative_path
 
@@ -111,7 +111,7 @@ class ContentPath:
             - directory
             - files
         Every file does not need to have a meta file.
-        The primary intention of providing meta file is providing custom url, id, name to the static files.
+        The primary intention of providing meta file is providing custom url_object, id, name to the static files.
         So, it is redundant to add meta file for things like `.md` files. But, in future we can customize that behavior to add something extra.
         
         Meta files for directories:

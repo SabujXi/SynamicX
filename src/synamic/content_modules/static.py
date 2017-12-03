@@ -1,10 +1,11 @@
 import mimetypes
 from synamic.core.classes.url import ContentUrl
-from synamic.core.contracts import ContentContract, ContentModuleContract
+from synamic.core.contracts import ContentModuleContract
+from synamic.core.contracts.document import StaticDocumentContract
 from synamic.core.functions.decorators import loaded, not_loaded
 
 
-class Static(ContentContract):
+class StaticContent(StaticDocumentContract):
     def __init__(self, config, module, path):
         self.__url = None
         self.__config = config
@@ -12,27 +13,27 @@ class Static(ContentContract):
         self.__path = path
 
     def set_url_obj(self, url_obj):
-        assert self.__url is None, "Cannot set url object twice"
+        assert self.__url is None, "Cannot set url_object object twice"
         self.__url = url_obj
 
     @property
-    def module(self):
+    def module_object(self):
         return self.__module
 
     @property
-    def path(self):
+    def path_object(self):
         return self.__path
 
     @property
     def content_id(self):
-        return self.module.name + ":" + self.path.relative_path  # Should be more intelligent? Ok, let's think about that later.
+        return self.module_object.name + ":" + self.path_object.relative_path  # Should be more intelligent? Ok, let's think about that later.
 
     def get_stream(self):
-        file = open(self.path.absolute_path, 'rb')
+        file = open(self.path_object.absolute_path, 'rb')
         return file
 
     @property
-    def content_type(self):
+    def mime_type(self):
         mime_type = 'octet/stream'
         path = self.__url.real_path
         type, enc = mimetypes.guess_type(path)
@@ -41,25 +42,32 @@ class Static(ContentContract):
         return mime_type
 
     @property
-    def is_static(self):
-        return True
+    def absolute_path(self):
+        raise NotImplemented
 
     @property
-    def is_auxiliary(self):
-        return False
+    def content_type(self):
+        return self.types.STATIC
 
     @property
-    def is_dynamic(self):
-        return False
+    def content_name(self):
+        # raise NotImplemented
+        return None
+
+    @property
+    def url_object(self):
+        return self.__url
+
+    @url_object.setter
+    def url_object(self, url_object):
+        self.__url = url_object
 
 
-
-class Statics(ContentModuleContract):
+class StaticModule(ContentModuleContract):
 
     def __init__(self, config):
         self.__config = config
         self.__is_loaded = False
-
 
     @property
     def extensions(self):
@@ -71,7 +79,7 @@ class Statics(ContentModuleContract):
 
     @property
     def content_class(self):
-        return Static
+        return StaticContent
 
     @property
     def config(self):
@@ -88,29 +96,17 @@ class Statics(ContentModuleContract):
             print("File path relative is: ", file_path.relative_path)
             print("File path root relative is: ", file_path.relative_path_from_root)
             assert file_path.is_file  # Remove in prod
-            static = Static(self.__config, self, file_path)
-            url = ContentUrl(self.__config, static, (self.root_url_path + file_path.relative_path_from_module_root), None, False)
+            static = StaticContent(self.__config, self, file_path)
+            url = ContentUrl(self.__config, (self.root_url_path + file_path.relative_path_from_module_root), False)
             print("URL: %s" % url.path)
-            static.set_url_obj(url)
-            self.__config.add_url(url)
+            static.url_object = url
+            self.__config.add_document(static)
         # Add static files
         self.__is_loaded = True
 
     @property
     def dependencies(self):
         return set()
-
-    @property
-    def directory_name(self):
-        return 'static'
-
-    @property
-    def parent_dir(self):
-        return self.__config.content_dir
-
-    @property
-    def dotted_path(self):
-        return 'synamic.content_modules.statics.Statics'
 
     @property
     def root_url_path(self):
