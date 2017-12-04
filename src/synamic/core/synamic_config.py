@@ -390,8 +390,7 @@ class SynamicConfig(object):
         # sorted_content = None
         if not sort:
             # sort by created on in desc
-            sorted_content = sorted(accepted_contents, key=lambda cont: 0 if cont.created_on is None
-                                    else cnt.created_on.toordinal, reverse=True)
+            sorted_content = sorted(accepted_contents, key=lambda _cont: 0 if _cont.created_on is None else _cont.created_on.toordinal(), reverse=True)
         else:
             reverse = False
             if sort.order == 'desc':
@@ -413,3 +412,4 @@ class SynamicConfig(object):
     def get_frontmatter_value_parser(self, key):
         key = normalize_key(key)
         return self.__frontmatter_value_parser[key]
+

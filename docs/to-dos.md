@@ -10,51 +10,30 @@
 4. Module name validations.
 5. Front Matter Parsing By Callable Registration
 6. Pagination Object
+7. Get content id & name from frontmatter, get id from file name - frontmatter gets higher priority
+    - ID won't be taken from file name. So, I want to provide the maximum flexibility in naming the files.
+    - Instead they are suggested to start the file name with id inside yaml if that is numeric
 
 # TO-DOs
 
 3. Parser/Lexer/Compiler for filter rule parsing
-4. Get content id & name from frontmatter, get id from file name - frontmatter gets higher priority
+
 
 # Random TO DOs
 
 # Draft TO-DOs (not well updated after implementing)
-** planning to change url_object name to content_name **
+** planning to change url name to content_name **
 
 - More Content Modules
     - Redirect
     - Author
     - Archive
+    - Home (for different languages)
 
-- Architectural Change:
-    - Content id by file name should be set optional so that other module_object developers can use that feature without coding for that from scratch
-    
-- Remove directory_name from modules and let name of the module_object do that job.
-    I do not want confusion and keep the names the same everywhere.
-    And thus it is wise to have the same name everywhere. So, form this to-do implementation there
-    will be no directory_name. 
-    
-    - Also make module_object names singular not plural. It looks odd to refer text id as "tests:2", it sounds far better to refer to that as "text:2"
-    - Append 'Module' to module_object classes. ** And thus append 'Content' to the content class of the module_object**. So, Texts becomes TextModule and Text becomes TextContent 
 
 - Add multi language.
     Develop a method (way) of creating different home for them.
 
-- If filename.ext.meta is added beside static files then use that to extract content id and name for that.
-    It will help minimize the hassle of referring to the full file name for the complex ones and the hassle will be lot less when the file is inside any deep nested directory.
-    Also, in this way we can rename their url_object/file name dynamically.
-
-- paginate with query and chained sort will be a method on config.
-    On calling this contents will be dynamically be added to the map.
-    THUS: iteration will no longer be done by for, instead I am going to use while loop with dqueue
-    
-- There should not be content and meta module_object any more.
-    When thinking about the whole think I find in the kingdom of my thought and dream that I am using meta modules to add content dynamically to the config.
-    So, from now on there will be content and template modules.
-- Auto content generation tags, e.g. paginate, will not be able to create content when they are inside dynamically **generated** content.
-
-- Content will have attribute whether they are is_static, is_dynamic, is_auxiliary (e.g. created due to invocation of pagination)
-    Static files are static, things from like markdown with body and/or attributes are dynamic, things generated as a result of call from paginate are generated
 
 - Add the following feature:
     Every content directory (the module_object root directory) and the subdirectories

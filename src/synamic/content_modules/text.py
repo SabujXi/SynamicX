@@ -79,12 +79,12 @@ class TextContent(MarkedDocumentContract):
 
     @property
     def content_name(self):
-        return None
+        return self.frontmatter.get('name')
         # raise NotImplemented
 
     @property
     def content_id(self):
-        return None
+        return self.frontmatter.get('id', None)
         # return self.module_object.name + ":" + str(self.__text_id)
 
     def get_stream(self):
@@ -240,8 +240,6 @@ class TextContent(MarkedDocumentContract):
             starting_content = self
 
             pg_stream = PaginationStream(self.__config, starting_content, rules_txt, per_page)
-
-
 
     @property
     def pagination(self):

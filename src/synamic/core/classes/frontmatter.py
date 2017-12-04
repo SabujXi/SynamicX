@@ -17,7 +17,6 @@ class Frontmatter:
         self.__map = obj
         normalize_keys(self.__map)
         self.__unparsed_map = self.__map.copy()
-
         for key, value in self.__unparsed_map.items():
             self.__map[key] = config.get_frontmatter_value_parser(key)(value)
 
@@ -78,10 +77,20 @@ class DefaultFrontmatterValueParsers:
         parts = [x.strip() for x in txt.split(',')]
         return parts
 
+    @staticmethod
+    def _permalink_parser(txt):
+        txt = txt.strip()
+        if txt == 'index.html' or txt.endswith('/index.html'):
+            if txt == 'index.html':
+                txt = '/'
+            else:
+                txt = txt[:-len('index.html')]
+        return txt
+
     @classmethod
     def default_value_parsers_map(cls):
         return {
-            'permalink': cls._return_stripped_or_none_parser,
+            'permalink': cls._permalink_parser,
             'id': cls._return_stripped_or_none_parser,
             'name': cls._return_stripped_or_none_parser,
             'template': cls._template_name_module_name_parser,
