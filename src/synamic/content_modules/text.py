@@ -13,6 +13,9 @@ from synamic.core.functions.frontmatter import parse_front_matter
 from synamic.core.functions.yaml_processor import load_yaml
 from synamic.core.classes.frontmatter import Frontmatter
 from synamic.core.classes.url import ContentUrl
+import mistune
+from markupsafe import Markup
+
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 """
@@ -68,7 +71,6 @@ class TextContent(MarkedDocumentContract):
         self.__tags = None
         self.__categories = None
 
-
     @property
     def module_object(self):
         return self.__module
@@ -89,7 +91,7 @@ class TextContent(MarkedDocumentContract):
 
     def get_stream(self):
         template_module, template_name = self.template_module_object, self.template_name
-        res = template_module.render(template_name, body=self.body, content_object=self)
+        res = template_module.render(template_name, content=self.get_content_wrapper())
         f = io.BytesIO(res.encode('utf-8'))
         return f
 
@@ -142,7 +144,7 @@ class TextContent(MarkedDocumentContract):
 
     @property
     def body(self):
-        return self.__body_text
+        return Markup(mistune.markdown(self.__body_text))
 
     @property
     def title(self):
@@ -235,7 +237,7 @@ class TextContent(MarkedDocumentContract):
         if rules_txt:
             per_page = self.frontmatter.get('pagination-content-per-page', None)
             if not per_page:
-                per_page = 1  # later we will take the default from config
+                per_page = 2  # later we will take the default from config
 
             starting_content = self
 
@@ -247,7 +249,83 @@ class TextContent(MarkedDocumentContract):
 
     @pagination.setter
     def pagination(self, pg):
+        assert self.__pagination is None
         self.__pagination = pg
+
+    def get_content_wrapper(self):
+        # TODO: should place in contract!
+        # So, with cotract it can be used in paginator too
+        return ContentWrapper(self)
+
+
+class ContentWrapper:
+
+    __slots__ = ('__content', )
+
+    def __init__(self, content):
+        self.__content = content
+
+    @property
+    def title(self):
+        return self.__content.title
+
+    @property
+    def name(self):
+        return self.__content.content_name
+
+    @property
+    def id(self):
+        return self.__content.content_id
+
+    @property
+    def frontmatter(self):
+        return self.__content.frontmatter
+
+    @property
+    def body(self):
+        return self.__content.body
+
+    @property
+    def created_on(self):
+        return self.__content.created_on
+
+    @property
+    def updated_on(self):
+        return self.__content.updated_on
+
+    @property
+    def url_path(self):
+        return self.__content.url_object.path
+
+    # 'absolute_url': self.absolute_url,  TODO: Fix error
+
+    @property
+    def tags(self):
+        return self.__content.tags
+
+    @property
+    def categories(self):
+        return self.__content.categories
+
+    @property
+    def pagination(self):
+        return self.__content.pagination
+
+    def __str__(self):
+        return {
+            'title': self.title,
+            'name': self.name,
+            'id': self.id,
+            'frontmatter': self.frontmatter,
+            'body': self.body,
+            'created_on': self.created_on,
+            'updated_on': self.updated_on,
+            'url_path': self.url_path,
+            # 'absolute_url': self.absolute_url,  TODO: Fix error
+            'tags': self.tags,
+            'categories': self.categories,
+            'pagination': self.pagination
+            }
 
 
 class TextModule(ContentModuleContract):
@@ -293,10 +371,13 @@ class TextModule(ContentModuleContract):
                 # raise Exception("File name %s does not go with the file name format")
                 has_file_id = True
 
-            text_id = file_base_match.group('id').lstrip('0')
+            if file_base_match:
+                text_id = file_base_match.group('id').lstrip('0')
+                if text_id in file_ids:
+                    raise Exception("Two different texts files cannot have the same text id")
+            else:
+                text_id = None
 
-            if text_id in file_ids:
-                raise Exception("Two different texts files cannot have the same text id")
             print("::::: %s" % file_path.absolute_path)
             with open(file_path.absolute_path, "r", encoding="utf-8") as f:
                 text = f.read()

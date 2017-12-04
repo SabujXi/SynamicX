@@ -8,6 +8,12 @@ from collections import namedtuple
 
 TemplateNameModuleNamePair = namedtuple('TemplateNameModuleNamePair', ['template_name', 'module_name'])
 
+forntmatter_default_values = {
+    normalize_key('tags'): [],
+    normalize_key('categories'): [],
+    normalize_key('title'): "",
+    normalize_key('summary'): ""
+}
 
 class Frontmatter:
     def __init__(self, config, obj):
@@ -38,6 +44,8 @@ class Frontmatter:
 
     def get(self, key, default=None):
         key = normalize_key(key)
+        if key not in self:
+            return forntmatter_default_values.get(key, default)
         return self.__map.get(key, default)
 
     def keys(self):
@@ -87,12 +95,18 @@ class DefaultFrontmatterValueParsers:
                 txt = txt[:-len('index.html')]
         return txt
 
+    @staticmethod
+    def _author_parser(auth):
+        auth = auth.strip()
+        return auth
+
     @classmethod
     def default_value_parsers_map(cls):
         return {
             'permalink': cls._permalink_parser,
             'id': cls._return_stripped_or_none_parser,
             'name': cls._return_stripped_or_none_parser,
+            'author': cls._author_parser,
             'template': cls._template_name_module_name_parser,
             'tags': cls._tags_categories_parser,
             'categories': cls._tags_categories_parser,

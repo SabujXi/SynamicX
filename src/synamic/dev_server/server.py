@@ -10,8 +10,8 @@ class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
         else:
             path = self.path
 
-        if path == '/':
-            path = '/index.html'
+        if path.endswith('/index.html'):
+            path = path[:-len('index.html')]
 
         cont = self.server.synamic_config.get_content_by_url_path(path)
         if not cont:

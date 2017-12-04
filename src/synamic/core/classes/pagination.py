@@ -120,14 +120,12 @@ class PaginationStream:
                     if idx >= len(cnts):
                         break
                     print("IDX %s - %s" % (idx, cnts))
-                    _cts.append(cnts[idx])
+                    _cts.append(cnts[idx].get_content_wrapper())
                 paginated_contents.append(tuple(_cts))
-
-        prev_page = None
-        prev_pg = None
 
         if paginated_contents:
             i = 0
+            prev_page = None
             for _page_contents in paginated_contents:
 
                 pagination = Pagination(len(paginated_contents), _page_contents, i, per_page)
@@ -135,7 +133,7 @@ class PaginationStream:
 
                 if i == 0:
                     self.__starting_content.pagination = pagination
-                    pagination.host_page = self.__starting_content
+                    pagination.host_page = self.__starting_content.get_content_wrapper()
                     prev_page = self.__starting_content
 
                 else:
@@ -143,15 +141,17 @@ class PaginationStream:
 
                     aux.pagination = pagination
                     pagination.host_page = aux
-                    prev_page = aux
 
-                    pagination.previous_page = prev_page
 
                     aux.url_object.append_component('part-%s' % pagination.position)
                     print("\n~~~~~~~~~~~~~~~~Aux content added: %s ~~~~~~~~~~~~~\n" % aux)
 
-                    if prev_page:
-                        prev_pg.next_page = aux
+                    pagination.previous_page = prev_page.get_content_wrapper()
+                    # TODO: content wrapper for prev/next page : done but it is still not in contract
+                    # if prev_page:
+                    prev_page.pagination.next_page = aux.get_content_wrapper()
+
+                    prev_page = aux
 
                     self.__config.add_document(aux)
 
