@@ -459,68 +459,6 @@ class SynamicConfig(object):
                 sorted_content = sorted(accepted_contents, reverse=reverse)
         return sorted_content
 
-    # @loaded
-    # def filter_content_old(self, filter_txt):
-    #     """Filters only is_dynamic content"""
-    #     parsed_rules, sort = parse_rules(filter_txt, self.module_names)
-    #     needed_module_names = set([rule.module_name for rule in parsed_rules])
-    #     contents_map = {}
-    #     for mod_name in needed_module_names:
-    #         contents_map[mod_name] = set()
-    #
-    #     for cont in self.__content_map[self.KEY.CONTENTS_SET]:
-    #         cnt = cont
-    #         if content_is_dynamic(cnt) and cnt.module_object.name in needed_module_names:
-    #             contents_map[cnt.module_object.name].add(cnt)
-    #
-    #     accepted_contents_combination = []
-    #
-    #     for rule in parsed_rules:
-    #         contents = contents_map[rule.module_name]
-    #         passed_contents = set()
-    #         for cnt in contents:
-    #             if filter_dispatcher(cnt, rule.filter, rule.operator, rule.value_s):
-    #                 passed_contents.add(cnt)
-    #         accepted_contents_combination.append((passed_contents, rule.combinator))
-    #
-    #     accepted_contents = set()
-    #     i = 0
-    #     previous_combinator = None
-    #     while i < len(accepted_contents_combination):
-    #
-    #         contents = accepted_contents_combination[i][0]
-    #         combinator = accepted_contents_combination[i][1]
-    #         if previous_combinator is None:
-    #             accepted_contents.update(contents)
-    #             if combinator is None:
-    #                 break
-    #             previous_combinator = combinator
-    #         else:
-    #             if previous_combinator == '&&':
-    #                 accepted_contents = accepted_contents.intersection(contents)
-    #             elif previous_combinator == '//':
-    #                 accepted_contents = accepted_contents.union(contents)
-    #
-    #             if combinator is None:
-    #                 break
-    #         i += 1
-    #     # sort
-    #     # sorted_content = None
-    #     if not sort:
-    #         # sort by created on in desc
-    #         sorted_content = sorted(accepted_contents, key=lambda _cont: 0 if _cont.created_on is None else _cont.created_on.toordinal(), reverse=True)
-    #     else:
-    #         reverse = False
-    #         if sort.order == 'desc':
-    #             reverse = True
-    #
-    #         if sort.by_filter == 'created-on':
-    #             sorted_content = sorted(accepted_contents,
-    #                                     key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=reverse)
-    #         else:
-    #             sorted_content = sorted(accepted_contents, reverse=reverse)
-    #     return sorted_content
-
     def register_frontmatter_value_parser(self, key, _callable):
         key = normalize_key(key)
         assert key not in self.__frontmatter_value_parser, 'A parser is already there for key: %s' % key

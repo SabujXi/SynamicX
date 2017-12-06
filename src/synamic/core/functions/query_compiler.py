@@ -483,7 +483,8 @@ def get_query_container(query_str):
 
 # Operator functions
 def eq_operator(content_value, value):
-    return content_value == value
+    print("\n\n%s ==? %s\n\n" % (content_value, value))
+    return True if content_value == value else False
 
 
 def neq_operator(content_value, value):
@@ -543,24 +544,41 @@ allowed_sort_bys = {
 def filter_dispatcher(query: Query, content):
     if not query.has_filters:
         return True
-    _filter = query.filters[0]
-    filter = _filter.filter_name
-    operator = _filter.operator
-    value_s = _filter.data_s
-    if filter in content.frontmatter:
-        if filter == 'tags' or filter == 'categories':
-            content_value_s = getattr(content, filter)
-        elif filter == 'created-on':
-            content_value_s = getattr(content, 'created-on')
-            value_s = value_s[0]
+
+    res = None
+
+    for _filter in query.filters:
+        # _filter = [0]
+        filter = _filter.filter_name
+        operator = _filter.operator
+        value_s = _filter.data_s
+        if filter in content.frontmatter:
+            if filter == 'tags' or filter == 'categories':
+                content_value_s = getattr(content, filter)
+            elif filter == 'created-on':
+                content_value_s = getattr(content, 'created-on')
+                value_s = value_s[0]
+            else:
+                content_value_s = content.frontmatter[filter]
+                value_s = value_s[0]
+            # print("content_value_s: %s" % content_value_s)
+            operator_fun = operator_functions[operator]
+            # print("Operator fun: %s" % operator_fun)
+            _res = operator_fun(content_value_s, value_s)
         else:
-            content_value_s = content.frontmatter[filter]
-            value_s = value_s[0]
-        # print("content_value_s: %s" % content_value_s)
-        operator_fun = operator_functions[operator]
-        # print("Operator fun: %s" % operator_fun)
-        return operator_fun(content_value_s, value_s)
-    return False
+            _res = False
+        if value_s == 'en':
+            print("\n\nLLLLLLOOOOOOOOOPPPPPPPPP: %s=> %s : %s" % (filter, value_s, content_value_s))
+        if res is None:
+            res = _res
+            # print("\n\nLLLLLLOOOOOOOOOPPPPPPPPP: %s" % _filter.logical_operator)
+        else:
+            if filter.logical_operator == 'and':
+                res = res and _res
+            else:
+                res = res or _res
+    return res
+
 
 
 def parse_values(txt, filter, single=True):
@@ -577,4 +595,4 @@ def parse_values(txt, filter, single=True):
         return parsed_values
 
 
-get_query_container("(text: tag == 'x' and id > '5') & (blog)")
+# get_query_container("(text: tag == 'x' and id > '5') & (blog)")

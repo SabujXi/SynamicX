@@ -115,7 +115,8 @@ class DefaultFrontmatterValueParsers:
             'created-on': parse_datetime,
             'updated-on': parse_datetime,
             'pagination-filter': cls._return_stripped_or_none_parser,
-            'pagination-content-per-page': cls._return_stripped_or_none_parser   # TODO: this should be convtd to nos
+            'pagination-content-per-page': cls._return_stripped_or_none_parser,   # TODO: this should be convtd to nos
+            'language': lambda s: normalize_key(s)
         }
 
     @classmethod
