@@ -321,7 +321,7 @@ class HomeModule(ContentModuleContract):
 
     @property
     def dependencies(self):
-        return {"synamic-template"}
+        return {"synamic-template", "text"}
 
     @property
     def is_loaded(self):
