@@ -142,7 +142,6 @@ class PaginationStream:
                     aux.pagination = pagination
                     pagination.host_page = aux
 
-
                     aux.url_object.append_component('part-%s' % pagination.position)
                     print("\n~~~~~~~~~~~~~~~~Aux content added: %s ~~~~~~~~~~~~~\n" % aux)
 

@@ -18,6 +18,6 @@ class GetUrlExtension(Extension):
         call = self.call_method('_get_url', [url_name_or_id], lineno=lineno)
         return nodes.Output([call], lineno=lineno)
 
-    def _get_url(self, url_name_or_id):
-        url_obj = self.environment.synamic_config.get_url(url_name_or_id)
-        return url_obj.path_object
+    def _get_url(self, parameter):
+        url = self.environment.synamic_config.get_url(parameter)
+        return url

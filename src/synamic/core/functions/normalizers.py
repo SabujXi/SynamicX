@@ -1,5 +1,6 @@
 import sys
 import re
+import os
 
 
 def normalize_key(key):
@@ -71,3 +72,5 @@ def newline_normalizer(text):
     raise NotImplemented
 
 
+def normalize_relative_file_path(path):
+    return os.path.normpath(path).lstrip(r'\/').replace('\\', '/')  # Url friendly

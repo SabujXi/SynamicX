@@ -1,6 +1,6 @@
 import os
 import re
-from synamic.core.functions.decorators import loaded, not_loaded
+from synamic.core.functions.normalizers import normalize_relative_file_path
 
 regex_type = type(re.compile(""))
 
@@ -34,6 +34,14 @@ class ContentPath:
         Relative paths are relative to own module_object.
         """
         return self.__relative_path
+
+    @property
+    def normalized_relative_path(self):
+        """
+        Relative normalized paths are relative to own module_object.
+        """
+        p = normalize_relative_file_path(self.relative_path)
+        return p
 
     @property
     def relative_path_from_root(self):

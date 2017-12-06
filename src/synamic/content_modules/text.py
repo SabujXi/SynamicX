@@ -15,7 +15,7 @@ from synamic.core.classes.frontmatter import Frontmatter
 from synamic.core.classes.url import ContentUrl
 import mistune
 from markupsafe import Markup
-
+from synamic.core.functions.normalizers import normalize_key
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 """
@@ -340,7 +340,7 @@ class TextModule(ContentModuleContract):
 
     @property
     def name(self):
-        return "text"
+        return normalize_key('text')
 
     @property
     def config(self):

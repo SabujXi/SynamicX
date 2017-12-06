@@ -3,6 +3,7 @@ from synamic.core.classes.url import ContentUrl
 from synamic.core.contracts import ContentModuleContract
 from synamic.core.contracts.document import StaticDocumentContract
 from synamic.core.functions.decorators import loaded, not_loaded
+from synamic.core.functions.normalizers import normalize_key
 
 
 class StaticContent(StaticDocumentContract):
@@ -75,7 +76,7 @@ class StaticModule(ContentModuleContract):
 
     @property
     def name(self):
-        return 'static'
+        return normalize_key('static')
 
     @property
     def content_class(self):

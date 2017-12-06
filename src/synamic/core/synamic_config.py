@@ -9,7 +9,7 @@ from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.content_modules.text import TextModule
 from synamic.template_modules.synamic_template import SynamicTemplate
 from synamic.content_modules.static import StaticModule
-from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path
+from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
 from synamic.core.dependency_resolver import create_dep_list
 from synamic.core.classes.site_settings import SiteSettings
 from collections import namedtuple
@@ -19,6 +19,8 @@ from synamic.core.contracts.content import content_is_dynamic
 import enum
 from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
+from synamic.core.classes.utils import DictUtils
+
 
 class SynamicConfig(object):
     @enum.unique
@@ -27,6 +29,7 @@ class SynamicConfig(object):
         CONTENTS_BY_NAME = 1
         CONTENTS_BY_URL_PATH = 2
         CONTENTS_BY_GENERALIZED_URL_PATH = 3
+        CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH = 5
         CONTENTS_SET = 4
 
     # module types
@@ -49,6 +52,7 @@ class SynamicConfig(object):
             self.KEY.CONTENTS_BY_NAME: dict(),
             self.KEY.CONTENTS_BY_URL_PATH: dict(),
             self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH: dict(),
+            self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH: dict(),
             self.KEY.CONTENTS_SET: set()
         }
 
@@ -204,13 +208,34 @@ class SynamicConfig(object):
 
     def add_document(self, document: MarkedDocumentContract):
         url_object = document.url_object
+        mod_name = normalize_key(document.module_object.name)
         # Checking/Validation and addition
         # 1. Content Name
 
         if document.content_name is not None and document.content_name != "":
-            assert document.content_name not in self.__content_map[self.KEY.CONTENTS_BY_NAME],\
+            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NAME]
+            d = DictUtils.get_or_create_dict(parent_d, mod_name)
+            assert document.content_name not in d,\
                 "Multiple resource with the same content name cannot live together"
-            self.__content_map[self.KEY.CONTENTS_BY_NAME][document.content_name] = document
+            d[document.content_name] = document
+
+        # 4. Content id
+        if document.content_id is not None and document.content_id != "":
+            parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
+            d = DictUtils.get_or_create_dict(parent_d, mod_name)
+            assert document.content_id not in d,\
+                "Duplicate content id cannot exist"
+            d[document.content_id] = document
+
+        # 6. Normalized relative file path
+        if document.content_type != document.types.AUXILIARY:
+            _path = document.path_object.normalized_relative_path
+            # print("Rormalized relative file path: %s" % _path)
+            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
+            d = DictUtils.get_or_create_dict(parent_d, mod_name)
+            assert _path not in d, "Duplicate normalized relative file path: %s" % _path
+            d[_path] = document
+
         # 2. Url path
         assert document.url_object.path not in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH]
         self.__content_map[self.KEY.CONTENTS_BY_URL_PATH][document.url_object.path] = document
@@ -220,35 +245,61 @@ class SynamicConfig(object):
             "Multiple resource with the same generalized url cannot coexist"
         self.__content_map[self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.generalized_real_path] = document
 
-        # 4. Content id
-        if document.content_id is not None and document.content_id != "":
-            assert document.content_id not in self.__content_map[self.KEY.CONTENTS_BY_ID],\
-                "Duplicate content id cannot exist"
-            self.__content_map[self.KEY.CONTENTS_BY_ID][document.content_id] = document
-
-        # 5. Urls set
+        # 5. Contents set
         self.__content_map[self.KEY.CONTENTS_SET].add(document)
 
-    def get_url(self, name_or_id):
+    def get_url(self, parameter):
         """
-        Finds a url_object depending on name/content-id
+        Finds a content objects depending on name/content-id/url-path/file-path
         
-        Search priority:
-            1. Name
-            2. ID
+        Format:
+        <module-name>:<id>|<name>|<file-path>:...
+        
+        Examples:
+            - text:id:it_39
+            - text:id:it_39
+            - text:name:got-it-1
+            - text:file:/text-logo.png
+            - text:file:text-logo.png
+            - static:file:home-logo.png
         """
+        parts = parameter.split(':')
+        assert len(parts) == 3, "Invalid geturl parameter"
 
         # 1. Into name
-        name = normalize_key(name_or_id)
+        mod_name = normalize_key(parts[0])
+        search_type = normalize_key(parts[1])
+        search_what = parts[2].strip()
 
-        if name in self.__content_map[self.KEY.CONTENTS_BY_NAME]:
-            return self.__content_map[self.KEY.CONTENTS_BY_NAME][name]
-        # 2. Content id
-        elif name_or_id in self.__content_map[self.KEY.CONTENTS_BY_ID]:
-            return self.__content_map[self.KEY.CONTENTS_BY_ID][name_or_id]
+        if search_type == normalize_key('file'):
+            search_what = normalize_relative_file_path(search_what)
+
+        if search_type == normalize_key('name'):
+            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NAME]
+            d = DictUtils.get_or_create_dict(parent_d, mod_name)
+            res = d[search_what]
+
+        # 4. Content id
+        elif search_type == normalize_key('id'):
+            parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
+            d = DictUtils.get_or_create_dict(parent_d, mod_name)
+            assert search_type in d, \
+                "Content id does not exist"
+            res = d[search_what]
+
+        # 6. Normalized relative file path
+        elif search_type == normalize_key('file'):
+            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
+            d = DictUtils.get_or_create_dict(parent_d, mod_name)
+            # for key in d.keys():
+            #     print(key)
+            assert search_what in d, "File not found with the module and name: %s:%s:%s:  " % (mod_name, search_type, search_what)
+            res = d[search_what]
         else:
             # Should raise exception or just return None/False
             raise Exception("Url could not be found by url_object name or content id")
+
+        return res.url_object.path
 
     def get_content_by_url_path(self, path):
         path = normalize_content_url_path(path)
