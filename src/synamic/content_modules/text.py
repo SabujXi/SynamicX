@@ -16,7 +16,7 @@ from synamic.core.classes.url import ContentUrl
 import mistune
 from markupsafe import Markup
 from synamic.core.functions.normalizers import normalize_key
-
+from synamic.core.functions.md import render_markdown
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 """
 Text files must start with a number. The initial zero of the number will be stripped off
@@ -144,7 +144,7 @@ class TextContent(MarkedDocumentContract):
 
     @property
     def body(self):
-        return Markup(mistune.markdown(self.__body_text))
+        return Markup(render_markdown(self.__config, self.__body_text))
 
     @property
     def title(self):

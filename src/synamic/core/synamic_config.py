@@ -225,6 +225,8 @@ class SynamicConfig(object):
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
             assert document.content_id not in d,\
                 "Duplicate content id cannot exist"
+            print("Content id adding %s" % document.content_id)
+            # input()
             d[document.content_id] = document
 
         # 6. Normalized relative file path
@@ -270,6 +272,7 @@ class SynamicConfig(object):
         mod_name = normalize_key(parts[0])
         search_type = normalize_key(parts[1])
         search_what = parts[2].strip()
+        print("Search what: %s" % search_what)
 
         if search_type == normalize_key('file'):
             search_what = normalize_relative_file_path(search_what)
@@ -283,8 +286,7 @@ class SynamicConfig(object):
         elif search_type == normalize_key('id'):
             parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
-            assert search_type in d, \
-                "Content id does not exist"
+            assert search_what in d, "Content id does not exist %s:%s:%s %s" % (mod_name, search_type, search_what, d)
             res = d[search_what]
 
         # 6. Normalized relative file path

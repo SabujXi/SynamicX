@@ -137,12 +137,12 @@ class StaticModule(ContentModuleContract):
                 permalink = permalink.rstrip(r'\/')
             id = path.meta_info.get(normalize_key('id'), None)
             if id:
+                print("CONTENT IDDDDDDDDDDDDDDD: %s" % id)
                 static_content.content_id = id
             name = path.meta_info.get(normalize_key('name'), None)
             if name:
                 static_content.content_name = name
             if permalink:
-                # print("}}}}}}}}}}}}}}}}}adding permalink")
                 cnt_url = ContentUrl(self.__config, permalink, is_dir=False)
             else:
                 cnt_url = ContentUrl(self.__config, normalize_relative_file_path(path.relative_path_from_module_root),
