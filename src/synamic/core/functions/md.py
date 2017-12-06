@@ -16,8 +16,8 @@ class SynamicRenderer(mistune.Renderer):
 
     def link(self, link, title, content):
         ll = link.lower()
-        if ll.startswith('geturl:'):
-            url = ll[len('geturl:'):]
+        if ll.startswith('geturl://'):
+            url = ll[len('geturl://'):]
             url = self.__config.get_url(url)
         else:
             url = link
