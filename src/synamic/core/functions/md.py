@@ -8,17 +8,18 @@ class SynamicRenderer(mistune.Renderer):
 
     def image(self, src, title, alt_text):
         lsrc = src.lower()
-        if lsrc.startswith('geturl:'):
-            url = self.__config.get_url(src)
+        if lsrc.startswith('geturl://'):
+            _url = src[len('geturl://'):]
+            url = self.__config.get_url(_url)
         else:
             url = src
-        return "<img src='%s' title='%s' alt='%s'>" % (url, title, alt_text)
+        return "<img src='%s' title='%s' alt='%s' class='img-responsive center-block'>" % (url, title, alt_text)
 
     def link(self, link, title, content):
         ll = link.lower()
         if ll.startswith('geturl://'):
-            url = ll[len('geturl://'):]
-            url = self.__config.get_url(url)
+            _url = link[len('geturl://'):]
+            url = self.__config.get_url(_url)
         else:
             url = link
         return "<a href='%s' title='%s'>%s</a>" % (url, title, content)
