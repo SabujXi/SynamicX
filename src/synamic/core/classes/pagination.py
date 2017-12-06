@@ -102,24 +102,26 @@ class PaginationStream:
     def _paginate(self, rules_txt, per_page):
         cnts = self.__config.filter_content(rules_txt)
 
+        # print('\n\n Paginated contents: %s \n\n' % cnts)
+
         paginated_contents = []
 
         if cnts:
-            print("Contents: %s" % cnts)
+            # print("Contents: %s" % cnts)
             q, r = divmod(len(cnts), per_page)
             divs = q
             if r > 0:
                 divs += 1
-            print("Divs: %s" % divs)
+            # print("Divs: %s" % divs)
 
             for i in range(divs):
                 _cts = []
                 for j in range(per_page):
                     idx = (i*per_page) + j           # (row * NUMCOLS) + column        #(i * divs) + j
-                    print("idx: %s" % idx)
+                    # print("idx: %s" % idx)
                     if idx >= len(cnts):
                         break
-                    print("IDX %s - %s" % (idx, cnts))
+                    # print("IDX %s - %s" % (idx, cnts))
                     _cts.append(cnts[idx].get_content_wrapper())
                 paginated_contents.append(tuple(_cts))
 
@@ -143,7 +145,7 @@ class PaginationStream:
                     pagination.host_page = aux
 
                     aux.url_object.append_component('part-%s' % pagination.position)
-                    print("\n~~~~~~~~~~~~~~~~Aux content added: %s ~~~~~~~~~~~~~\n" % aux)
+                    # print("\n~~~~~~~~~~~~~~~~Aux content added: %s ~~~~~~~~~~~~~\n" % aux)
 
                     pagination.previous_page = prev_page.get_content_wrapper()
                     # TODO: content wrapper for prev/next page : done but it is still not in contract

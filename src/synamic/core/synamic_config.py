@@ -7,6 +7,7 @@ from synamic.core.contracts import (
 from synamic.core.exceptions import InvalidModuleType
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.content_modules.text import TextModule
+from synamic.content_modules.home import HomeModule
 from synamic.template_modules.synamic_template import SynamicTemplate
 from synamic.content_modules.static import StaticModule
 from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
@@ -85,6 +86,7 @@ class SynamicConfig(object):
 
     def __initiate(self):
         self.add_module(TextModule(self))
+        self.add_module(HomeModule(self))
         self.add_module(SynamicTemplate(self))
         self.add_module(StaticModule(self))
 
@@ -457,6 +459,7 @@ class SynamicConfig(object):
                                         key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=reverse)
             else:
                 sorted_content = sorted(accepted_contents, reverse=reverse)
+        print("\n\n\n%s\n\n\n" % sorted_content)
         return sorted_content
 
     def register_frontmatter_value_parser(self, key, _callable):
