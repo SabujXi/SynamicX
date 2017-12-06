@@ -454,7 +454,6 @@ class SynamicConfig(object):
                 sorted_content = sorted(accepted_contents, reverse=reverse)
         return sorted_content
 
-
     def register_frontmatter_value_parser(self, key, _callable):
         key = normalize_key(key)
         assert key not in self.__frontmatter_value_parser, 'A parser is already there for key: %s' % key
@@ -463,4 +462,8 @@ class SynamicConfig(object):
     def get_frontmatter_value_parser(self, key):
         key = normalize_key(key)
         return self.__frontmatter_value_parser[key]
+
+    def enqueue_static_file(self, mod_obj, path):
+        mod = self.get_module('static')
+        mod.enqueue_file(mod_obj, path)
 

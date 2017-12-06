@@ -1,4 +1,5 @@
 import http.server
+from urllib.parse import unquote
 
 
 class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -9,6 +10,8 @@ class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
             print("self.path %s and path %s" % (self.path, path))
         else:
             path = self.path
+
+        path = unquote(path)
 
         if path.endswith('/index.html'):
             path = path[:-len('index.html')]

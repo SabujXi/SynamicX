@@ -364,30 +364,33 @@ class TextModule(ContentModuleContract):
         file_ids = set()
 
         for file_path in paths:
-            has_file_id = False
-            file_base_match = file_path.match_basename(self.__class__._file_name_regex)
+            if file_path.extension.lower() in self.extensions:
+                has_file_id = False
+                file_base_match = file_path.match_basename(self.__class__._file_name_regex)
 
-            if file_base_match:
-                # raise Exception("File name %s does not go with the file name format")
-                has_file_id = True
+                if file_base_match:
+                    # raise Exception("File name %s does not go with the file name format")
+                    has_file_id = True
 
-            if file_base_match:
-                text_id = file_base_match.group('id').lstrip('0')
-                if text_id in file_ids:
-                    raise Exception("Two different texts files cannot have the same text id")
+                if file_base_match:
+                    text_id = file_base_match.group('id').lstrip('0')
+                    if text_id in file_ids:
+                        raise Exception("Two different texts files cannot have the same text id")
+                else:
+                    text_id = None
+
+                print("::::: %s" % file_path.absolute_path)
+                with open(file_path.absolute_path, "r", encoding="utf-8") as f:
+                    text = f.read()
+                    text_obj = TextContent(self.__config, self, file_path, text)
+
+                    if not text_obj.has_valid_frontmatter:
+                        print(text_obj.raw_frontmatter)
+                        raise Exception("Front matter is corrupted or invalid")
+                    self.__text_map[text_id] = text_obj
+                    self.__config.add_document(text_obj)
             else:
-                text_id = None
-
-            print("::::: %s" % file_path.absolute_path)
-            with open(file_path.absolute_path, "r", encoding="utf-8") as f:
-                text = f.read()
-                text_obj = TextContent(self.__config, self, file_path, text)
-
-                if not text_obj.has_valid_frontmatter:
-                    print(text_obj.raw_frontmatter)
-                    raise Exception("Front matter is corrupted or invalid")
-                self.__text_map[text_id] = text_obj
-                self.__config.add_document(text_obj)
+                self.__config.enqueue_static_file(self, file_path)
 
         # TODO: must be moved to config.load later
         for text_obj in self.__text_map.values():

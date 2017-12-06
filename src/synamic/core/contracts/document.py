@@ -21,6 +21,8 @@ class StaticDocumentContract(BaseDocumentContract):
         pass
 
 
+
+
 class MarkedDocumentContract(BaseDocumentContract):
 
     @property

@@ -1,6 +1,9 @@
 import os
 import re
 from synamic.core.functions.normalizers import normalize_relative_file_path
+from synamic.core.functions.yaml_processor import load_yaml
+from synamic.core.functions.normalizers import normalize_keys
+
 
 regex_type = type(re.compile(""))
 
@@ -21,6 +24,7 @@ class ContentPath:
         self.__is_meta = is_meta
 
         self.__meta_path = None
+        self.__meta_info = dict()
 
         self.__ext = None
 
@@ -130,11 +134,26 @@ class ContentPath:
             `.meta.txt` being case sensitive, in users may provide extension in case insensitive ways and fail applications.
         """
         if self.__meta_path is None:
-            mpf = os.path.join(self.basename, self.META_FILE_EXTENSION)
-            abs_mp = os.path.join(self.root_absolute_path, self.dirname, mpf)
+            mpf = self.basename + self.META_FILE_EXTENSION
+            abs_mp = os.path.join(os.path.dirname(self.absolute_path), mpf)
+            # print("MMMMMMMMMMeta path: %s" % abs_mp)
             if os.path.exists(abs_mp) and os.path.isfile(abs_mp):
-                self.__meta_path = self.__class__(self.root_absolute_path, os.path.join(self.dirname, mpf), is_file=True, is_meta=True)
+                self.__meta_path = self.__class__(self.root_absolute_path, os.path.join(self.dirname, mpf), self.__module, is_file=True, is_meta=True)
         return self.__meta_path
+
+    @property
+    def meta_info(self):
+        if not self.__meta_info:
+            if self.meta_path:
+                with open(self.meta_path.absolute_path, 'r', encoding='utf-8') as f:
+                    txt = f.read()
+                    loaded = load_yaml(txt)
+                    if type(loaded) is dict:
+                        self.__meta_info = loaded
+                    elif type(loaded) is not dict:
+                        self.__meta_info = {'__error_info_': "Meta file content could not be loaded as dict"}
+                normalize_keys(self.__meta_info)
+        return self.__meta_info
 
     def __match_process_regex(self, regex, ignorecase=True):
         """Matches against relative path"""
@@ -255,8 +274,8 @@ class PathTree(object):
         assert paths is not None, "Module name must exist"
         return paths
 
-    def get_untracked_content_paths(self):
-        return self.__other_paths
+    # def get_untracked_content_paths(self):
+    #     return self.__other_paths
 
     def load(self):
         content_modules = self.__config.content_modules
@@ -271,7 +290,7 @@ class PathTree(object):
                     self.__paths_by_content_modules[mod.name].add(x)
             else:
                 for x in file_paths:
-                    if x.extension.lower() in mod.extensions:
-                        self.__paths_by_content_modules[mod.name].add(x)
-                    else:
-                        self.__other_paths.add(x)
+                    # if x.extension.lower() in mod.extensions:
+                    self.__paths_by_content_modules[mod.name].add(x)
+                    # else:
+                    #     self.__other_paths.add(x)

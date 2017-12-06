@@ -3,7 +3,7 @@ from synamic.core.classes.url import ContentUrl
 from synamic.core.contracts import ContentModuleContract
 from synamic.core.contracts.document import StaticDocumentContract
 from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.functions.normalizers import normalize_key
+from synamic.core.functions.normalizers import normalize_key, normalize_relative_file_path, normalize_content_url_path
 
 
 class StaticContent(StaticDocumentContract):
@@ -12,6 +12,9 @@ class StaticContent(StaticDocumentContract):
         self.__config = config
         self.__module = module
         self.__path = path
+
+        self.__content_id = None
+        self.__content_name = None
 
     def set_url_obj(self, url_obj):
         assert self.__url is None, "Cannot set url_object object twice"
@@ -27,7 +30,13 @@ class StaticContent(StaticDocumentContract):
 
     @property
     def content_id(self):
-        return self.module_object.name + ":" + self.path_object.relative_path  # Should be more intelligent? Ok, let's think about that later.
+        return self.__content_id
+        # return self.module_object.name + ":" + self.path_object.relative_path  # Should be more intelligent? Ok, let's think about that later.
+
+    @content_id.setter
+    def content_id(self, cid):
+        assert self.__content_id is None, 'No repeat please'
+        self.__content_id = cid
 
     def get_stream(self):
         file = open(self.path_object.absolute_path, 'rb')
@@ -53,7 +62,12 @@ class StaticContent(StaticDocumentContract):
     @property
     def content_name(self):
         # raise NotImplemented
-        return None
+        return self.__content_name
+
+    @content_name.setter
+    def content_name(self, name):
+        assert self.__content_name is None, 'No repeat please'
+        self.__content_name = name
 
     @property
     def url_object(self):
@@ -112,3 +126,30 @@ class StaticModule(ContentModuleContract):
     @property
     def root_url_path(self):
         return ''
+
+    def enqueue_file(self, mod_obj, path):
+        static_content = StaticContent(self.__config, mod_obj, path)
+
+        if path.meta_info:
+            print("XXXXXXXX: Meta found for %s" % path.meta_info)
+            permalink = path.meta_info.get(normalize_key('permalink'), None)
+            if permalink:
+                permalink = permalink.rstrip(r'\/')
+            id = path.meta_info.get(normalize_key('id'), None)
+            if id:
+                static_content.content_id = id
+            name = path.meta_info.get(normalize_key('name'), None)
+            if name:
+                static_content.content_name = name
+            if permalink:
+                # print("}}}}}}}}}}}}}}}}}adding permalink")
+                cnt_url = ContentUrl(self.__config, permalink, is_dir=False)
+            else:
+                cnt_url = ContentUrl(self.__config, normalize_relative_file_path(path.relative_path_from_module_root),
+                                 is_dir=False)
+        else:
+            cnt_url = ContentUrl(self.__config, normalize_relative_file_path(path.relative_path_from_module_root),
+                                 is_dir=False)
+        static_content.set_url_obj(cnt_url)
+        self.__config.add_document(static_content)
+
