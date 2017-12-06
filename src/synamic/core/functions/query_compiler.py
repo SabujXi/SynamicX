@@ -28,13 +28,13 @@ class SeparatorOperators(enum.Enum):
     SORT_SEPARATOR = ';'
 
 
-# @enum.unique
-# class LogicWords(enum.Enum):
-#     AND = 'and'
-#     OR = 'or'
+@enum.unique
+class LogicWords(enum.Enum):
+    AND = 'and'
+    OR = 'or'
 
 
-# logicwords_regex_or = "|".join([re.escape(o) for o in [o.value for o in list(LogicWords)]])
+logicwords_regex_or = "|".join([re.escape(o) for o in [o.value for o in list(LogicWords)]])
 filter_operators_regex_or = "|".join([re.escape(o) for o in [o.value for o in list(FilterOperators)]])
 combinator_operators_regex_or = "|".join([re.escape(o) for o in [o.value for o in list(CombinatorOperators)]])
 separator_operators_regex_or = "|".join([re.escape(o) for o in [o.value for o in list(SeparatorOperators)]])
@@ -46,7 +46,7 @@ class TokenTypes(enum.Enum):
     BLOCK_START = 'block_start'
     BLOCK_END = 'block_end'
     DATA = 'data'
-    KEYWORD = 'keyword'
+    LOGICAL_KEYWORD = 'logical_keyword'
     NAME = 'name'
     FILTER_OPERATOR = 'filter_operator'
     COMBINATOR_OPERATOR = 'combinator_operator'
@@ -64,7 +64,7 @@ _filter_operator_pat = re.compile(filter_operators_regex_or)  # ~, !~ for member
 _combinator_operator_pat = re.compile(combinator_operators_regex_or)  # ~, !~ for membership, union &, | intersection
 _separator_operator_pat = re.compile(separator_operators_regex_or)  # ~, !~ for membership, union &, | intersection
 _data_pat = re.compile(r'[^)]+')
-# _keyword_pat = re.compile(logicwords_regex_or)
+_logical_keyword_pat = re.compile(logicwords_regex_or)
 _sort_by_regex = re.compile(r'sort\s+by\s+(?P<filter_name>[a-z][a-z0-9_-]*[a-z])\s+in\s+(?P<order>asc|desc)', re.I)
 
 
@@ -97,11 +97,11 @@ class TravelString(str):
                 start += m.end() - start
                 continue
 
-            # m = _keyword_pat.match(self, start)
-            # if m:
-            #     tokens.append(TokenContainer(type=TokenTypes.KEYWORD, value=m.group(), start=start, end=m.end()))
-            #     start += m.end() - start
-            #     continue
+            m = _logical_keyword_pat.match(self, start)
+            if m:
+                tokens.append(TokenContainer(type=TokenTypes.LOGICAL_KEYWORD, value=m.group(), start=start, end=m.end()))
+                start += m.end() - start
+                continue
 
             m = _name_pat.match(self, start)
             if m:
@@ -382,14 +382,27 @@ class Parser:
                 self.do_block_end()
                 return
             else:
-                self.advance_pos(1)
-                self.do_data_s()
+                next_tok = self.find_next_token(1)
+                if next_tok:
+                    if next_tok.type is TokenTypes.LOGICAL_KEYWORD:
+                        self.advance_pos(1)
+                        self.do_logical_operator()
+                    else:
+                        self.advance_pos(1)
+                        self.do_data_s()
+                else:
+                    raise Exception("Cannot end such abruptly")
+
         else:
             # if len(self.__cur_query.filters[-1].data_s) > 0:
             raise Exception("Current token was expected to be data: %s" % str(cur_tok))
 
-    # def do_logical_operator(self):
-    #     pass
+    def do_logical_operator(self):
+        cur_tok = self.__toks[self.__cur_pos]
+        print("LLLLLOOOOOGGGGIIIICAL: %s" % str(cur_tok))
+        self.__queries[-1].filters[-1].logical_operator = cur_tok.value
+        self.advance_pos(1)
+        self.do_filter_name()
 
     def do_block_end(self):
         cur_tok = self.__toks[self.__cur_pos]
@@ -563,3 +576,5 @@ def parse_values(txt, filter, single=True):
     else:
         return parsed_values
 
+
+get_query_container("(text: tag == 'x' and id > '5') & (blog)")
