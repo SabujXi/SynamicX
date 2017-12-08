@@ -16,7 +16,7 @@ from synamic.core.classes.site_settings import SiteSettings
 from collections import namedtuple
 import re
 # from synamic.core.functions.filter_content2 import filter_dispatcher, parse_rules
-from synamic.core.contracts.content import content_is_dynamic
+# from synamic.core.contracts.content import content_is_dynamic
 import enum
 from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
@@ -40,6 +40,7 @@ class SynamicConfig(object):
 
     def __init__(self, site_root):
         assert os.path.exists(site_root), "Base path must not be non existent"
+        assert os.path.exists(os.path.join(site_root, '.synamic')) and os.path.isfile(os.path.exists(os.path.join(site_root, '.synamic'))), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs"
         self.__site_root = site_root
 
         # modules: key => module.name, value => module
@@ -410,7 +411,7 @@ class SynamicConfig(object):
 
         for cont in self.__content_map[self.KEY.CONTENTS_SET]:
             cnt = cont
-            if content_is_dynamic(cnt) and cnt.module_object.name in needed_module_names:
+            if cnt.is_dynamic and cnt.module_object.name in needed_module_names:
                 contents_map[cnt.module_object.name].add(cnt)
 
         accepted_contents_combination = []

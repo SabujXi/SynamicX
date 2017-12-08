@@ -62,6 +62,17 @@ class ContentContract(metaclass=abc.ABCMeta):
         Instance of types enum
         """
         pass
+    @property
+    def is_dynamic(self):
+        return self.content_type is self.types.DYNAMIC
+
+    @property
+    def is_static(self):
+        return self.content_type is self.types.STATIC
+    
+    @property
+    def is_auxiliary(self):
+        return self.content_type is self.types.AUXILIARY
 
     # @property
     # @abc.abstractmethod
@@ -86,17 +97,5 @@ class ContentContract(metaclass=abc.ABCMeta):
     #     For example, created invoking paginate.
     #     """
     #
-
-
-def content_is_dynamic(content):
-    return content.content_type is ContentContract.types.DYNAMIC
-
-
-def content_is_static(content):
-    return content.content_type is ContentContract.types.STATIC
-
-
-def content_is_auxiliary(content):
-    return content.content_type is ContentContract.types.AUXILIARY
 
 

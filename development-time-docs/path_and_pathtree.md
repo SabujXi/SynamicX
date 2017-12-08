@@ -9,14 +9,17 @@ For taxonomy module a new requirement has appeared. It is necessary to list path
 The extra parameter should be `*starting_path`:
 Let's say, I want to get all the paths from `multiple/tags` inside taxonomy module. So, I would call it like this:
 
-- `get_module_paths(mod_obj, 'multiple', 'tags')`
+- <s>`get_module_paths(mod_obj, 'multiple', 'tags')`
 
 OR
+</s>
 
 - `get_module_paths(mod_obj, 'multiple/tags')`
 
 OR
 
 - `get_module_paths(mod_obj, r'multiple\tags')`
+
+*Note:* as the syntax `*starting_path` indicates you can provide multiple paths.
 
 *The first way is the best way to go*
