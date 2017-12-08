@@ -69,7 +69,7 @@ class ContentContract(metaclass=abc.ABCMeta):
     @property
     def is_static(self):
         return self.content_type is self.types.STATIC
-    
+
     @property
     def is_auxiliary(self):
         return self.content_type is self.types.AUXILIARY

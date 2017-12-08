@@ -107,3 +107,7 @@ class ContentUrlContract(abc.ABC):
         """
             Must return a file name with os.sep specific to the running platform 
         """
+
+    @abc.abstractmethod
+    def create_auxiliary_url(self):
+        pass

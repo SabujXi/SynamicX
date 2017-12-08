@@ -27,7 +27,7 @@ the rest is the file name you want to give to it.
 
 
 class TextContent(MarkedDocumentContract):
-    def __init__(self, config, module_object, path_object, file_content: str, url_suffix=""):
+    def __init__(self, config, module_object, path_object, file_content: str):
         # self.__init_document(url_suffix=url_suffix)
         # self.__text_id = text_id
         self.__config = config
@@ -38,8 +38,6 @@ class TextContent(MarkedDocumentContract):
         self.__content_type = ContentContract.types.DYNAMIC
         self.__file_content = file_content
         self.__pagination = None
-
-        self.__url_suffix = url_suffix
 
         self.__front_text = ""
         self.__body_text = ""
@@ -112,9 +110,10 @@ class TextContent(MarkedDocumentContract):
         assert self.__content_type is ContentContract.types.DYNAMIC, "The content type of text content is initially dynamic"
         self.__content_type = ContentContract.types.AUXILIARY
 
-    def create_auxiliary(self):
+    def create_auxiliary(self, prefix, serial):
         auxiliary_clone = self.__class__(self.__config, self.__module, self.__path, self.__file_content)
         auxiliary_clone._set_auxiliary()
+        auxiliary_clone.url_object = self.url_object.create_auxiliary_url(prefix, serial)
         return auxiliary_clone
 
     # def __getitem__(self, item):
@@ -150,49 +149,15 @@ class TextContent(MarkedDocumentContract):
     def title(self):
         return self.frontmatter.get("title", None)
 
-    def _create_url_object(self):
-        url_str = ''
-        url_name = None
-        is_dir = True
-        yaml_url_obj = self.frontmatter['permalink']  # need to change to path
 
-        if isinstance(yaml_url_obj, str):
-            url_str = yaml_url_obj
-        else:
-            assert isinstance(yaml_url_obj, dict), "url_representing_obj must be dict object at this phase"
-            url_str = yaml_url_obj['url']
-            url_name = yaml_url_obj['name']  # if not self.con.is_auxiliary else None
-        assert not _invalid_url.match(url_str), "url_object cannot have scheme"
-        # url_str = url_str.lstrip('/')  # Don't do this
-
-        # for suffix for auxiliary
-        if self.__url_suffix:
-            if url_str.endswith('/'):
-                url_str += self.__url_suffix
-            else:
-                url_str += "-page/" + self.__url_suffix
-
-        if url_str.endswith('/'):
-            is_dir = True
-        else:
-            if url_str.lower().endswith(".html") or url_str.lower().endswith(".htm"):
-                is_dir = False
-        # url_str = url_str.rstrip('/')  # Don't do this - commenting for now
-
-        if self.module_object.root_url_path:
-            url_str += self.module_object.root_url_path
-
-        url = ContentUrl(self.__config, url_str, is_dir=is_dir)
-        return url
 
     @property
     def url_object(self):
-        if self.__url is None:
-            self.__url = self._create_url_object()
         return self.__url
 
     @url_object.setter
     def url_object(self, url_object):
+        assert self.__url is None
         self.__url = url_object
 
     @property
@@ -358,6 +323,25 @@ class TextModule(ContentModuleContract):
     def is_loaded(self):
         return self.__is_loaded
 
+    def _create_url_object(self, frontmatter):
+        is_dir = True
+        url_str = frontmatter['permalink']  # need to change to path
+        assert not _invalid_url.match(url_str), "url_object cannot have scheme"
+        # url_str = url_str.lstrip('/')  # Don't do this
+
+        if url_str.endswith('/'):
+            is_dir = True
+        else:
+            if '.' in url_str:
+                is_dir = False
+        # url_str = url_str.rstrip('/')  # Don't do this - commenting for now
+
+        if self.root_url_path:
+            url_str += self.root_url_path
+
+        url = ContentUrl(self.__config, url_str, is_dir=is_dir)
+        return url
+
     @not_loaded
     def load(self):
         paths = self.__config.path_tree.get_module_paths(self)
@@ -379,10 +363,11 @@ class TextModule(ContentModuleContract):
                 else:
                     text_id = None
 
-                print("::::: %s" % file_path.absolute_path)
-                with open(file_path.absolute_path, "r", encoding="utf-8") as f:
+                # print("::::: %s" % file_path.absolute_path)
+                with self.__config.path_tree.open_file(file_path.relative_path, "r", encoding="utf-8") as f:
                     text = f.read()
                     text_obj = TextContent(self.__config, self, file_path, text)
+                    text_obj.url_object = self._create_url_object(text_obj.frontmatter)
 
                     if not text_obj.has_valid_frontmatter:
                         print(text_obj.raw_frontmatter)

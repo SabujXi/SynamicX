@@ -139,12 +139,12 @@ class PaginationStream:
                     prev_page = self.__starting_content
 
                 else:
-                    aux = self.__starting_content.create_auxiliary()
+                    aux = self.__starting_content.create_auxiliary("", pagination.position)
 
                     aux.pagination = pagination
                     pagination.host_page = aux
 
-                    aux.url_object.append_component('part-%s' % pagination.position)
+                    # aux.url_object.append_component('part-%s' % pagination.position)
                     # print("\n~~~~~~~~~~~~~~~~Aux content added: %s ~~~~~~~~~~~~~\n" % aux)
 
                     pagination.previous_page = prev_page.get_content_wrapper()

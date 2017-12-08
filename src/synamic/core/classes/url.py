@@ -21,18 +21,18 @@ class ContentUrl(ContentUrlContract):
         if not is_dir:
             assert not self.__url_str.endswith('/'), "A file url_object path cannot end with '/'"
 
-    def append_component(self, component):
-        # self.__is_dir = True
-        if self.__is_dir:
-            if self.__url_str.endswith('/'):
-                self.__url_str += component + '/'
-            else:
-                self.__url_str += '/' + component + '/'
-        else:  # file
-            if self.__url_str.endswith('/'):
-                self.__url_str = self.__url_str.rstrip('/')
-            self.__url_str += '-' + component + '/'
-            self.__is_dir = True
+    # def append_component(self, component):
+    #     # self.__is_dir = True
+    #     if self.__is_dir:
+    #         if self.__url_str.endswith('/'):
+    #             self.__url_str += component + '/'
+    #         else:
+    #             self.__url_str += '/' + component + '/'
+    #     else:  # file
+    #         if self.__url_str.endswith('/'):
+    #             self.__url_str = self.__url_str.rstrip('/')
+    #         self.__url_str += '-' + component + '/'
+    #         self.__is_dir = True
 
     @property
     def absolute_url(self):
@@ -84,3 +84,15 @@ class ContentUrl(ContentUrlContract):
     @property
     def to_file_path(self):
         return os.path.join(split_content_url_path_components(self.real_path))
+
+    def create_auxiliary_url(self, serial_prefix, serial):
+        """
+        Intended for auxiliary content.
+        """
+        url_str = self.__url_str
+        if not url_str.endswith('/'):
+            url_str += '/'
+
+        url_str = serial_prefix + str(serial) + '/'
+
+        return ContentUrl(self.__config, url_str, is_dir=True)

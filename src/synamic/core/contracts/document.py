@@ -21,8 +21,6 @@ class StaticDocumentContract(BaseDocumentContract):
         pass
 
 
-
-
 class MarkedDocumentContract(BaseDocumentContract):
 
     @property
@@ -101,5 +99,9 @@ class MarkedDocumentContract(BaseDocumentContract):
 
     @abstractmethod
     def trigger_pagination(self):
+        pass
+
+    @abstractmethod
+    def create_auxiliary(self, prefix, serial):
         pass
 
