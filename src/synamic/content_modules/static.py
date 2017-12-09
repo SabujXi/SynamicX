@@ -16,9 +16,9 @@ class StaticContent(StaticDocumentContract):
         self.__content_id = None
         self.__content_name = None
 
-    def set_url_obj(self, url_obj):
-        assert self.__url is None, "Cannot set url_object object twice"
-        self.__url = url_obj
+    # def set_url_obj(self, url_obj):
+    #     assert self.__url is None, "Cannot set url_object object twice"
+    #     self.__url = url_obj
 
     @property
     def module_object(self):
@@ -39,7 +39,7 @@ class StaticContent(StaticDocumentContract):
         self.__content_id = cid
 
     def get_stream(self):
-        file = open(self.path_object.absolute_path, 'rb')
+        file = self.__config.path_tree.open_file(self.path_object.relative_path, 'rb')
         return file
 
     @property
@@ -75,6 +75,7 @@ class StaticContent(StaticDocumentContract):
 
     @url_object.setter
     def url_object(self, url_object):
+        assert self.__url is None
         self.__url = url_object
 
 
@@ -104,17 +105,37 @@ class StaticModule(ContentModuleContract):
     def is_loaded(self):
         return self.__is_loaded
 
+    def set_url_and_content_info(self, file_path, static_content):
+        if file_path.meta_info:
+            permalink = file_path.meta_info.get(normalize_key('permalink'), None)
+            if permalink:
+                permalink = permalink.rstrip(r'\/')
+            id = file_path.meta_info.get(normalize_key('id'), None)
+            if id:
+                static_content.content_id = id
+            name = file_path.meta_info.get(normalize_key('name'), None)
+            if name:
+                static_content.content_name = name
+
+            if permalink:
+                cnt_url = ContentUrl(self.__config, permalink, is_dir=False)
+            else:
+                cnt_url = ContentUrl(self.__config, normalize_relative_file_path(file_path.relative_path),
+                                 is_dir=False)
+        else:
+            cnt_url = ContentUrl(self.__config, (self.root_url_path + file_path.listing_relative_path.replace('\\', '/')),
+                             False)
+        static_content.url_object = cnt_url
+
     @not_loaded
     def load(self):
         paths = self.__config.path_tree.get_module_paths(self)
         for file_path in paths:
             print("File path relative is: ", file_path.relative_path)
-            print("File path root relative is: ", file_path.relative_path_from_root)
             assert file_path.is_file  # Remove in prod
             static = StaticContent(self.__config, self, file_path)
-            url = ContentUrl(self.__config, (self.root_url_path + file_path.relative_path_from_module_root.replace('\\', '/')), False)
-            print("URL: %s" % url.path)
-            static.url_object = url
+            self.set_url_and_content_info(file_path, static)
+            print("Static URL Path: %s" % static.url_object.path)
             self.__config.add_document(static)
         # Add static files
         self.__is_loaded = True
@@ -129,27 +150,6 @@ class StaticModule(ContentModuleContract):
 
     def enqueue_file(self, mod_obj, path):
         static_content = StaticContent(self.__config, mod_obj, path)
-
-        if path.meta_info:
-            print("XXXXXXXX: Meta found for %s" % path.meta_info)
-            permalink = path.meta_info.get(normalize_key('permalink'), None)
-            if permalink:
-                permalink = permalink.rstrip(r'\/')
-            id = path.meta_info.get(normalize_key('id'), None)
-            if id:
-                print("CONTENT IDDDDDDDDDDDDDDD: %s" % id)
-                static_content.content_id = id
-            name = path.meta_info.get(normalize_key('name'), None)
-            if name:
-                static_content.content_name = name
-            if permalink:
-                cnt_url = ContentUrl(self.__config, permalink, is_dir=False)
-            else:
-                cnt_url = ContentUrl(self.__config, normalize_relative_file_path(path.relative_path_from_module_root),
-                                 is_dir=False)
-        else:
-            cnt_url = ContentUrl(self.__config, normalize_relative_file_path(path.relative_path_from_module_root),
-                                 is_dir=False)
-        static_content.set_url_obj(cnt_url)
+        self.set_url_and_content_info(path, static_content)
         self.__config.add_document(static_content)
 

@@ -40,7 +40,7 @@ class SynamicConfig(object):
 
     def __init__(self, site_root):
         assert os.path.exists(site_root), "Base path must not be non existent"
-        assert os.path.exists(os.path.join(site_root, '.synamic')) and os.path.isfile(os.path.exists(os.path.join(site_root, '.synamic'))), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs"
+        assert os.path.exists(os.path.join(site_root, '.synamic'))# and os.path.isfile(os.path.exists(os.path.join(site_root, '.synamic'))), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(site_root, '.synamic')
         self.__site_root = site_root
 
         # modules: key => module.name, value => module
@@ -235,7 +235,7 @@ class SynamicConfig(object):
 
         # 6. Normalized relative file path
         if document.content_type != document.types.AUXILIARY:
-            _path = document.path_object.normalized_relative_path
+            _path = document.path_object.normalized_listing_relative_path
             # print("Rormalized relative file path: %s" % _path)
             parent_d = self.__content_map[self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
@@ -295,12 +295,14 @@ class SynamicConfig(object):
 
         # 6. Normalized relative file path
         elif search_type == normalize_key('file'):
+            # _search_what = os.path.join(mod_name, search_what)
+            _search_what = normalize_relative_file_path(search_what)
             parent_d = self.__content_map[self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
             # for key in d.keys():
             #     print(key)
-            assert search_what in d, "File not found with the module and name: %s:%s:%s:  " % (mod_name, search_type, search_what)
-            res = d[search_what]
+            assert _search_what in d, "File not found with the module and name: %s:%s:%s:  " % (mod_name, search_type, _search_what)
+            res = d[_search_what]
         else:
             # Should raise exception or just return None/False
             raise Exception("Url could not be found by url_object name or content id")

@@ -149,8 +149,6 @@ class TextContent(MarkedDocumentContract):
     def title(self):
         return self.frontmatter.get("title", None)
 
-
-
     @property
     def url_object(self):
         return self.__url
