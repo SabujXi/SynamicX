@@ -342,7 +342,7 @@ class TextModule(ContentModuleContract):
 
     @not_loaded
     def load(self):
-        paths = self.__config.path_tree.get_module_paths(self)
+        paths = self.__config.path_tree.get_module_file_paths(self)
         file_ids = set()
 
         for file_path in paths:

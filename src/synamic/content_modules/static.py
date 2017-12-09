@@ -129,7 +129,7 @@ class StaticModule(ContentModuleContract):
 
     @not_loaded
     def load(self):
-        paths = self.__config.path_tree.get_module_paths(self)
+        paths = self.__config.path_tree.get_module_file_paths(self)
         for file_path in paths:
             print("File path relative is: ", file_path.relative_path)
             assert file_path.is_file  # Remove in prod

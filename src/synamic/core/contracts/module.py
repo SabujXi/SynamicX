@@ -34,6 +34,10 @@ class BaseContentModuleContract(metaclass=abc.ABCMeta):
         pass
 
 
+class BaseMetaModuleContract(BaseContentModuleContract):
+    pass
+
+
 class ContentModuleContract(BaseContentModuleContract):
 
     @property

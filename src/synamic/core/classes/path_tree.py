@@ -62,6 +62,8 @@ class ContentPath2:
 
     @property
     def absolute_path(self):
+        print("ROOT ABSOLUTE PATH: %s" % self.root_absolute_path)
+        print("RELATIVE PATH COMPONENTS: %s" % str(self.__relative_path_comps))
         return os.path.join(self.root_absolute_path, *self.__relative_path_comps)
 
     @property
@@ -88,7 +90,7 @@ class ContentPath2:
         """
         Relative dirname 
         """
-        return os.path.dirname(self.__relative_path_comps[:-1])
+        return os.path.dirname(self.__relative_path_comps[-1])
 
     @property
     def extension(self, dot_count=1):
@@ -125,9 +127,12 @@ class ContentPath2:
         """
         if self.__meta_path is None:
             mpf = self.basename + self.META_FILE_EXTENSION
+            print("META mpf: %s" % mpf)
             abs_mp = os.path.join(os.path.dirname(self.absolute_path), mpf)
+            print("META abs_mp: %s" % abs_mp)
             if os.path.exists(abs_mp) and os.path.isfile(abs_mp):
-                self.__meta_path = self.__class__(self.root_absolute_path, os.path.join(self.dirname, mpf), is_file=True, is_meta=True)
+                self.__meta_path = self.__class__(self.root_absolute_path, (*self.relative_path_components[:-1], mpf), is_file=True, is_meta=True)
+            print("META PATH: %s" % self.__meta_path)
         return self.__meta_path
 
     @property
@@ -143,7 +148,6 @@ class ContentPath2:
                         self.__meta_info = {'__error_info_': "Meta file content could not be loaded as dict"}
                 normalize_keys(self.__meta_info)
         return self.__meta_info
-
 
     def __match_process_regex(self, regex, ignorecase=True):
         """Matches against relative path"""
@@ -171,6 +175,12 @@ class ContentPath2:
         regex = self.__match_process_regex(regex, ignorecase)
         return regex.match(self.extension)
 
+    def __str__(self):
+        return "ContentPath2: %s" % self.relative_path
+
+    def __repr__(self):
+        return repr(str(self))
+
 
 class PathTree(object):
     def __init__(self, _cfg):
@@ -182,28 +192,45 @@ class PathTree(object):
         self.__paths_by_content_modules = {}
         self.__other_paths = set()
 
-    def __list_paths_loop2(self, starting_components=()):
+    def __list_paths_loop2(self, starting_components=(), files_only=None, directories_only=None, depth=None):
         """
         A function to get all paths recursively starting from abs_root but returns a list of paths relative to the 
         .root
         prefix_relative_root is fixed on every recursion
         BUT next_relative_root isn't
         """
+        print("Starting Components in list path loop: %s" % str(starting_components))
         for x in starting_components:
             assert '/' not in x and '\\' not in x
 
+        # check that files only and directories only both are not set to the Truth value
+        if files_only is True:
+            assert directories_only is not True
+
+        if directories_only is True:
+            assert files_only is not True
+
+        # depth
+        assert depth is None or type(depth) is int
+        if depth is None:
+            depth = 2147483647
+
         absolute_root = self.get_full_path(*starting_components)
+        absolute_site_root = self.__config.site_root
         assert os.path.exists(absolute_root), "Absolute root must exist: %s" % absolute_root
 
         # new
-        to_travel = deque([(*starting_components, comp) for comp in os.listdir(absolute_root)])
+        to_travel = deque([((*starting_components, comp), 1) for comp in os.listdir(absolute_root)])
         # print("to travel:", to_travel)
         directories = []
         files = []
 
-        # pos = 0
         while len(to_travel) != 0:
-            path_comps = to_travel.popleft()
+            path_comps_depth = to_travel.popleft()
+            path_comps = path_comps_depth[0]
+            path_depth = path_comps_depth[1]
+            if path_depth > depth:
+                break
             path = path_comps[-1]
             path_abs = self.get_full_path(*path_comps)
             if path.lower().endswith(ContentPath2.META_FILE_EXTENSION.lower()):
@@ -214,27 +241,29 @@ class PathTree(object):
                 # "features"
                 continue
             if os.path.isfile(path_abs):
-                path_obj = ContentPath2(absolute_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=True)
-                files.append(path_obj)
+                if files_only is True or files_only is None:
+                    path_obj = ContentPath2(absolute_site_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=True)
+                    files.append(path_obj)
             elif os.path.isdir(path_abs):
-                path_obj = ContentPath2(absolute_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=False)
-                directories.append(path_obj)
-                # Recurse
-                to_travel.extend(tuple([(*path_comps, comp) for comp in os.listdir(path_abs)]))
+                if directories_only is True or directories_only is None:
+                    path_obj = ContentPath2(absolute_site_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=False)
+                    directories.append(path_obj)
+                    # Recurse
+                to_travel.extend(tuple([((*path_comps, comp), path_depth + 1) for comp in os.listdir(path_abs)]))
             else:
                 raise Exception("ContentPath is neither dir, nor file")
         return directories, files
 
-    def __list_mod_paths(self, mod):
-        starting_comps = (self.__config.get_module_root_dir(mod), mod.name)
-        return self.__list_paths_loop2(starting_comps)
+    def __list_mod_paths(self, mod, starting_comps=(), files_only=None, directories_only=None, depth=None):
+        starting_comps = (self.__config.get_module_root_dir(mod), mod.name, *starting_comps)
+        return self.__list_paths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth)
 
-    def __list_mod_files(self, mod):
-        dirs, files = self.__list_mod_paths(mod)
+    def __list_mod_files(self, mod, depth=None):
+        dirs, files = self.__list_mod_paths(mod, files_only=True, depth=depth)
         return files
 
-    def __list_mod_dirs(self, mod):
-        ds, fs = self.__list_mod_paths(mod)
+    def __list_mod_dirs(self, mod, depth=None):
+        ds, fs = self.__list_mod_paths(mod, directories_only=True, depth=depth)
         return ds
 
     def get_full_path(self, *_path):
@@ -260,10 +289,20 @@ class PathTree(object):
         full_path = self.get_full_path(*_path)
         return True if os.path.exists(full_path) and os.path.isdir(full_path) else False
 
-    def get_module_paths(self, mod_obj):
-        paths = self.__list_mod_files(mod_obj)
-        assert paths is not None, "Module name must exist"
+    def get_module_paths(self, mod_obj, starting_comps=(), files_only=None, directories_only=None, depth=None):
+        paths = self.__list_mod_paths(mod_obj, starting_comps=starting_comps, files_only=files_only, directories_only=directories_only, depth=depth)
+        # assert paths is not None, "Module name must exist"
         return paths
+
+    def get_module_file_paths(self, mod_obj, depth=None):
+        file_paths = self.__list_mod_files(mod_obj, depth=depth)
+        # assert paths is not None, "Module name must exist"
+        return file_paths
+
+    def get_module_dir_paths(self, mod_obj, depth=None):
+        dir_paths = self.__list_mod_dirs(mod_obj, depth=depth)
+        # assert paths is not None, "Module name must exist"
+        return dir_paths
 
     def load(self):
         """Nothing to do! This should just stay idle and return"""

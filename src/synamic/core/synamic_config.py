@@ -4,6 +4,9 @@ from synamic.core.contracts import (
     ContentModuleContract,
     TemplateModuleContract,
 )
+
+from synamic.core.contracts.module import BaseMetaModuleContract
+
 from synamic.core.exceptions import InvalidModuleType
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.content_modules.text import TextModule
@@ -22,6 +25,7 @@ from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
 from synamic.core.classes.utils import DictUtils
 from synamic.core.functions import query_compiler
+from synamic.meta_modules.taxonomy.module import TaxonomyModule
 
 
 class SynamicConfig(object):
@@ -37,10 +41,11 @@ class SynamicConfig(object):
     # module types
     MODULE_TYPE_CONTENT = ContentModuleContract
     MODULE_TYPE_TEMPLATE = TemplateModuleContract
+    MODULE_TYPE_META = BaseMetaModuleContract
 
     def __init__(self, site_root):
         assert os.path.exists(site_root), "Base path must not be non existent"
-        assert os.path.exists(os.path.join(site_root, '.synamic'))# and os.path.isfile(os.path.exists(os.path.join(site_root, '.synamic'))), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(site_root, '.synamic')
+        assert os.path.exists(os.path.join(site_root, '.synamic')) and os.path.isfile(os.path.join(site_root, '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(site_root, '.synamic')
         self.__site_root = site_root
 
         # modules: key => module.name, value => module
@@ -62,6 +67,9 @@ class SynamicConfig(object):
         # setting path tree
         self.__path_tree = PathTree(self)
 
+        # Taxonomy
+        self.__taxonomy = None
+
         # key values
         self.__key_values = {}
         self.__is_loaded = False
@@ -76,10 +84,11 @@ class SynamicConfig(object):
         # Initiate module root dirs
         ModuleRootDirs = namedtuple("ModuleRootDirs",
                                     ['CONTENT_MODULE_ROOT_DIR',
-                                     'TEMPLATE_MODULE_ROOT_DIR'])
+                                     'TEMPLATE_MODULE_ROOT_DIR', 'META_MODULE_ROOT_DIR'])
         self.__module_root_dirs = ModuleRootDirs(
             'content',
-            'templates'
+            'templates',
+            'meta'
         )
 
         # initializing
@@ -90,7 +99,7 @@ class SynamicConfig(object):
         self.add_module(HomeModule(self))
         self.add_module(SynamicTemplate(self))
         self.add_module(StaticModule(self))
-
+        self.add_module(TaxonomyModule(self))
         # site settings
         self.__site_settings = SiteSettings(self)
 
@@ -120,23 +129,28 @@ class SynamicConfig(object):
 
     @property
     def module_types(self):
-        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE}
+        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE, self.MODULE_TYPE_META}
 
     def get_module_type(self, mod_instance):
         """Returns the type of the module_object as the contract class"""
         if isinstance(mod_instance, self.MODULE_TYPE_CONTENT):
             typ = self.MODULE_TYPE_CONTENT
-        else:
+        elif isinstance(mod_instance, self.MODULE_TYPE_TEMPLATE):
             typ = self.MODULE_TYPE_TEMPLATE
-            assert isinstance(mod_instance, self.MODULE_TYPE_TEMPLATE)
+        else:
+            assert isinstance(mod_instance, self.MODULE_TYPE_META)
+            typ = self.MODULE_TYPE_META
         return typ
 
     def get_module_root_dir(self, mod_instance):
         mod_type = self.get_module_type(mod_instance)
         if mod_type is self.MODULE_TYPE_CONTENT:
             return self.content_dir
-        else:
+        elif mod_type is self.MODULE_TYPE_TEMPLATE:
             return self.template_dir
+        else:
+            assert mod_type is self.MODULE_TYPE_META
+            return self.meta_dir
 
     def get_module_dir(self, mod_instance):
         return os.path.join(self.get_module_root_dir(mod_instance), mod_instance.name)
@@ -331,6 +345,10 @@ class SynamicConfig(object):
         return self.__module_root_dirs.TEMPLATE_MODULE_ROOT_DIR
 
     @property
+    def meta_dir(self):
+        return self.__module_root_dirs.META_MODULE_ROOT_DIR
+
+    @property
     def output_dir(self):
         return "_html"
 
@@ -477,4 +495,8 @@ class SynamicConfig(object):
     def enqueue_static_file(self, mod_obj, path):
         mod = self.get_module('static')
         mod.enqueue_file(mod_obj, path)
+
+    @property
+    def taxonomy(self):
+        return self.taxonomy
 
