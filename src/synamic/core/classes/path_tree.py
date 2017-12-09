@@ -209,6 +209,10 @@ class PathTree(object):
             if path.lower().endswith(ContentPath2.META_FILE_EXTENSION.lower()):
                 # Skipping if meta file
                 continue
+            if path.startswith('.'):
+                # "Files that start with dot (.) are special files and thus skipped. Later I may add special file " \
+                # "features"
+                continue
             if os.path.isfile(path_abs):
                 path_obj = ContentPath2(absolute_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=True)
                 files.append(path_obj)
