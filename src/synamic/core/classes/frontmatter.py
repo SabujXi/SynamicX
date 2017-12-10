@@ -9,11 +9,10 @@ from collections import namedtuple
 TemplateNameModuleNamePair = namedtuple('TemplateNameModuleNamePair', ['template_name', 'module_name'])
 
 forntmatter_default_values = {
-    normalize_key('tags'): [],
-    normalize_key('categories'): [],
     normalize_key('title'): "",
     normalize_key('summary'): ""
 }
+
 
 class Frontmatter:
     def __init__(self, config, obj):
@@ -21,10 +20,29 @@ class Frontmatter:
             obj = {}
         assert isinstance(obj, dict), "The obj must either be None, empty string or an instance of dict"
         self.__map = obj
+        self.__terms = None  # {}
+
         normalize_keys(self.__map)
-        self.__unparsed_map = self.__map.copy()
-        for key, value in self.__unparsed_map.items():
-            self.__map[key] = config.get_frontmatter_value_parser(key)(value)
+
+        __other_values = {}
+
+        for key, value in self.__map.copy().items():
+            fun = config.get_frontmatter_value_parser(key)
+            if fun is not None:
+                self.__map[key] = fun(value)
+            else:
+                del self.__map[key]
+                __other_values[key] = value
+
+        self.__terms, self.__values = config.taxonomy.get_terms_from_frontmatter(__other_values)
+
+    @property
+    def terms(self):
+        return self.__terms
+
+    @property
+    def values(self):
+        return self.__values
 
     def __contains__(self, item):
         key = normalize_key(item)
@@ -80,12 +98,6 @@ class DefaultFrontmatterValueParsers:
             raise Exception('No template name provided')
 
     @staticmethod
-    def _tags_categories_parser(txt):
-        txt = txt.strip()
-        parts = [x.strip() for x in txt.split(',')]
-        return parts
-
-    @staticmethod
     def _permalink_parser(txt):
         txt = txt.strip()
         if txt == 'index.html' or txt.endswith('/index.html'):
@@ -108,15 +120,13 @@ class DefaultFrontmatterValueParsers:
             'name': cls._return_stripped_or_none_parser,
             'author': cls._author_parser,
             'template': cls._template_name_module_name_parser,
-            'tags': cls._tags_categories_parser,
-            'categories': cls._tags_categories_parser,
             'title': cls._return_stripped_or_none_parser,
             'summary': cls._return_stripped_or_none_parser,
             'created-on': parse_datetime,
             'updated-on': parse_datetime,
             'pagination-filter': cls._return_stripped_or_none_parser,
             'pagination-content-per-page': cls._return_stripped_or_none_parser,   # TODO: this should be convtd to nos
-            'language': lambda s: normalize_key(s)
+            'language': lambda s: normalize_key(s),
         }
 
     @classmethod

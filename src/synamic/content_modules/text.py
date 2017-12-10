@@ -69,6 +69,9 @@ class TextContent(MarkedDocumentContract):
         self.__tags = None
         self.__categories = None
 
+        # terms
+        self.__terms = set()
+
     @property
     def module_object(self):
         return self.__module
@@ -175,12 +178,20 @@ class TextContent(MarkedDocumentContract):
         return self.frontmatter.get('summary', None)
 
     @property
+    def terms(self):
+        if self.__terms is None:
+            tx = self.__config.taxonomy
+            #  terms_map
+        return self.__terms
+
+    @property
     def tags(self):
-        return self.frontmatter.get('tags', None)
+        print("TAAAGGSSSSSSSSS: %s" % self.frontmatter.terms.get('tags'))
+        return self.frontmatter.terms.get('tags', [])
 
     @property
     def categories(self):
-        return self.frontmatter.get('categories', None)
+        return self.frontmatter.terms.get('categories', [])
 
     @property
     def template_name(self):

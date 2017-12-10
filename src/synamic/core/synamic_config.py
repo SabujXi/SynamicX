@@ -95,11 +95,18 @@ class SynamicConfig(object):
         self.__initiate()
 
     def __initiate(self):
+        # text
         self.add_module(TextModule(self))
+        # home
         self.add_module(HomeModule(self))
+        # template
         self.add_module(SynamicTemplate(self))
+        # static
         self.add_module(StaticModule(self))
-        self.add_module(TaxonomyModule(self))
+        # taxonomy
+        tax_mod = TaxonomyModule(self)
+        self.add_module(tax_mod)
+        self.__taxonomy = tax_mod.taxonomy_wrapper
         # site settings
         self.__site_settings = SiteSettings(self)
 
@@ -490,13 +497,14 @@ class SynamicConfig(object):
 
     def get_frontmatter_value_parser(self, key):
         key = normalize_key(key)
-        return self.__frontmatter_value_parser[key]
+        return self.__frontmatter_value_parser.get(key, None)
 
     def enqueue_static_file(self, mod_obj, path):
         mod = self.get_module('static')
         mod.enqueue_file(mod_obj, path)
 
     @property
+    @loaded
     def taxonomy(self):
-        return self.taxonomy
+        return self.__taxonomy
 

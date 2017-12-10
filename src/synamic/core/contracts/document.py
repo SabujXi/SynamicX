@@ -75,6 +75,11 @@ class MarkedDocumentContract(BaseDocumentContract):
 
     @property
     @abstractmethod
+    def terms(self):
+        """Taxonomy terms"""
+
+    @property
+    @abstractmethod
     def tags(self):
         pass
 

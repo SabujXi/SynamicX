@@ -1,4 +1,4 @@
-import enum
+import enum, re
 from synamic.core.functions.yaml_processor import load_yaml
 from synamic.core.functions.normalizers import normalize_key, normalize_keys
 from synamic.core.functions.decorators import loaded, not_loaded
@@ -17,6 +17,8 @@ class TaxonomyTerm:
     def __init__(self, module, taxonomy_type, taxonomy_term, term_map):
         term_map = normalize_keys(term_map)
 
+        assert isinstance(taxonomy_type, self.types), "taxonomy type must be a member of enum called TaxonomyTerm"
+
         self.__module = module
         self.__taxonomy_type = taxonomy_type
         self.__taxonomy_term = taxonomy_term
@@ -25,10 +27,13 @@ class TaxonomyTerm:
         self.__title = term_map.get('title')
         assert self.__title
         # Slug is not needed, id will serve the purpose
-        self.__id_ = term_map.get('id')
-        assert self.__id_
+        self.__id_ = term_map.get('id', None)
+        # assert self.__id_
         self.__description = term_map.get('description', '')
         self.__parent = term_map.get('parent', None)
+        if self.__parent is not None:
+            if self.__taxonomy_type is not self.types.HIERARCHICAL:
+                raise Exception('Non-hierarchical terms cannot have parent')
 
     @property
     def term(self):
@@ -65,46 +70,64 @@ class TaxonomyTerm:
     def parent_id(self):
         return self.__parent
 
-    def __str__(self):
+    def __repr__(self):
         return str(self.__term_map)
+
+    def __str__(self):
+        return self.title
 
 
 class TaxonomyModule(BaseMetaModuleContract):
     def __init__(self, config):
         self.__config = config
-        self.__term_map = {}
+        # self.__taxonomies_by_type = {}
+        self.__terms_map = {}
         self.__terms = set()
+        self.__term_vs_taxonomy_type_map = {}
         self.__is_loaded = False
 
     @property
-    @loaded
     def taxonomy_wrapper(self):
-        return TaxonomyModuleWrapper(self.__terms)
+        return TaxonomyModuleWrapper(self)
 
     @not_loaded
     def load(self):
         dirs, _files = self.__config.path_tree.get_module_paths(self, directories_only=True, depth=1)
-        typs = [path.basename for path in dirs]
-        for typ in typs:
-            if typ not in TaxonomyTerm.type_values:
-                raise Exception('Invalid taxonomy type: %s where values are: %s' % (typ, TaxonomyTerm.type_values))
+        dir_bases = [path.basename for path in dirs]
+        typs = []
+        for dir_base in dir_bases:
+            dir_base = dir_base.lower()
+            if dir_base not in TaxonomyTerm.type_values:
+                raise Exception('Invalid taxonomy type: %s where values are: %s' % (dir_base, TaxonomyTerm.type_values))
+            else:
+                if dir_base == TaxonomyTerm.types.SINGLE.value:
+                    typs.append((dir_base, TaxonomyTerm.types.SINGLE))
+                elif dir_base == TaxonomyTerm.types.MULTIPLE.value:
+                    typs.append((dir_base, TaxonomyTerm.types.MULTIPLE))
+                else:
+                    assert dir_base == TaxonomyTerm.types.HIERARCHICAL.value
+                    typs.append((dir_base, TaxonomyTerm.types.HIERARCHICAL))
+
         taxonomy_terms = set()
-        for typ in typs:
-            typ_taxonomies_paths, _fls = self.__config.path_tree.get_module_paths(self, starting_comps=(typ,), directories_only=True, depth=1)
+
+        for dir_base, typ in typs:
+            typ_taxonomies_paths, _fls = self.__config.path_tree.get_module_paths(self, starting_comps=(dir_base,), directories_only=True, depth=1)
             typ_taxonomies = [path.basename for path in typ_taxonomies_paths]
 
-            self.__term_map[typ] = {}
+            # self.__taxonomies_by_type[typ] = {}
 
             for term in typ_taxonomies:
-                assert term not in self.__term_map, "Duplicate term detected: %s" % term
-                self.__term_map[typ][term] = {
+                assert term not in self.__terms_map, "Duplicate term detected: %s" % term
+                self.__terms_map[term] = {
                     'by_id': {},
                     'by_title_normalized': {}
                 }
 
+                self.__term_vs_taxonomy_type_map[term] = typ
+
                 if term in taxonomy_terms:
                     raise Exception("Multiple taxonomy terms with the same name detected: %s" % term)
-                _dir_paths_, file_paths = self.__config.path_tree.get_module_paths(self, starting_comps=(typ, term), files_only=True)
+                _dir_paths_, file_paths = self.__config.path_tree.get_module_paths(self, starting_comps=(dir_base, term), files_only=True)
                 for file_path in file_paths:
                     with self.__config.path_tree.open_file(file_path.absolute_path, 'r', encoding='utf-8') as f:
                         text = f.read()
@@ -112,34 +135,88 @@ class TaxonomyModule(BaseMetaModuleContract):
                         assert type(py_obj) is list
                         for term_map in py_obj:
                             assert type(term_map) is dict
-                            """
-                            -
-                              title: C
-                              id: code-c
-                              description: Nothing
-                            -
-                              title: C++
-                              id: code-cpp
-                              description: Nothing
-                              parent: '@code-c'
-                            """
                             term_obj = TaxonomyTerm(self, typ, term, term_map)
-                            if term_obj.id in self.__term_map[term_obj.type][term]['by_id']:
-                                raise Exception('duplicate id detected')
-                            else:
-                                self.__term_map[term_obj.type][term][term_obj.id] = term_obj
-                            if term_obj.title_normalized in self.__term_map[term_obj.type][term]['by_title_normalized']:
-                                raise Exception('A normalized title already exist: %s' % term_obj.title_normalized)
-                            else:
-                                self.__term_map[term_obj.type][term]['by_title_normalized'][term_obj.title_normalized] = term_obj
-                            self.__terms.add(term_obj)
+                            self.add_term(term_obj)
         self.__is_loaded = True
         for x in self.__terms:
             print("TERM:\n    %s" % x)
 
+    def normalize_title(self, title):
+        res = re.sub(r'\t', ' ', title)
+        res = re.sub(r'\s{2,}', ' ', res)
+        return res
+
+    @property
+    def terms(self):
+        return self.__terms
+
+    @property
+    def terms_map(self):
+        return self.__terms_map
+
+    def add_term(self, term_obj):
+        if term_obj.id:
+            if term_obj.id in self.__terms_map[term_obj.term]['by_id']:
+                raise Exception('duplicate id detected')
+            else:
+                self.__terms_map[term_obj.term]['by_id'][term_obj.id] = term_obj
+        if term_obj.title_normalized in self.__terms_map[term_obj.term]['by_title_normalized']:
+            raise Exception('Duplicate normalized title detected')
+        else:
+            self.__terms_map[term_obj.term]['by_title_normalized'][term_obj.title_normalized] = term_obj
+        self.__terms.add(term_obj)
+
+    @loaded
     def get_term_parent(self, term_obj):
         parent_id = term_obj.parent_id
-        return self.__term_map[term_obj.type][term_obj.term]['by_id'][parent_id]
+        return self.__terms_map[term_obj.term]['by_id'].get(parent_id, None)
+
+    @loaded
+    def get_term_by_id(self, term, term_id):
+        return self.__terms_map[term]['by_id'].get(term_id, None)
+
+    @loaded
+    def get_term_by_title(self, term, title):
+        ntitle = self.normalize_title(title)
+        return self.__terms_map[term]['by_title_normalized'].get(ntitle, None)
+
+    @loaded
+    def get_terms_from_frontmatter(self, key_value_map):
+        processed = {}
+        unprocessed = {}
+        for key, value in key_value_map.items():
+            if key in self.__terms_map:
+                if value.startswith('@'):
+                    term_obj_s = self.get_term_by_id(value.lstrip('@'))
+                    if term_obj_s is None:
+                        raise Exception("Invalid term id of term %s and id %s" % (key, value))
+                else:
+                    # if term_obj_s is None:
+                    if self.__term_vs_taxonomy_type_map[key] is not TaxonomyTerm.types.SINGLE:
+                        term_obj_s = []
+                        values_ = [value.lstrip() for value in value.split(',')]
+                        for value_ in values_:
+                            term_obj = self.get_term_by_title(key, value_)
+                            if term_obj is None:
+                                # term_id = re.sub(r'\s', '-', value_)
+                                term_obj = TaxonomyTerm(self, self.__term_vs_taxonomy_type_map[key], key, {'title': value_})
+                                term_obj_s.append(term_obj)
+                                self.add_term(term_obj)
+                    else:
+                        term_obj_s = self.get_term_by_title(key, value)
+                        if term_obj_s is None:
+                            term_obj_s = TaxonomyTerm(self, self.__term_vs_taxonomy_type_map[key], key, {'title': value})
+                            self.add_term(term_obj_s)
+                        # term_id = re.sub(r'\s', '-', value)
+                        term_obj = TaxonomyTerm(self, self.__term_vs_taxonomy_type_map[key], key,
+                                                {'title': value})
+                        term_obj_s = term_obj
+                    processed[key] = term_obj_s
+
+            else:
+                unprocessed[key] = value
+
+        return processed, unprocessed
 
     @property
     def is_loaded(self):
@@ -159,14 +236,12 @@ class TaxonomyModule(BaseMetaModuleContract):
 
 
 class TaxonomyModuleWrapper:
-    def __init__(self, terms):
-        self.__terms = terms
+    def __init__(self, module_):
+        self.__module_ = module_
+        self.get_term_parent = module_.get_term_parent
+        self.get_term_by_id = module_.get_term_by_id
+        self.get_term_by_title = module_.get_term_by_title
+        self.terms = module_.terms
+        self.terms_map = module_.terms_map
+        self.get_terms_from_frontmatter = module_.get_terms_from_frontmatter
 
-    def __contains__(self, item):
-        normalize_key(item)
-
-    def __getitem__(self, item):
-        normalize_key(item)
-
-    def get(self, default=None):
-        pass
