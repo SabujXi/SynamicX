@@ -25,7 +25,7 @@ from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
 from synamic.core.classes.utils import DictUtils
 from synamic.core.functions import query_compiler
-from synamic.meta_modules.taxonomy.module import TaxonomyModule
+from synamic.meta_modules.taxonomy import TaxonomyModule
 
 
 class SynamicConfig(object):

@@ -69,9 +69,6 @@ class Frontmatter:
     def keys(self):
         return self.__map.keys()
 
-    def values(self):
-        return self.values()
-
     def items(self):
         return self.items()
 

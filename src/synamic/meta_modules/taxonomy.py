@@ -191,28 +191,22 @@ class TaxonomyModule(BaseMetaModuleContract):
                     if term_obj_s is None:
                         raise Exception("Invalid term id of term %s and id %s" % (key, value))
                 else:
-                    # if term_obj_s is None:
-                    if self.__term_vs_taxonomy_type_map[key] is not TaxonomyTerm.types.SINGLE:
-                        term_obj_s = []
-                        values_ = [value.lstrip() for value in value.split(',')]
-                        for value_ in values_:
-                            term_obj = self.get_term_by_title(key, value_)
-                            if term_obj is None:
-                                # term_id = re.sub(r'\s', '-', value_)
-                                term_obj = TaxonomyTerm(self, self.__term_vs_taxonomy_type_map[key], key, {'title': value_})
-                                term_obj_s.append(term_obj)
-                                self.add_term(term_obj)
-                    else:
-                        term_obj_s = self.get_term_by_title(key, value)
-                        if term_obj_s is None:
-                            term_obj_s = TaxonomyTerm(self, self.__term_vs_taxonomy_type_map[key], key, {'title': value})
-                            self.add_term(term_obj_s)
-                        # term_id = re.sub(r'\s', '-', value)
-                        term_obj = TaxonomyTerm(self, self.__term_vs_taxonomy_type_map[key], key,
-                                                {'title': value})
-                        term_obj_s = term_obj
-                    processed[key] = term_obj_s
+                    _taxonomy_type = self.__term_vs_taxonomy_type_map[key]
 
+                    parsed_values = TaxonomyValueParsers.parse(_taxonomy_type, key, value)
+                    term_obj_s = []
+                    for parsed_value in parsed_values:
+                        term_obj = self.get_term_by_title(key, parsed_value)
+                        if term_obj is None:
+                            term_obj = TaxonomyTerm(self, _taxonomy_type, key, {'title': parsed_value})
+                            term_obj_s.append(term_obj)
+                            self.add_term(term_obj)
+                        else:
+                            term_obj_s.append(term_obj)
+                    if _taxonomy_type is TaxonomyTerm.types.SINGLE:
+                        processed[key] = term_obj_s[0]
+                    else:
+                        processed[key] = term_obj_s
             else:
                 unprocessed[key] = value
 
@@ -244,4 +238,40 @@ class TaxonomyModuleWrapper:
         self.terms = module_.terms
         self.terms_map = module_.terms_map
         self.get_terms_from_frontmatter = module_.get_terms_from_frontmatter
+
+
+class TaxonomyValueParsers:
+    _default_values = {
+        normalize_key('tags'): [],
+        normalize_key('categories'): [],
+    }
+
+    @classmethod
+    def _generic_multiple_hierarchical_parser(cls, txt):
+        txt = txt.strip()
+        parts = [x.strip() for x in txt.split(',')]
+        return parts
+
+    @classmethod
+    def _generic_strip_and_return(cls, txt):
+        return [txt.strip()]
+
+    @classmethod
+    def _default_value_parsers(cls, term):
+        return {
+            'tags': cls._generic_multiple_hierarchical_parser,
+            'categories': cls._generic_multiple_hierarchical_parser,
+        }.get(term, None)
+
+    @classmethod
+    def parse(cls, taxonomy_type, term, value):
+        if taxonomy_type is TaxonomyTerm.types.SINGLE:
+            res = cls._generic_strip_and_return(value)
+        else:
+            parser = cls._default_value_parsers(term)
+            if parser is None:
+                res = cls._generic_multiple_hierarchical_parser(value)
+            else:
+                res = parser(value)
+        return res
 
