@@ -26,6 +26,7 @@ from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
 from synamic.core.classes.utils import DictUtils
 from synamic.core.functions import query_compiler
 from synamic.meta_modules.taxonomy import TaxonomyModule
+from synamic.content_modules.sitemap import SitemapModule
 
 
 class SynamicConfig(object):
@@ -107,6 +108,8 @@ class SynamicConfig(object):
         tax_mod = TaxonomyModule(self)
         self.add_module(tax_mod)
         self.__taxonomy = tax_mod.taxonomy_wrapper
+        # sitemap
+        self.add_module(SitemapModule(self))
         # site settings
         self.__site_settings = SiteSettings(self)
 
@@ -237,22 +240,22 @@ class SynamicConfig(object):
         # Checking/Validation and addition
         # 1. Content Name
 
-        if document.content_name is not None and document.content_name != "":
-            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NAME]
-            d = DictUtils.get_or_create_dict(parent_d, mod_name)
-            assert document.content_name not in d,\
-                "Multiple resource with the same content name cannot live together"
-            d[document.content_name] = document
+        if not document.is_auxiliary:
+            if document.content_name is not None and document.content_name != "":
+                parent_d = self.__content_map[self.KEY.CONTENTS_BY_NAME]
+                d = DictUtils.get_or_create_dict(parent_d, mod_name)
+                assert document.content_name not in d,\
+                    "Multiple resource with the same content name cannot live together"
+                d[document.content_name] = document
 
-        # 4. Content id
-        if document.content_id is not None and document.content_id != "":
-            parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
-            d = DictUtils.get_or_create_dict(parent_d, mod_name)
-            assert document.content_id not in d,\
-                "Duplicate content id cannot exist"
-            print("Content id adding %s" % document.content_id)
-            # input()
-            d[document.content_id] = document
+            # 4. Content id
+            if document.content_id is not None and document.content_id != "":
+                parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
+                d = DictUtils.get_or_create_dict(parent_d, mod_name)
+
+                assert document.content_id not in d,\
+                    "Duplicate content id cannot exist %s" % document.content_id
+                d[document.content_id] = document
 
         # 6. Normalized relative file path
         if document.content_type != document.types.AUXILIARY:
@@ -264,7 +267,7 @@ class SynamicConfig(object):
             d[_path] = document
 
         # 2. Url path
-        assert document.url_object.path not in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH]
+        assert document.url_object.path not in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH], "Path %s in content map" % document.url_object.path
         self.__content_map[self.KEY.CONTENTS_BY_URL_PATH][document.url_object.path] = document
 
         # 3. Generalized real path
@@ -381,7 +384,7 @@ class SynamicConfig(object):
 
         for cont in self.__content_map[self.KEY.CONTENTS_SET]:
             url = cont.url_object
-            print("BUILD():: Going to Write cont: ", url.path)
+            # print("BUILD():: Going to Write cont: ", url.path)
             dir = os.path.join(self.site_root, '_html', *url.dir_components)
             if not os.path.exists(dir):
                 os.makedirs(dir)
@@ -390,7 +393,7 @@ class SynamicConfig(object):
             with open(fs_path, 'wb') as f:
                 stream = cont.get_stream()
                 f.write(stream.read())
-                print("BUILD():: Wrote: %s" % f.name)
+                # print("BUILD():: Wrote: %s" % f.name)
                 stream.close()
 
     def get(self, key, default=None):
@@ -429,6 +432,7 @@ class SynamicConfig(object):
     def filter_content(self, filter_txt):
         query_container = query_compiler.get_query_container(filter_txt)
         queries = query_container.queries
+        # print("\n\nfilter_content(): filter txt %s\n" % filter_txt)
 
         # parsed_rules, sort = parse_rules(filter_txt, self.module_names)
         needed_module_names = set([rule.module_name for rule in queries])
@@ -487,7 +491,7 @@ class SynamicConfig(object):
                                         key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=reverse)
             else:
                 sorted_content = sorted(accepted_contents, reverse=reverse)
-        print("\n\n\n%s\n\n\n" % sorted_content)
+        # print("Filter content(): \n%s\n" % sorted_content)
         return sorted_content
 
     def register_frontmatter_value_parser(self, key, _callable):

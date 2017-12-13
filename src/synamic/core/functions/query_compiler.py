@@ -483,7 +483,7 @@ def get_query_container(query_str):
 
 # Operator functions
 def eq_operator(content_value, value):
-    print("\n\n%s ==? %s\n\n" % (content_value, value))
+    print("%s ==? %s\n" % (content_value, value))
     return True if content_value == value else False
 
 
@@ -556,7 +556,7 @@ def filter_dispatcher(query: Query, content):
             if filter == 'tags' or filter == 'categories':
                 content_value_s = getattr(content, filter)
             elif filter == 'created-on':
-                content_value_s = getattr(content, 'created-on')
+                content_value_s = getattr(content, 'created_on')
                 value_s = value_s[0]
             else:
                 content_value_s = content.frontmatter[filter]
@@ -568,10 +568,14 @@ def filter_dispatcher(query: Query, content):
         else:
             _res = False
         if value_s == 'en':
-            print("\n\nLLLLLLOOOOOOOOOPPPPPPPPP: %s=> %s : %s" % (filter, value_s, content_value_s))
+            print("\nLLLLLLOOOOOOOOOPPPPPPPPP: %s=> %s : %s" % (filter, value_s, content_value_s))
+
+        if value_s == 'bn':
+            print("\nLLLLLLOOOOOOOOOPPPPPPPPP: %s=> %s : %s" % (filter, value_s, content_value_s))
+
         if res is None:
             res = _res
-            # print("\n\nLLLLLLOOOOOOOOOPPPPPPPPP: %s" % _filter.logical_operator)
+            print("\n\nLLLLLLOOOOOOOOOPPPPPPPPP: %s" % _filter.logical_operator)
         else:
             if filter.logical_operator == 'and':
                 res = res and _res

@@ -68,9 +68,15 @@ class TextContent(MarkedDocumentContract):
         self.__summary = None
         self.__tags = None
         self.__categories = None
+        self.__body = None
 
         # terms
         self.__terms = set()
+
+    # temporary for fixing sitemap
+    @property
+    def config(self):
+        return self.__config
 
     @property
     def module_object(self):
@@ -146,7 +152,9 @@ class TextContent(MarkedDocumentContract):
 
     @property
     def body(self):
-        return Markup(render_markdown(self.__config, self.__body_text))
+        if self.__body is None:
+            self.__body = Markup(render_markdown(self.__config, self.__body_text))
+        return self.__body
 
     @property
     def title(self):
@@ -171,11 +179,26 @@ class TextContent(MarkedDocumentContract):
 
     @property
     def updated_on(self):
-        return self.frontmatter.get('updated-on')
+        updt = self.frontmatter.get('updated-on')
+        if not updt:
+            updt = self.created_on
+        return updt
 
     @property
     def summary(self):
-        return self.frontmatter.get('summary', None)
+        if self.__summary is None:
+            sum_ = self.frontmatter.get('summary', None)
+            if sum_ is None or sum_.strip() == '':
+                char_count = 200
+                res_txt = self.body.striptags()
+                # print(res_txt)
+                # input()
+                if len(res_txt) < char_count:
+                    char_count = len(res_txt)
+                sum_ = res_txt[:char_count]
+            self.__summary = sum_
+        # print("Summary: %s" % self.__summary)
+        return self.__summary
 
     @property
     def terms(self):
@@ -205,7 +228,7 @@ class TextContent(MarkedDocumentContract):
         return self.__config.get_module(mod_name)
 
     def trigger_pagination(self):
-        # print("\n~~~~~~~~~~~~~~~~pagination triggered~~~~~~~~~~~~~\n")
+        print("\n~~~~~~~~~~~~~~~~pagination triggered~~~~~~~~~~~~~\n")
         rules_txt = self.frontmatter.get('pagination-filter', None)
         # print("\n~~~~~~~~~~~~~~~~Rules txt: %s~~~~~~~~~~~~~\n" % rules_txt)
         if rules_txt:
@@ -230,6 +253,12 @@ class TextContent(MarkedDocumentContract):
         # TODO: should place in contract!
         # So, with cotract it can be used in paginator too
         return ContentWrapper(self)
+
+    def __str__(self):
+        return self.path_object.relative_path
+
+    def __repr__(self):
+        return str(self)
 
 
 class ContentWrapper:
@@ -282,6 +311,10 @@ class ContentWrapper:
         return self.__content.categories
 
     @property
+    def summary(self):
+        return self.__content.summary
+
+    @property
     def pagination(self):
         return self.__content.pagination
 
@@ -308,7 +341,7 @@ class TextModule(ContentModuleContract):
 
     def __init__(self, _cfg):
         self.__config = _cfg
-        self.__text_map = {}
+        # self.__text_map = {}
 
         self.__is_loaded = False
 
@@ -356,6 +389,8 @@ class TextModule(ContentModuleContract):
         paths = self.__config.path_tree.get_module_file_paths(self)
         file_ids = set()
 
+        __text_set = set()
+
         for file_path in paths:
             if file_path.extension.lower() in self.extensions:
                 has_file_id = False
@@ -375,19 +410,22 @@ class TextModule(ContentModuleContract):
                 # print("::::: %s" % file_path.absolute_path)
                 with self.__config.path_tree.open_file(file_path.relative_path, "r", encoding="utf-8") as f:
                     text = f.read()
-                    text_obj = TextContent(self.__config, self, file_path, text)
+                    text_obj = self.content_class(self.__config, self, file_path, text)
                     text_obj.url_object = self._create_url_object(text_obj.frontmatter)
 
                     if not text_obj.has_valid_frontmatter:
                         print(text_obj.raw_frontmatter)
                         raise Exception("Front matter is corrupted or invalid")
-                    self.__text_map[text_id] = text_obj
+                    # TODO: fix the bug below: texts/homes without id will be skipped as they have None as id.
+                    # self.__text_map[text_id] = text_obj
+                    __text_set.add(text_obj)
                     self.__config.add_document(text_obj)
             else:
                 self.__config.enqueue_static_file(self, file_path)
 
         # TODO: must be moved to config.load later
-        for text_obj in self.__text_map.values():
+        for text_obj in __text_set:
+            print("+++++++++++++++++Handling %s\n" % text_obj.content_id)
             text_obj.trigger_pagination()
 
         self.__is_loaded = True
