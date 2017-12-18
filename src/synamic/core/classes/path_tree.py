@@ -304,9 +304,6 @@ class PathTree(object):
         # assert paths is not None, "Module name must exist"
         return dir_paths
 
-    def load(self):
-        """Nothing to do! This should just stay idle and return"""
-
     def open_file(self, file_name, *args, **kwargs):
         fn = self.get_full_path(file_name)
         return open(fn, *args, **kwargs)

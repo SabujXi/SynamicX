@@ -1,12 +1,11 @@
 import io
-from synamic.core.functions.normalizers import normalize_key
-from synamic.content_modules.text import TextContent, TextModule
+from synamic.content_modules.reference_implementations import MarkedContentModuleImplementation, MarkedContentImplementation
 
 
-class SitemapContent(TextContent):
-
+class SitemapContent(MarkedContentImplementation):
     def get_stream(self):
         template_module, template_name = self.template_module_object, self.template_name
+        # TODO: later we will need other contents than text as filtered below
         contents = [c.get_content_wrapper() for c in self.config.filter_content("(text)")]
         res = template_module.render(template_name, contents=contents)
         f = io.BytesIO(res.encode('utf-8'))
@@ -14,13 +13,13 @@ class SitemapContent(TextContent):
 
     def trigger_pagination(self):
         print("No pagination for sitemap\n\n")
+        return tuple()
 
 
-class SitemapModule(TextModule):
-
+class SitemapModule(MarkedContentModuleImplementation):
     @property
     def name(self):
-        return normalize_key('sitemap')
+        return 'sitemap'
 
     @property
     def content_class(self):
@@ -29,10 +28,6 @@ class SitemapModule(TextModule):
     @property
     def dependencies(self):
         return {"synamic-template", "text", 'static'}
-
-    @property
-    def extensions(self):
-        return {'md', 'markdown'}
 
     @property
     def root_url_path(self):

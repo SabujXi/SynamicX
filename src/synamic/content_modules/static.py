@@ -1,9 +1,10 @@
 import mimetypes
 from synamic.core.classes.url import ContentUrl
-from synamic.core.contracts import ContentModuleContract
+from synamic.core.contracts import BaseContentModuleContract
 from synamic.core.contracts.document import StaticDocumentContract
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.functions.normalizers import normalize_key, normalize_relative_file_path, normalize_content_url_path
+from synamic.core.classes.mapping import FinalizableDict
 
 
 class StaticContent(StaticDocumentContract):
@@ -16,9 +17,9 @@ class StaticContent(StaticDocumentContract):
         self.__content_id = None
         self.__content_name = None
 
-    # def set_url_obj(self, url_obj):
-    #     assert self.__url is None, "Cannot set url_object object twice"
-    #     self.__url = url_obj
+    @property
+    def config(self):
+        return self.__config
 
     @property
     def module_object(self):
@@ -31,11 +32,10 @@ class StaticContent(StaticDocumentContract):
     @property
     def content_id(self):
         return self.__content_id
-        # return self.module_object.name + ":" + self.path_object.relative_path  # Should be more intelligent? Ok, let's think about that later.
 
     @content_id.setter
     def content_id(self, cid):
-        assert self.__content_id is None, 'No repeat please'
+        assert self.__content_id is None and cid is not None, 'No repeat please'
         self.__content_id = cid
 
     def get_stream(self):
@@ -60,16 +60,6 @@ class StaticContent(StaticDocumentContract):
         return self.types.STATIC
 
     @property
-    def content_name(self):
-        # raise NotImplemented
-        return self.__content_name
-
-    @content_name.setter
-    def content_name(self, name):
-        assert self.__content_name is None, 'No repeat please'
-        self.__content_name = name
-
-    @property
     def url_object(self):
         return self.__url
 
@@ -79,19 +69,19 @@ class StaticContent(StaticDocumentContract):
         self.__url = url_object
 
 
-class StaticModule(ContentModuleContract):
+class StaticModule(BaseContentModuleContract):
 
     def __init__(self, config):
         self.__config = config
         self.__is_loaded = False
 
-    @property
-    def extensions(self):
-        return None
+        self.__contents_by_id = FinalizableDict()
+
+        self.__static_contents = frozenset()
 
     @property
     def name(self):
-        return normalize_key('static')
+        return 'static'
 
     @property
     def content_class(self):
@@ -113,9 +103,6 @@ class StaticModule(ContentModuleContract):
             id = file_path.meta_info.get(normalize_key('id'), None)
             if id:
                 static_content.content_id = id
-            name = file_path.meta_info.get(normalize_key('name'), None)
-            if name:
-                static_content.content_name = name
 
             if permalink:
                 cnt_url = ContentUrl(self.__config, permalink, is_dir=False)
@@ -129,6 +116,7 @@ class StaticModule(ContentModuleContract):
 
     @not_loaded
     def load(self):
+        static_contents = set()
         paths = self.__config.path_tree.get_module_file_paths(self)
         for file_path in paths:
             print("File path relative is: ", file_path.relative_path)
@@ -136,8 +124,12 @@ class StaticModule(ContentModuleContract):
             static = StaticContent(self.__config, self, file_path)
             self.set_url_and_content_info(file_path, static)
             print("Static URL Path: %s" % static.url_object.path)
-            self.__config.add_document(static)
+            static_contents.add(static)
+            if static.content_id:
+                assert static.content_id not in self.__contents_by_id
+                self.__contents_by_id[static.content_id] = static
         # Add static files
+        self.__static_contents = frozenset(static_contents)
         self.__is_loaded = True
 
     @property
@@ -148,8 +140,21 @@ class StaticModule(ContentModuleContract):
     def root_url_path(self):
         return ''
 
-    def enqueue_file(self, mod_obj, path):
+    def get_content_by_id(self, content_id):
+        return self.__contents_by_id.get(content_id, None)
+
+    @property
+    @loaded
+    def dynamic_contents(self):
+        return frozenset()
+
+    def create_static_content(self, mod_obj, path):
         static_content = StaticContent(self.__config, mod_obj, path)
         self.set_url_and_content_info(path, static_content)
-        self.__config.add_document(static_content)
+        return static_content
+
+    @property
+    @loaded
+    def static_contents(self):
+        return self.__static_contents
 

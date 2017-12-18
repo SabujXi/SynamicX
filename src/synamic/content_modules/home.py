@@ -10,7 +10,7 @@ class HomeModule(TextModule):
 
     @property
     def name(self):
-        return normalize_key('home')
+        return 'home'
 
     @property
     def content_class(self):
@@ -19,10 +19,6 @@ class HomeModule(TextModule):
     @property
     def dependencies(self):
         return {"synamic-template", "text"}
-
-    @property
-    def extensions(self):
-        return {'md', 'markdown'}
 
     @property
     def root_url_path(self):

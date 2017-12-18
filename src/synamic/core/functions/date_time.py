@@ -7,16 +7,24 @@ _datetime_pattern = re.compile(r"^(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<date>\d
                                , re.I)  # format: YEAR-MONTH-DATE HOUR:MIN:SECOND AM/PM
 
 
+def _s2int(txt):
+    txt = txt.strip()
+    txt = txt.lstrip('0')
+    if txt == '':
+        return 0
+    return int(txt)
+
+
 def parse_datetime(txt):
     txt = txt.strip()
     m = _datetime_pattern.match(txt)
     assert m, "Datetime format did not match"
-    year = int(m.group('year'))
-    month = int(m.group('month').lstrip('0'))
-    date = int(m.group('date').lstrip('0'))
-    hour = int(m.group('hour').lstrip('0')) if m.group('hour') else 0
-    minute = int(m.group('minute').lstrip('0')) if m.group('minute') else 0
-    second = int(m.group('second').lstrip('0')) if m.group('second') else 0
+    year = _s2int(m.group('year'))
+    month = _s2int(m.group('month'))
+    date = _s2int(m.group('date'))
+    hour = _s2int(m.group('hour')) if m.group('hour') else 0
+    minute = _s2int(m.group('minute')) if m.group('minute') else 0
+    second = _s2int(m.group('second')) if m.group('second') else 0
     am_pm = m.group('am_pm').upper() if isinstance(m.group('am_pm'), str) else m.group('am_pm')
 
     # 24 hour conversion

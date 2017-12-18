@@ -2,7 +2,7 @@ import abc
 import re
 
 
-class BaseContentModuleContract(metaclass=abc.ABCMeta):
+class BaseModuleContract(metaclass=abc.ABCMeta):
     __module_name_pattern = re.compile(r'^[a-zA-Z0-9_-]+$', re.I)
 
     @classmethod
@@ -34,20 +34,15 @@ class BaseContentModuleContract(metaclass=abc.ABCMeta):
         pass
 
 
-class BaseMetaModuleContract(BaseContentModuleContract):
+class BaseMetaModuleContract(BaseModuleContract):
     pass
 
 
-class ContentModuleContract(BaseContentModuleContract):
+class BaseContentModuleContract(BaseModuleContract):
 
     @property
     @abc.abstractmethod
     def content_class(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def extensions(self):
         pass
 
     @property
@@ -71,8 +66,22 @@ class ContentModuleContract(BaseContentModuleContract):
                 final url_object: meau/me/mo
         """
 
+    @property
+    @abc.abstractmethod
+    def dynamic_contents(self):
+        pass
 
-class TemplateModuleContract(BaseContentModuleContract):
+    @property
+    @abc.abstractmethod
+    def static_contents(self):
+        pass
+
+    @abc.abstractmethod
+    def get_content_by_id(self, content_id):
+        pass
+
+
+class TemplateModuleContract(BaseModuleContract):
     @abc.abstractmethod
     def render(self, template_name, context=None, **kwargs):
         """Will return a string of rendered content"""

@@ -17,18 +17,17 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
+    def config(self):
+        pass
+
+    @property
+    @abc.abstractmethod
     def path_object(self):
         """
         This is a path object associated with the file (for static the path, for dynamic the path to things like .md
          and for auxiliary - i need to think about that :p )
         """
         pass
-
-    @property
-    @abc.abstractmethod
-    def content_name(self):
-        """ 
-        """
 
     @property
     @abc.abstractmethod
@@ -62,6 +61,7 @@ class ContentContract(metaclass=abc.ABCMeta):
         Instance of types enum
         """
         pass
+
     @property
     def is_dynamic(self):
         return self.content_type is self.types.DYNAMIC
@@ -73,29 +73,4 @@ class ContentContract(metaclass=abc.ABCMeta):
     @property
     def is_auxiliary(self):
         return self.content_type is self.types.AUXILIARY
-
-    # @property
-    # @abc.abstractmethod
-    # def is_static(self):
-    #     """
-    #     Static files that need not extra processing and can be handled by static module.
-    #
-    #     With the help of this, static files can be send by dev server or sendfile instead of streaming.
-    #     """
-    #
-    # @property
-    # @abc.abstractmethod
-    # def is_dynamic(self):
-    #     """
-    #     For example, created with the help of .md files in text module
-    #     """
-    #
-    # @property
-    # @abc.abstractmethod
-    # def is_auxiliary(self):
-    #     """
-    #     For example, created invoking paginate.
-    #     """
-    #
-
 

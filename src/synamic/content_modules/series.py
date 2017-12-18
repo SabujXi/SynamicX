@@ -1,183 +1,97 @@
-import os
-import re
-
-from synamic.core.contracts import ContentModuleContract
-from synamic.core.exceptions import (
-    InvalidFrontMatter,
-    InvalidFileNameFormat,
-    DuplicateContentId
-)
-from synamic.core.classes.document import MarkedDocument
+from synamic.content_modules.text import TextModule, TextContent
+from synamic.core.functions.normalizers import normalize_key, normalize_keys
 
 """
-# Other frontmatter like texts
-
 # Series Specific Frontmatter Example:
 
 Chapters: # case insensitive
     - Chapter: # Starts with 'chapter', anything may follow it.
-        title: # if the value is <get> then it is get from the text if the 'for' key refers to some text
         for: # may contain a numeric id, relative url_object, full (optionally external) url_object.
-        
-    -Section xyZ:
-        title: what title
-        
-    -  Chapter 2: 
-         title:
-         for:
-
+        title: # if the value is <get> then it is get from the text if the 'for' key refers to some text
+                
     -  Chapter XX: 
-         title:
-         for: 
+         for:
+         title: 
 
-    -  Chapter P1: 
-         title:
-         for: 
+for:
+----
+'for' can contain an id in the form of @text-content-id, or it can have a direct http(s) link.
+
+'title' is optional when there is a content id in 'for'. In this case if the title is omitted then title will be taken 
+from the content. Presence of title overrides the title of the content. Title cannot be avoided for absolute links.
 """
 
 
 class Chapter:
-    def __init__(self, chapter_dict, synamic_cfg):
-        self.__synamic_cfg = synamic_cfg
-        self.__chapter_dict = {}
-        for key, value in chapter_dict.keys():
-            self.__chapter_dict[key.lower()] = value
+    def __init__(self, serial, title, link):
+        self.__serial = serial
+        self.__title = title
+        self.__link = link
+
+    @property
+    def serial(self):
+        return self.__serial
 
     @property
     def title(self):
-        return self.__chapter_dict.get("title", "")
+        return self.__title
 
     @property
-    def for_url(self):
-        """returns an url_object or ContentUrlContract instance?"""
-        # A lot of processing here
-        return None
+    def link(self):
+        return self.__link
 
 
-class Section:
-    def __init__(self, section_dict):
-        self.__section_dict = section_dict
-        self.__chapter_list = []
+class SeriesContent(TextContent):
+    def __init__(self, config, module_object, path_object, file_content):
+        super().__init__(config, module_object, path_object, file_content)
+        self.__chapters = None
+
+    def trigger_pagination(self):
+        """
+        Do nothing. 
+        """
 
     @property
-    def title(self):
-        return self.__section_dict.value() if self.__section_dict.value() else ""
+    def chapters(self):
+        if self.__chapters is None:
+            _chapters = self.frontmatter.values.get(normalize_key('chapters'), None)
+            if _chapters:
+                raw_chapters = []
+                normalize_keys(_chapters)
+                for maybe_chapter in _chapters:
+                    for key in maybe_chapter.keys():
+                        if key.startswith(normalize_key('chapter')):
+                            raw_chapters.append(maybe_chapter[key])
 
-    def add_chapter(self, chp):
-        self.__chapter_list.append(chp)
-
-
-class Chapters:
-
-    def __init__(self, chapters_list, synamic_cfg):
-        self.__chapters = []
-        self.__sections = []
-        self.__synamic_cfg = synamic_cfg
-
-    def __process_chapters(self, chapters_list):
-
-        _secs = []
-        _last_sec = None
-
-        for sec_or_chap in chapters_list:
-            sec_or_chap = sec_or_chap.lower()
-            if sec_or_chap.starts_with("section"):
-                _last_sec = Section()
+                chapters = []
+                for raw_chapter in raw_chapters:
+                    cont_ = raw_chapter.get(normalize_key('for'))
+                    if cont_.lower().startswith('http://') or cont_.lower().startswith('https://'):
+                        url = cont_
+                    else:
+                        cont_id = cont_.lstrip('@')
+                        # self.config.
             else:
-                pass
+                self.__chapters = []
+
+        return self.__chapters
 
 
+class SeriesModule(TextModule):
 
+    @property
+    def name(self):
+        return normalize_key('series')
 
-            # self.__chapters[key] = value
+    @property
+    def dependencies(self):
+        return {normalize_key('text')}
 
+    @property
+    def content_class(self):
+        return SeriesContent
 
+    @property
+    def extensions(self):
+        return {'md', 'markdown'}
 
-
-_file_name_regex = re.compile("^(?P<id>[0-9]+)\. ?(.+)")
-
-
-class AllSeries(ContentModuleContract):
-    def __init__(self, root_module, synamic_cfg_obj):
-        self.__synamic_cfg_obj = synamic_cfg_obj
-        self.__root_module_obj = root_module
-        self.__document = None
-
-        self._IS_LOADED = False
-
-    def get_dependency_content_modules(self):
-        return {self.__synamic_cfg_obj.get_series_content_module_name()}
-
-    def get_config(self):
-        return self.__synamic_cfg_obj
-
-    def get_root_module(self):
-        return self.__root_module_obj
-
-    def is_loaded(self):
-        return True if self._IS_LOADED else False
-
-    def is_rendered(self):
-        pass
-
-    def _filter_text_files_callback(self, fn):
-        if not os.path.isfile(fn):
-            return False
-        fnl = fn.lower()
-        exts = self.get_extensions()
-        matched = False
-        for ext in exts:
-            if fnl.endswith(ext):
-                matched = True
-        return True if matched else False
-
-    def get_encoding(self):
-        return "utf-8"
-
-    def load(self):
-        cfg = self.get_config()
-        rm = self.get_root_module()
-        dir = cfg.get_abs_path_for(rm.get_directory_name(), cfg.get_directory_name())
-        file_names = cfg.get_paths(dir, comp_fun=self._filter_text_files_callback)
-        file_ids = set()
-
-        for fn in file_names:
-            fn_match = _file_name_regex.match(fn)
-            if not fn_match:
-                raise InvalidFileNameFormat("File name %s does not go with the file name format")
-            text_id = fn_match.group('id').lstrip('0')
-            if text_id in file_ids:
-                raise DuplicateContentId("Two different texts files cannot have the same series id")
-
-        for fn in file_names:
-            with open(fn, "r", encoding=self.get_encoding()) as f:
-                _text = f.read()
-                doc = MarkedDocument(_text)
-                if not doc.has_valid_frontmatter:
-                    raise InvalidFrontMatter("Front matter is corrupted or invalid")
-                else:
-                    front_map = doc.frontmatter
-
-                    for field in front_map.keys():
-                        if field not in self.get_text_fileds():
-                            raise Exception("Unknown field in text")
-                        else:
-                            pass
-        self._IS_LOADED = True
-
-    def render(self):
-        assert self.is_loaded(), "Must be loaded before it can be rendered"
-
-    def register_url_prefix(self):
-        pass
-
-    def get_extensions(self):
-        return ['md', 'markdown']
-
-    def get_text_fileds(self):
-        return {
-            'title',
-            'url_object',
-        }
-
-Module = AllSeries

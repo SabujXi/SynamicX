@@ -1,12 +1,13 @@
 import os
+import re
+import enum
+from collections import namedtuple
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.contracts import (
-    ContentModuleContract,
+    BaseContentModuleContract,
     TemplateModuleContract,
 )
-
 from synamic.core.contracts.module import BaseMetaModuleContract
-
 from synamic.core.exceptions import InvalidModuleType
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.content_modules.text import TextModule
@@ -16,31 +17,26 @@ from synamic.content_modules.static import StaticModule
 from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
 from synamic.core.dependency_resolver import create_dep_list
 from synamic.core.classes.site_settings import SiteSettings
-from collections import namedtuple
-import re
-# from synamic.core.functions.filter_content2 import filter_dispatcher, parse_rules
-# from synamic.core.contracts.content import content_is_dynamic
-import enum
-from synamic.core.contracts.document import MarkedDocumentContract
+# from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
 from synamic.core.classes.utils import DictUtils
 from synamic.core.functions import query_compiler
 from synamic.meta_modules.taxonomy import TaxonomyModule
 from synamic.content_modules.sitemap import SitemapModule
+from synamic.core.contracts.module import BaseModuleContract
 
 
 class SynamicConfig(object):
     @enum.unique
     class KEY(enum.Enum):
         CONTENTS_BY_ID = 0
-        CONTENTS_BY_NAME = 1
         CONTENTS_BY_URL_PATH = 2
         CONTENTS_BY_GENERALIZED_URL_PATH = 3
         CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH = 5
         CONTENTS_SET = 4
 
     # module types
-    MODULE_TYPE_CONTENT = ContentModuleContract
+    MODULE_TYPE_CONTENT = BaseContentModuleContract
     MODULE_TYPE_TEMPLATE = TemplateModuleContract
     MODULE_TYPE_META = BaseMetaModuleContract
 
@@ -53,12 +49,11 @@ class SynamicConfig(object):
         self.__modules_map = {}
         self.__content_modules_map = {}
         self.__template_modules_map = {}
-        # self.__meta_modules_map = {}
+        self.__meta_modules_map = {}
 
         # Content Map
         self.__content_map = {
             self.KEY.CONTENTS_BY_ID: dict(),
-            self.KEY.CONTENTS_BY_NAME: dict(),
             self.KEY.CONTENTS_BY_URL_PATH: dict(),
             self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH: dict(),
             self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH: dict(),
@@ -181,14 +176,32 @@ class SynamicConfig(object):
         # Registering front matter value parsers
         DefaultFrontmatterValueParsers.register_default_value_parsers(self)
 
-        self.__is_loaded = True
-
-        self.__path_tree.load()
-
         for mod_name in self.__dependency_list:
             mod = self.__modules_map[mod_name]
-            print(":: loading module_object: %s" % mod.name)
+            print(">> Loading module object: %s" % mod.name)
             mod.load()
+            print("<< Loaded module object: %s\n\n" % mod.name)
+            # retrieving module contents
+
+        for mod_name in self.__dependency_list:
+            if mod_name in self.__content_modules_map:
+                mod = self.__content_modules_map[mod_name]
+                for document in mod.static_contents:
+                    self.add_document(document)
+                for document in mod.dynamic_contents:
+                    self.add_document(document)
+        self.__is_loaded = True
+
+        # time to add auxiliary contents
+        for mod_name in self.__dependency_list:
+            if mod_name in self.__content_modules_map:
+                mod = self.__content_modules_map[mod_name]
+                auxiliary_contents = []
+                for document in mod.dynamic_contents:
+                        aux_contents_ = document.trigger_pagination()
+                        auxiliary_contents.extend(aux_contents_)
+                for aux in auxiliary_contents:
+                    self.add_document(aux)
 
     @loaded
     def initialize_site_dirs(self):
@@ -207,47 +220,45 @@ class SynamicConfig(object):
     def add_module(self, mod_obj):
         """Module type can be contract classes or any subclass of them. At the end, the contract class will be the key 
         of the map"""
-
         mod_type = self.get_module_type(mod_obj)
-        mod_name = normalize_key(mod_obj.name)
+        assert isinstance(mod_obj, BaseModuleContract), "Module `%s` must be of a direct or indirect object of BaseModuleContract"
+        mod_name = mod_obj.name
+        assert mod_name.islower(), "Module name must be in lowercase. The module name you provided is: %s" % mod_name
+
         if mod_type not in self.module_types:
             raise InvalidModuleType("The module_object type you provided is not valid: %s" % str(type(mod_obj)))
 
-        assert mod_name not in self.__modules_map, "Mod name cannot already exist"
+        assert mod_name not in self.__modules_map, "Mod name cannot already exist: %s" % mod_name
 
         # module name validation
         valid_mod_name_pattern = re.compile(r'^[a-z0-9_-]+$', re.I)
-        assert valid_mod_name_pattern.match(mod_obj.name), "Invalid module_object name that does not go with %s" % valid_mod_name_pattern.pattern()
+        assert valid_mod_name_pattern.match(mod_obj.name), "Invalid module_object name (%s) that does not go with %s" % (mod_name, valid_mod_name_pattern.pattern())
         # < module name validation
 
         self.__modules_map[mod_name] = mod_obj
 
         if mod_type is self.MODULE_TYPE_CONTENT:
             self.__content_modules_map[mod_name] = mod_obj
+        elif mod_type is self.MODULE_TYPE_META:
+            self.__meta_modules_map[mod_name] = mod_obj
         else:
+            assert mod_type is self.MODULE_TYPE_TEMPLATE
             self.__template_modules_map[mod_name] = mod_obj
 
     def get_module(self, mod_name):
-        mod_name = normalize_key(mod_name)
+        mod_name = mod_name.lower()
         return self.__modules_map[mod_name]
 
     def add_content(self, content):
         self.add_document(content)
 
-    def add_document(self, document: MarkedDocumentContract):
+    def add_document(self, document):
         url_object = document.url_object
-        mod_name = normalize_key(document.module_object.name)
+        mod_name = document.module_object.name
         # Checking/Validation and addition
         # 1. Content Name
 
         if not document.is_auxiliary:
-            if document.content_name is not None and document.content_name != "":
-                parent_d = self.__content_map[self.KEY.CONTENTS_BY_NAME]
-                d = DictUtils.get_or_create_dict(parent_d, mod_name)
-                assert document.content_name not in d,\
-                    "Multiple resource with the same content name cannot live together"
-                d[document.content_name] = document
-
             # 4. Content id
             if document.content_id is not None and document.content_id != "":
                 parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
@@ -283,12 +294,10 @@ class SynamicConfig(object):
         Finds a content objects depending on name/content-id/url-path/file-path
         
         Format:
-        <module-name>:<id>|<name>|<file-path>:...
+        <module-name>:<id>|<file-path>:...
         
         Examples:
             - text:id:it_39
-            - text:id:it_39
-            - text:name:got-it-1
             - text:file:/text-logo.png
             - text:file:text-logo.png
             - static:file:home-logo.png
@@ -491,7 +500,7 @@ class SynamicConfig(object):
                                         key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=reverse)
             else:
                 sorted_content = sorted(accepted_contents, reverse=reverse)
-        # print("Filter content(): \n%s\n" % sorted_content)
+        print("Filter content(): \n%s\n" % sorted_content)
         return sorted_content
 
     def register_frontmatter_value_parser(self, key, _callable):
@@ -503,12 +512,12 @@ class SynamicConfig(object):
         key = normalize_key(key)
         return self.__frontmatter_value_parser.get(key, None)
 
-    def enqueue_static_file(self, mod_obj, path):
+    def create_static_content(self, mod_obj, path):
         mod = self.get_module('static')
-        mod.enqueue_file(mod_obj, path)
+        return mod.create_static_content(mod_obj, path)
 
     @property
-    @loaded
+    # @loaded
     def taxonomy(self):
         return self.__taxonomy
 

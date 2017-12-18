@@ -21,6 +21,7 @@ class Frontmatter:
         assert isinstance(obj, dict), "The obj must either be None, empty string or an instance of dict"
         self.__map = obj
         self.__terms = None  # {}
+        self.__values = None
 
         normalize_keys(self.__map)
 
