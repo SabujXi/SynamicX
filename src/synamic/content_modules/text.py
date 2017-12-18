@@ -2,7 +2,12 @@ from .reference_implementations import MarkedContentImplementation, MarkedConten
 
 
 class TextContent(MarkedContentImplementation):
-    pass
+    @property
+    def in_series(self):
+        if not self.content_id:
+            return None
+        else:
+            return self.config.series.get_all_series_by_mod_name_n_cid(self.module_object.name, self.content_id)
 
 
 class TextModule(MarkedContentModuleImplementation):
@@ -18,3 +23,4 @@ class TextModule(MarkedContentModuleImplementation):
     @property
     def dependencies(self):
         return {"synamic-template"}
+

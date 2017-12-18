@@ -259,6 +259,10 @@ class MarkedContentImplementation(MarkedDocumentContract):
     def __repr__(self):
         return str(self)
 
+    @property
+    def in_series(self):
+        return None
+
 
 class ContentWrapper:
     __slots__ = ('__content',)
@@ -268,6 +272,14 @@ class ContentWrapper:
 
     def __getattr__(self, item):
         return getattr(self.__content, item)
+
+    @property
+    def id(self):
+        return self.__content.content_id
+
+    @property
+    def url_path(self):
+        return self.__content.url_object.path
 
 
 
