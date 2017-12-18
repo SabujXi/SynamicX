@@ -1,4 +1,4 @@
-from synamic.content_modules.text import TextModule, TextContent
+from synamic.content_modules.reference_implementations import MarkedContentModuleImplementation, MarkedContentImplementation
 from synamic.core.functions.normalizers import normalize_key, normalize_keys
 
 """
@@ -41,20 +41,26 @@ class Chapter:
         return self.__link
 
 
-class SeriesContent(TextContent):
+class SeriesContent(MarkedContentImplementation):
     def __init__(self, config, module_object, path_object, file_content):
         super().__init__(config, module_object, path_object, file_content)
         self.__chapters = None
+        # print("\n\nCreating series content objectn\n\n")
 
     def trigger_pagination(self):
         """
         Do nothing. 
         """
+        return tuple()
 
     @property
     def chapters(self):
+        # input("Give me chapter name")
         if self.__chapters is None:
             _chapters = self.frontmatter.values.get(normalize_key('chapters'), None)
+            # print("\n\nChapters:\n")
+            # print(_chapters)
+            # print("\n\n\n")
             if _chapters:
                 raw_chapters = []
                 normalize_keys(_chapters)
@@ -64,34 +70,45 @@ class SeriesContent(TextContent):
                             raw_chapters.append(maybe_chapter[key])
 
                 chapters = []
+                serial = 1
                 for raw_chapter in raw_chapters:
-                    cont_ = raw_chapter.get(normalize_key('for'))
-                    if cont_.lower().startswith('http://') or cont_.lower().startswith('https://'):
-                        url = cont_
+                    for_ = raw_chapter.get(normalize_key('for'))
+                    title = raw_chapter.get(normalize_key('title'), None)
+                    if for_.lower().startswith('http://') or for_.lower().startswith('https://'):
+                        url = for_
                     else:
-                        cont_id = cont_.lstrip('@')
-                        # self.config.
+                        cont_id = for_.lstrip('@')
+                        # TODO: series is hard coded for text at this moment. Change it to fit for other content modules
+                        cont = self.config.get_document_by_id('text', cont_id)
+                        # TODO: devise the following thing to absolute path.
+                        url = cont.url_object.path
+                        title = cont.title
+                    if title is None:
+                        title = url
+                    chapters.append(Chapter(serial, title, url))
+                    serial += 1
+                self.__chapters = chapters
             else:
                 self.__chapters = []
 
         return self.__chapters
 
 
-class SeriesModule(TextModule):
+class SeriesModule(MarkedContentModuleImplementation):
 
     @property
     def name(self):
-        return normalize_key('series')
+        return 'series'
 
     @property
     def dependencies(self):
-        return {normalize_key('text')}
+        return {'text'}
 
     @property
     def content_class(self):
         return SeriesContent
 
     @property
-    def extensions(self):
-        return {'md', 'markdown'}
-
+    def body(self):
+        print("\n\nBODY\n\n")
+        return super().body

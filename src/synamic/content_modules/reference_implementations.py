@@ -237,6 +237,22 @@ class MarkedContentImplementation(MarkedDocumentContract):
         # So, with cotract it can be used in paginator too
         return ContentWrapper(self)
 
+    # def __str__(self):
+    #     return {
+    #         'title': self.title,
+    #         'name': self.name,
+    #         'id': self.id,
+    #         'frontmatter': self.frontmatter,
+    #         'body': self.body,
+    #         'created_on': self.created_on,
+    #         'updated_on': self.updated_on,
+    #         'url_path': self.url_path,
+    #         # 'absolute_url': self.absolute_url,  TODO: Fix error
+    #         'tags': self.tags,
+    #         'categories': self.categories,
+    #         'pagination': self.pagination
+    #     }
+
     def __str__(self):
         return self.path_object.relative_path
 
@@ -250,71 +266,9 @@ class ContentWrapper:
     def __init__(self, content):
         self.__content = content
 
-    @property
-    def title(self):
-        return self.__content.title
+    def __getattr__(self, item):
+        return getattr(self.__content, item)
 
-    @property
-    def name(self):
-        return self.__content.content_name
-
-    @property
-    def id(self):
-        return self.__content.content_id
-
-    @property
-    def frontmatter(self):
-        return self.__content.frontmatter
-
-    @property
-    def body(self):
-        return self.__content.body
-
-    @property
-    def created_on(self):
-        return self.__content.created_on
-
-    @property
-    def updated_on(self):
-        return self.__content.updated_on
-
-    @property
-    def url_path(self):
-        return self.__content.url_object.path
-
-    # 'absolute_url': self.absolute_url,  TODO: Fix error
-
-    @property
-    def tags(self):
-        return self.__content.tags
-
-    @property
-    def categories(self):
-        return self.__content.categories
-
-    @property
-    def summary(self):
-        return self.__content.summary
-
-    @property
-    def pagination(self):
-        return self.__content.pagination
-
-    def __str__(self):
-        return {
-            'title': self.title,
-            'name': self.name,
-            'id': self.id,
-            'frontmatter': self.frontmatter,
-            'body': self.body,
-            'created_on': self.created_on,
-            'updated_on': self.updated_on,
-            'url_path': self.url_path,
-            # 'absolute_url': self.absolute_url,  TODO: Fix error
-            'tags': self.tags,
-            'categories': self.categories,
-            'pagination': self.pagination
-        }
 
 
 class MarkedContentModuleImplementation(BaseContentModuleContract):

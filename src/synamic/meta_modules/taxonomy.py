@@ -77,6 +77,10 @@ class TaxonomyTerm:
         return self.title
 
 
+class TaxonomyPage():
+    pass
+
+
 class TaxonomyModule(BaseMetaModuleContract):
     def __init__(self, config):
         self.__config = config

@@ -23,6 +23,7 @@ from synamic.core.classes.utils import DictUtils
 from synamic.core.functions import query_compiler
 from synamic.meta_modules.taxonomy import TaxonomyModule
 from synamic.content_modules.sitemap import SitemapModule
+from synamic.content_modules.series import SeriesModule
 from synamic.core.contracts.module import BaseModuleContract
 
 
@@ -93,6 +94,8 @@ class SynamicConfig(object):
     def __initiate(self):
         # text
         self.add_module(TextModule(self))
+        # Series
+        self.add_module(SeriesModule(self))
         # home
         self.add_module(HomeModule(self))
         # template
@@ -288,6 +291,12 @@ class SynamicConfig(object):
 
         # 5. Contents set
         self.__content_map[self.KEY.CONTENTS_SET].add(document)
+
+    def get_document_by_id(self, mod_name, doc_id):
+        parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
+        d = DictUtils.get_or_create_dict(parent_d, mod_name)
+        assert doc_id in d, "Content id does not exist %s:%s" % (mod_name, d)
+        return d[doc_id]
 
     def get_url(self, parameter):
         """
