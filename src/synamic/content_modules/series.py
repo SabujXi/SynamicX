@@ -77,9 +77,17 @@ class SeriesContent(MarkedContentImplementation):
                     if for_.lower().startswith('http://') or for_.lower().startswith('https://'):
                         url = for_
                     else:
-                        cont_id = for_.lstrip('@')
+                        for_ = for_.lstrip('@')
+                        mod_n_id = for_.split(':')
+                        if len(mod_n_id) == 2:
+                            mod_name = mod_n_id[0]
+                            cont_id = mod_n_id[1]
+                        else:
+                            assert len(mod_n_id) == 1
+                            mod_name = 'text'
+                            cont_id = mod_n_id[0]
                         # TODO: series is hard coded for text at this moment. Change it to fit for other content modules
-                        cont = self.config.get_document_by_id('text', cont_id)
+                        cont = self.config.get_document_by_id(mod_name, cont_id)
                         # TODO: devise the following thing to absolute path.
                         url = cont.url_object.path
                         title = cont.title
@@ -107,8 +115,3 @@ class SeriesModule(MarkedContentModuleImplementation):
     @property
     def content_class(self):
         return SeriesContent
-
-    @property
-    def body(self):
-        print("\n\nBODY\n\n")
-        return super().body

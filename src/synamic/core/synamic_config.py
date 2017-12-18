@@ -67,6 +67,9 @@ class SynamicConfig(object):
         # Taxonomy
         self.__taxonomy = None
 
+        # Series
+        self.__series = None
+
         # key values
         self.__key_values = {}
         self.__is_loaded = False
@@ -95,7 +98,9 @@ class SynamicConfig(object):
         # text
         self.add_module(TextModule(self))
         # Series
-        self.add_module(SeriesModule(self))
+        series_mod = SeriesModule(self)
+        self.add_module(series_mod)
+        self.__series = series_mod
         # home
         self.add_module(HomeModule(self))
         # template
@@ -529,4 +534,9 @@ class SynamicConfig(object):
     # @loaded
     def taxonomy(self):
         return self.__taxonomy
+
+    @property
+    @loaded
+    def series(self):
+        return self.__series
 
