@@ -1,8 +1,10 @@
-import enum, re
+import enum
+import re
 from synamic.core.functions.yaml_processor import load_yaml
 from synamic.core.functions.normalizers import normalize_key, normalize_keys
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.contracts.module import BaseMetaModuleContract
+from synamic.core.contracts.content import ContentContract
 
 
 class TaxonomyTerm:
@@ -34,6 +36,12 @@ class TaxonomyTerm:
         if self.__parent is not None:
             if self.__taxonomy_type is not self.types.HIERARCHICAL:
                 raise Exception('Non-hierarchical terms cannot have parent')
+
+        self.__contents = set()
+
+    def add_content(self, content):
+        assert isinstance(content, ContentContract), "Only valid contents can be added - those who are implementing ContentContract"
+        self.__contents.add(content)
 
     @property
     def term(self):
@@ -77,8 +85,46 @@ class TaxonomyTerm:
         return self.title
 
 
-class TaxonomyPage():
-    pass
+class TaxonomyPage(ContentContract):
+
+    @property
+    def module_object(self):
+        return self.__module
+
+    @property
+    def path_object(self):
+        return self.__path
+
+    @property
+    def content_id(self):
+        return None
+
+    def get_stream(self):
+        super().get_stream()
+
+    @property
+    def config(self):
+        return self.__config
+
+    @property
+    def is_dynamic(self):
+        return True
+
+    @property
+    def is_static(self):
+        return False
+
+    @property
+    def is_auxiliary(self):
+        return False
+
+    @property
+    def content_type(self):
+        return self.types.DYNAMIC
+
+    @property
+    def mime_type(self):
+        return 'text/html'
 
 
 class TaxonomyModule(BaseMetaModuleContract):

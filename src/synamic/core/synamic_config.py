@@ -540,3 +540,14 @@ class SynamicConfig(object):
     def series(self):
         return self.__series
 
+    @not_loaded
+    def add_event(self, evt_type, clabl):
+        assert callable(clabl)
+        assert type(evt_type) is EventTypes
+
+
+@enum.unique
+class EventTypes(enum.Enum):
+    CONFIG_LOADED = 'config_loaded'
+    ALL_MODULES_LOADED = 'all_modules_loaded'
+
