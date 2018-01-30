@@ -8,6 +8,35 @@ command_pat = re.compile(r"[!@$?]?|[a-zA-Z0-9_-]+")
 command_split_pat = re.compile(r'\s')
 
 
+class ProxyNameSpace:
+    def __init__(self, permanent_local, mylocal, *a, **ag):
+        self.__global = permanent_local
+        self.__local = mylocal
+
+    def __getitem__(self, key):
+        if key in self.__global:
+            value = self.__global[key]
+            self.__local[key] = value
+            return value
+        raise KeyError
+
+    def __setitem__(self, key, value):
+        self.__global[key] = value
+        self.__local[key] = value
+
+    def keys(self):
+        return self.__global.keys()
+
+    def items(self):
+        return self.__global.items()
+
+    def values(self):
+        return self.__global.values()
+
+    def __iter__(self):
+        return self.__global.__iter__()
+
+
 class BaseShell(object):
     intor_text = "Basic Shell By Md. Sabuj Sarker"
     prompt_text = "(sabuj): "
@@ -38,34 +67,6 @@ class BaseShell(object):
     def on_py(self, arg):
         'write python code in one line'
         try:
-            class ProxyNameSpace:
-                def __init__(self, permanent_local, mylocal, *a, **ag):
-                    self.__global = permanent_local
-                    self.__local = mylocal
-
-                def __getitem__(self, key):
-                    if key in self.__global:
-                        value = self.__global[key]
-                        self.__local[key] = value
-                        return value
-                    raise KeyError
-
-                def __setitem__(self, key, value):
-                    self.__global[key] = value
-                    self.__local[key] = value
-
-                def keys(self):
-                    return self.__global.keys()
-
-                def items(self):
-                    return self.__global.items()
-
-                def values(self):
-                    return self.__global.values()
-
-                def __iter__(self):
-                    return self.__global.__iter__()
-
             local = {}
             namespace = ProxyNameSpace(self.__permanent_local_for_py, local)
             line_buffer = []
@@ -93,6 +94,31 @@ class BaseShell(object):
             self.print_error("Exception Type: %s" % exc_type.__name__)
             self.print_error("Exception: %s" % exc_value)
             # self.print_error("Exception Traceback: %s" % traceback.extract_tb(exc_traceback))
+
+    def on_pyr(self):
+        "Recursive python - prompt another line after this one"
+        'write python code in one line'
+
+        idx = 0
+        while True:
+            idx += 1
+            line = self.input("%04d >>> " % idx)
+            line = line.strip()
+            if line == ":q":
+                "time to quit"
+                break
+            else:
+                try:
+                    local = {}
+                    namespace = ProxyNameSpace(self.__permanent_local_for_py, local)
+                    exec(line, globals(), namespace)
+                    # for key, value in local.items():
+                    #     self.print(key + ": " + str(value))
+                except:
+                    exc_type, exc_value, exc_traceback = sys.exc_info()
+                    self.print_error("Exception Type: %s" % exc_type.__name__)
+                    self.print_error("Exception: %s" % exc_value)
+                continue
 
     def on_p(self, arg):
         self.on_py(arg)
