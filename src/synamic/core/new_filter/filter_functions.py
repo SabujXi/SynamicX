@@ -149,15 +149,18 @@ class Filter:
         self.__filter_text = filter_text
         # self.__filter_text_current_start_pos = 0
         self.__values = values.copy() if getattr(values, 'copy', False) else tuple([x for x in values])
+        self.__backup_values = self.__values.copy()
         self.__original_values = self.__values.copy()
 
     def result(self):
-        my_code = self.produce_bytecode()
-        eval(my_code.to_str(), globals(), {'F': self})
-
+        my_code = self._produce_bytecode()
+        try:
+            eval(my_code.to_str(), globals(), {'F': self})
+        except:
+            raise
         return self.__values
 
-    def produce_bytecode(self):
+    def _produce_bytecode(self):
         """
         :param filter_text: raw filter text
         :param values: are iterators
@@ -298,480 +301,239 @@ class Filter:
         return filter_code
 
     def __set_values(self, new_values):
+        self.__backup_values = tuple(self.__values)
         if new_values is None:
             self.__values = None
         else:
             self.__values = tuple(new_values)
+        return self.__values
+
+    def _get_lr_values(self, value, left_opnd, right_opnd, is_identifier_operand=False):
+        """get left and right values"""
+        ll = left_opnd.split('.')
+        l_value = value
+        for part1 in ll:
+            l_value = getattr(part1, l_value)
+
+        r_value = value
+        if is_identifier_operand:
+            rl = right_opnd.split('.')
+            for part2 in rl:
+                r_value = getattr(part2, r_value)
+        else:
+            r_value = right_opnd
+
+        return l_value, r_value
 
     # operators
     @operator_decorator('==')
     def operator_eq(self, left_opnd, right_opnd, is_identifier_operand=False):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value == r_value:
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
 
     eq = operator_eq
 
     @operator_decorator('!=')
     def operator_neq(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value != r_value:
                 result.append(value)
-        self.__set_values(result)
+        return self.__set_values(result)
     neq = operator_neq
 
     @operator_decorator('>')
     def operator_gt(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value > r_value:
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     gt = operator_gt
 
     @operator_decorator('<')
     def operator_lt(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(r_value, part2)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value < r_value:
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     lt = operator_lt
 
     @operator_decorator('>=')
     def operator_gteq(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value >= r_value:
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     gteq = operator_gteq
 
     @operator_decorator('<=')
     def operator_lteq(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value <= r_value:
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     lteq = operator_lteq
 
     @operator_decorator('contains')
     def operator_contains(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(r_value, part2)
-            else:
-                r_value = right_opnd
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
 
             if l_value.__contains__(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     contains = operator_contains
 
     @operator_decorator('!contains')
     def operator_not_contains(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if not l_value.__contains__(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     ncontains = operator_not_contains
+
+    def _normalize_lr_values(self, l_value, r_value):
+        """Normalize/lower left value and right value if appropriate"""
+        if type(r_value) is list:
+            r_value = []
+            for x in r_value:
+                if type(x) is int or type(x) is float:
+                    pass
+                else:
+                    r_value.append(x.lower())
+            r_value = tuple(r_value)
+        elif type(r_value) is str:
+            r_value = r_value.lower()
+
+        if type(l_value) is list:
+            l_value = []
+            for x in l_value:
+                if type(x) is int or type(x) is float:
+                    pass
+                else:
+                    l_value.append(x.lower())
+            l_value = tuple(l_value)
+        elif type(l_value) is str:
+            l_value = l_value.lower()
+        return l_value, r_value
 
     @operator_decorator('contains_ic')
     def operator_contains_ic(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(r_value, part2)
-            else:
-                r_value = right_opnd
-
-            if type(r_value) is list:
-                r_value = []
-                for x in r_value:
-                    if type(x) is int or type(x) is float:
-                        pass
-                    else:
-                        r_value.append(x.lower())
-            elif type(r_value) is str:
-                r_value = r_value.lower()
-
-            if type(l_value) is list:
-                l_value = []
-                for x in l_value:
-                    if type(x) is int or type(x) is float:
-                        pass
-                    else:
-                        l_value.append(x.lower())
-            elif type(l_value) is str:
-                l_value = l_value.lower()
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
+            l_value, r_value = self._normalize_lr_values(l_value, r_value)
             if l_value.__contains__(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     contains_ic = operator_contains_ic
 
     @operator_decorator('!contains_ic')
     def operator_not_contains_ic(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
-            if type(r_value) is list:
-                r_value = []
-                for x in r_value:
-                    if type(x) is int or type(x) is float:
-                        pass
-                    else:
-                        r_value.append(x.lower())
-            elif type(r_value) is str:
-                r_value = r_value.lower()
-
-            if type(l_value) is list:
-                l_value = []
-                for x in l_value:
-                    if type(x) is int or type(x) is float:
-                        pass
-                    else:
-                        l_value.append(x.lower())
-            elif type(l_value) is str:
-                l_value = l_value.lower()
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
+            l_value, r_value = self._normalize_lr_values(l_value, r_value)
             if not l_value.__contains__(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     ncontains_ic = operator_not_contains_ic
 
     @operator_decorator('startswith')
     def operator_startswith(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(r_value, part2)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value.startswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
-
+        return self.__set_values(result)
     startswith = operator_startswith
 
     @operator_decorator('!startswith')
     def operator_not_startswith(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(r_value, part2)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if not l_value.startswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     nstartswith = operator_not_startswith
 
     @operator_decorator('startswith_ic')
     def operator_startswith_ic(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(r_value, part2)
-            else:
-                r_value = right_opnd
-
-            if l_value.lower().startswith(r_value.lower()):
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
+            l_value, r_value = self._normalize_lr_values(l_value, r_value)
+            if l_value.startswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     startswith_ic = operator_startswith_ic
 
     @operator_decorator('!startswith_ic')
     def operator_not_startswith_ic(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(l_value, part1)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(r_value, part2)
-            else:
-                r_value = right_opnd
-
-            if not l_value.lower().startswith(r_value.lower()):
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
+            l_value, r_value = self._normalize_lr_values(l_value, r_value)
+            if not l_value.startswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
     nstartswith_ic = operator_not_startswith_ic
 
     @operator_decorator('endswith')
     def operator_endswith(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if l_value.endswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
 
     @operator_decorator('!endswith')
     def operator_not_endswith(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
             if not l_value.endswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
 
     @operator_decorator('endswith_ic')
     def operator_endswith_ic(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
-            if l_value.lower().endswith(r_value.lower()):
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
+            l_value, r_value = self._normalize_lr_values(l_value, r_value)
+            if l_value.endswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
 
     @operator_decorator('!endswith_ic')
     def operator_not_endswith_ic(self, left_opnd, right_opnd, is_identifier_operand):
-        ll = left_opnd.split('.')
         result = []
-
         for value in self.__values:
-            l_value = value
-            for part1 in ll:
-                l_value = getattr(part1, l_value)
-
-            r_value = value
-            if is_identifier_operand:
-                rl = right_opnd.split('.')
-                for part2 in rl:
-                    r_value = getattr(part2, r_value)
-            else:
-                r_value = right_opnd
-
-            if not l_value.lower().endswith(r_value.lower()):
+            l_value, r_value = self._get_lr_values(left_opnd, right_opnd, is_identifier_operand)
+            l_value, r_value = self._normalize_lr_values(l_value, r_value)
+            if not l_value.endswith(r_value):
                 result.append(value)
-
-        self.__set_values(result)
+        return self.__set_values(result)
 
     # limiter
     @limiter_decorator('limit')
@@ -779,7 +541,7 @@ class Filter:
         if len(self.__values) > count:
             result = self.__values[:count]
         else:
-            result = self.__values.copy()
+            result = tuple(self.__values)
 
         self.__set_values(result)
 
@@ -788,7 +550,7 @@ class Filter:
         if len(self.__values) >= start:
             result = self.__values[start:]
         else:
-            result = self.__values.copy()
+            result = tuple(self.__values)
 
         self.__set_values(result)
 
@@ -798,7 +560,7 @@ class Filter:
         if len(self.__values) >= end:
             result = self.__values[start:end]
         else:
-            result = self.__values.copy()
+            result = tuple(self.__values)
 
         self.__set_values(result)
 
@@ -811,7 +573,7 @@ class Filter:
         if len(self.__values) >= count:
             result = self.__values[-count:]
         else:
-            result = self.__values.copy()
+            result = tuple(self.__values)
 
         self.__set_values(result)
 
@@ -834,12 +596,24 @@ class Filter:
 
     # logical operators
     @logical_operator_decorator('OR')
-    def logical_or(self):
+    def logical_or(self, next_result):
         pass
+        # result = []
+        # prev_res_set = set(self.__backup_values)
+        # next_res_set = set(self.__backup_values)
+        # for p in self.__backup_values:
+        #     pass
 
     @logical_operator_decorator('AND')
-    def logical_and(self):
+    def logical_and(self, next_result):
         pass
+        # result = []
+        # next_res_set = set(next_result)
+        # for p in self.__backup_values:
+        #     if p in next_res_set:
+        #         result.append(p)
+        # return self.__set_values(result)
+
 
 class O:
     def __init__(self, d):
