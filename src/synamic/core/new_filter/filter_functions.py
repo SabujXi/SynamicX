@@ -740,8 +740,13 @@ def query(synamic_obj, query_text, filter_id=None):
     return result
 
 
-def filter():
-    pass
+def query_in_template(query_text):
+    # get synamic object from the context
+    # for now I am mocking it
+    synamic_object = MockSynamic(mock_values())
+    # change it later for right implementation
+
+    return query(synamic_object, query_text, None)
 
 
 def mock_values():
