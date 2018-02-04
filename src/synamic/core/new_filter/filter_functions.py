@@ -1,5 +1,7 @@
 import re
 from collections import namedtuple
+import pprint
+
 v0 = """
 texts | title.length > 1 OR title.length < 100 | | title.length > 1 AND title.length < 100 | title contains "yo yo" | tags contains ["done", "complete"] | title startswith "no no" | :limit 20 | :offset 2 | id > 6 | :from 2 5 | :first 5 | :last 1 | @one
 """
@@ -113,10 +115,15 @@ def producer_decorator(producer_name):
 
 
 class CodeGenerator:
+    newline_pat = re.compile(r'^(\r\n|\n|\r)')
+
     def __init__(self, indent=0, space_count=4):
         self.__indentation_level = indent
         self.__space_count = space_count
         self.__code_lines = []
+        self.add_code_line("def filter_fun(query_object):")
+        self.indent()
+        self.add_code_line("Q = query_object")
 
     def indent(self):
         self.__indentation_level += 1
@@ -124,17 +131,27 @@ class CodeGenerator:
     def dedent(self):
         self.__indentation_level -= 1
 
-    def add_code(self, code):
-        if len(self.__code_lines) > 0:
-            self.__code_lines[-1] += code
-        else:
-            self.__code_lines.append("")
-            self.__code_lines[-1] += code
+    # def add_code(self, code):
+    #     if len(self.__code_lines) > 0:
+    #         self.__code_lines[-1] += code
+    #     else:
+    #         self.__code_lines.append("")
+    #         self.__code_lines[-1] += code
 
     def add_code_line(self, line):
+        lines = self.newline_pat.split(line)
+        line = ("\n " * self.__space_count * self.__indentation_level).join(lines)
         self.__code_lines.append(
             " " * self.__space_count * self.__indentation_level + line
         )
+
+    def compile_and_get(self, query_id="query_src__.null"):
+        src = self.to_str().strip()
+        cod = compile(src, "query_id__." + str(query_id), 'exec')
+        namespace = {}
+        exec(cod, globals(), namespace)
+        filter_fun = namespace['filter_fun']
+        return filter_fun, src
 
     def to_str(self):
         s = "\n".join(self.__code_lines)
@@ -230,8 +247,220 @@ class _Field:
         assert bool(self.__fields), "No field was added to field"
         return tuple(self.__fields)
 
+_function_cache_by_filter_str = {}
+_function_cache_by_filter_id = {}
+
+
+def _produce_python_function_source(filter_src, filter_id=None):
+    """
+    :param filter_text: raw filter text
+    :param values: are iterators
+    :param local_namespace: namespace passed, for example, this. 
+    :return: a tuple - not list or set or anything like that - the infamous immutable tuple
+    """
+    __filter_funs = _filter_funs
+
+    if filter_id is not None:
+        cached_function_src = _function_cache_by_filter_id.get(filter_id, None)
+    else:
+        cached_function_src = _function_cache_by_filter_str.get(filter_src, None)
+    if cached_function_src is not None:
+        function = cached_function_src['function']
+        src = cached_function_src['src']
+        return function, src
+
+    filter_code = CodeGenerator()
+    filter_code.add_code_line("Q\\")
+
+    cur_len = len(filter_src)
+    while cur_len > 0:
+        # print(query_str)
+        pipe_match = _Patterns.pipe_pat.match(filter_src)
+        if not pipe_match:
+            raise Exception("Expected a pipe for further query")
+        filter_src = filter_src[pipe_match.end():]
+        # queries = _Patterns.pipe_pat.split(query_str)
+
+        producer_name_match = _Patterns.producer_name_pat.match(filter_src)
+        limiter_name_match = _Patterns.limiter_name_pat.match(filter_src)
+        if producer_name_match:  # call producer
+            # query_str
+            producer_name = producer_name_match.group('producer_name')
+            # print("Producers: %s" % list(__filter_funs.producers.keys()))
+            filter_code.add_code_line(
+                ".%s" % (__filter_funs.producers[producer_name].__name__ + "()    \\")
+            )
+            filter_src = filter_src[producer_name_match.end():]
+            break
+
+        elif limiter_name_match:
+            # call limiter
+            limiter_name = limiter_name_match.group('limiter_name')
+            filter_src = filter_src[limiter_name_match.end():]
+            limiter_operands_str_match = _Patterns.limiter_operands_str_pat.match(filter_src)
+            if not limiter_operands_str_match:
+                raise Exception("Expected limiter operand(s)")
+
+            limiter_operands_str = limiter_operands_str_match.group()
+
+            filter_src = filter_src[limiter_operands_str_match.end():]
+
+            _limiter_operands = [x for x in limiter_operands_str.strip().split(' ') if len(x) != 0]
+            limiter_operands = []
+            for opnd in _limiter_operands:
+                if _Patterns.identifier_operand_pat.match(opnd):
+                    opnd = "Q.F." + opnd
+                limiter_operands.append(opnd)
+
+            filter_code.add_code_line(
+                "." + __filter_funs.limiters[limiter_name].__name__ + "(%s)    \\" % ", ".join(limiter_operands)
+            )
+        else:  # operator
+            logical_join_list = []
+            while True:
+                idnt_opnd_match = _Patterns.identifier_operand_pat.match(filter_src)
+                if not idnt_opnd_match:
+                    raise Exception("Expected an identity operand")
+                left_opnd = "Q.F." + idnt_opnd_match.group('dotted_operand')
+                filter_src = filter_src[idnt_opnd_match.end():]
+                operator_match = _Patterns.operator_pat.match(filter_src)
+                if not operator_match:
+                    raise Exception("Expected an operator")
+                operator = operator_match.group('operator')
+                filter_src = filter_src[operator_match.end():]
+
+                right_opnd_match = _Patterns.right_operand_pat.match(filter_src)
+                is_identifier_operand = False
+
+                if right_opnd_match:
+                    value_dotted = right_opnd_match.group('dotted_operand')
+                    value_integer = right_opnd_match.group('integer_operand')
+                    value_float = right_opnd_match.group('float_operand')
+                    value_string = right_opnd_match.group('string_operand')
+                    value_string_iterator = right_opnd_match.group('string_iterator_operand')
+                    if value_dotted:
+                        right_opnd = 'Q.F.' + value_dotted
+                        is_identifier_operand = True
+                        # query_str = query_str[right_opnd_match.end():]
+                    elif value_integer:
+                        right_opnd = value_integer
+                        # query_str = query_str[right_opnd_match.end():]
+                    elif value_float:
+                        right_opnd = value_float
+                        # query_str = query_str[right_opnd_match.end():]
+                    elif value_string:
+                        right_opnd = value_string
+                        # query_str = query_str[right_opnd_match.end():]
+                    elif value_string_iterator:
+                        right_opnd = value_string_iterator
+                        # query_str = query_str[right_opnd_match.end():]
+                    else:
+                        raise Exception("Something went wrong during right operand match")
+                    filter_src = filter_src[right_opnd_match.end():]
+                else:
+                    raise Exception("Expected right operand")
+
+                logical_operator_match = _Patterns.logical_operator_pat.match(filter_src)
+
+                if logical_operator_match:
+                    filter_src = filter_src[logical_operator_match.end():]
+                    logical_join_list.append(
+                        (left_opnd, operator, right_opnd, logical_operator_match.group("logical_operator"))
+                    )
+                    continue
+                else:
+                    logical_join_list.append(
+                        (left_opnd, operator, right_opnd, None)
+                    )
+                    break
+
+            if len(logical_join_list) == 1:
+                # no logical and or or whatever
+                logic_opn = logical_join_list[0]
+                left_opnd = logic_opn[0]
+                operator = logic_opn[1]
+                right_opnd = logic_opn[2]
+
+                filter_code.add_code_line(
+                    (".exp(%s)" % ("Q.P." + __filter_funs.operators[operator].__name__ + "(%s)" % ", ".join(
+                        [left_opnd, right_opnd]))) + "\\"
+                )
+            else:
+                arg_join_str_list = []
+
+                for logic_opn in logical_join_list:
+                    left_opnd = logic_opn[0]
+                    operator = logic_opn[1]
+                    right_opnd = logic_opn[2]
+                    logic_operator = logic_opn[3]
+
+                    if logic_operator is None:
+                        arg_join_str_list.append(
+                            ("Q.P." + __filter_funs.operators[operator].__name__ + "(%s)" % ", ".join(
+                                [left_opnd, right_opnd]))
+                        )
+                    else:
+                        if logic_operator == '&' or logic_operator == 'AND':
+                            _logic_operator = '&'
+                        elif logic_operator == '^' or logic_operator == '|' or logic_operator == 'AND':
+                            _logic_operator = '^'
+                        else:
+                            raise Exception("Did not expect so!!!")
+
+                        arg_join_str_list.append(
+                            "Q.P." + __filter_funs.operators[operator].__name__ + "(%s)" % (
+                            ", ".join([left_opnd, right_opnd])) + " " + _logic_operator + " "
+                        )
+
+                filter_code.add_code_line(
+                    (".exp(%s)" % " ".join(arg_join_str_list)) + "\\"
+                )
+
+        cur_len = len(filter_src)
+    if len(_function_cache_by_filter_id):
+        filter_id = max(_function_cache_by_filter_id.keys()) + 1
+    else:
+        filter_id = 1
+
+    function, src = filter_code.compile_and_get(filter_id)
+    _function_cache_by_filter_id[filter_id] = {'function': function, 'src': src}
+    _function_cache_by_filter_str[filter_src] = {'function': function, 'src': src}
+    return function, src, filter_id
+
 
 class Query:
+    def __init__(self, filter_id, filter_what, filter_str, values):
+        self.__values = values.copy() if getattr(values, 'copy', False) else tuple([x for x in values])
+        self.__original_values = tuple(self.__values)
+        self.__filter_what = filter_what
+        self.__filter_id = filter_id
+        self.__filter_str = filter_str
+
+    @property
+    def filter_what(self):
+        """
+        Returns the module name (may also refer to other things in future) of the query.
+        e.g.:
+            query
+        """
+        assert self.__filter_what is not None, "Cannot access query_what property before it is set."
+        return self.__filter_what
+
+    @property
+    def filter_str(self):
+        """
+        Returns the filter part (after query_what/module name) with whitespaces stripped from both sides. 
+        """
+        assert self.__filter_str is not None, "Cannot access filter_str property before it is set."
+        return self.__filter_str
+
+    @property
+    def filter_id(self):
+        """
+        Returns the query id so that the bytecode can be accessed later without creating/compiling that again.
+        """
+        assert self.__filter_id is not None, "Cannot access query_id property before it is set."
+        return self.__filter_id
 
     # expression can be unary (without &, ^) or binary (with &, ^)
     # operators are always binary
@@ -250,190 +479,6 @@ class Query:
     @classmethod
     def F_TYPE(cls):
         return _Field
-
-    bytecode_cache = {}
-
-    def __init__(self, filter_text, values, namespace=None):
-        self.__namespace = namespace if namespace is not None else namespace
-        self.__filter_text = filter_text
-        # self.__filter_text_current_start_pos = 0
-        self.__values = values.copy() if getattr(values, 'copy', False) else tuple([x for x in values])
-        self.__original_values = tuple(self.__values)
-
-    def result(self):
-        my_code = self._produce_bytecode()
-        print(my_code.to_str())
-        try:
-            eval(my_code.to_str(), globals(), {'Q': self})
-        except:
-            raise
-        return self.__values
-
-    def _produce_bytecode(self):
-        """
-        :param filter_text: raw filter text
-        :param values: are iterators
-        :param local_namespace: namespace passed, for example, this. 
-        :return: a tuple - not list or set or anything like that - the infamous immutable tuple
-        """
-        __filter_funs = _filter_funs
-        filter_text = self.__filter_text
-        _stripped_filter_text = filter_text.strip()
-
-        cached_code = self.bytecode_cache.get(_stripped_filter_text, None)
-        if cached_code:
-            return cached_code
-
-        module_name = _Patterns.module_name_pat.match(filter_text).group("module_name")
-        query_str = filter_text[len(module_name):]
-
-        filter_code = CodeGenerator()
-        filter_code.add_code("Q")
-
-        cur_len = len(query_str)
-        while cur_len > 0:
-            # print(query_str)
-            pipe_match = _Patterns.pipe_pat.match(query_str)
-            if not pipe_match:
-                raise Exception("Expected a pipe for further query")
-            query_str = query_str[pipe_match.end():]
-            # queries = _Patterns.pipe_pat.split(query_str)
-
-            producer_name_match = _Patterns.producer_name_pat.match(query_str)
-            limiter_name_match = _Patterns.limiter_name_pat.match(query_str)
-            if producer_name_match:                # call producer
-                # query_str
-                producer_name = producer_name_match.group('producer_name')
-                # print("Producers: %s" % list(__filter_funs.producers.keys()))
-                filter_code.add_code(
-                    ".%s" % (__filter_funs.producers[producer_name].__name__ + "()    \\\n")
-                )
-                query_str = query_str[producer_name_match.end():]
-                break
-
-            elif limiter_name_match:
-                # call limiter
-                limiter_name = limiter_name_match.group('limiter_name')
-                query_str = query_str[limiter_name_match.end():]
-                limiter_operands_str_match = _Patterns.limiter_operands_str_pat.match(query_str)
-                if not limiter_operands_str_match:
-                    raise Exception("Expected limiter operand(s)")
-
-                limiter_operands_str = limiter_operands_str_match.group()
-
-                query_str = query_str[limiter_operands_str_match.end():]
-
-                _limiter_operands = [x for x in limiter_operands_str.strip().split(' ') if len(x) != 0]
-                limiter_operands = []
-                for opnd in _limiter_operands:
-                    if _Patterns.identifier_operand_pat.match(opnd):
-                        opnd = "Q.F." + opnd
-                    limiter_operands.append(opnd)
-
-                filter_code.add_code(
-                    "." + __filter_funs.limiters[limiter_name].__name__ + "(%s)    \\\n" % ", ".join(limiter_operands)
-                )
-            else:  # operator
-                logical_join_list = []
-                while True:
-                    idnt_opnd_match = _Patterns.identifier_operand_pat.match(query_str)
-                    if not idnt_opnd_match:
-                        raise Exception("Expected an identity operand")
-                    left_opnd = "Q.F." + idnt_opnd_match.group('dotted_operand')
-                    query_str = query_str[idnt_opnd_match.end():]
-                    operator_match = _Patterns.operator_pat.match(query_str)
-                    if not operator_match:
-                        raise Exception("Expected an operator")
-                    operator = operator_match.group('operator')
-                    query_str = query_str[operator_match.end():]
-
-                    right_opnd_match = _Patterns.right_operand_pat.match(query_str)
-                    is_identifier_operand = False
-
-                    if right_opnd_match:
-                        value_dotted = right_opnd_match.group('dotted_operand')
-                        value_integer = right_opnd_match.group('integer_operand')
-                        value_float = right_opnd_match.group('float_operand')
-                        value_string = right_opnd_match.group('string_operand')
-                        value_string_iterator = right_opnd_match.group('string_iterator_operand')
-                        if value_dotted:
-                            right_opnd = 'Q.F.' + value_dotted
-                            is_identifier_operand = True
-                            # query_str = query_str[right_opnd_match.end():]
-                        elif value_integer:
-                            right_opnd = value_integer
-                            # query_str = query_str[right_opnd_match.end():]
-                        elif value_float:
-                            right_opnd = value_float
-                            # query_str = query_str[right_opnd_match.end():]
-                        elif value_string:
-                            right_opnd = value_string
-                            # query_str = query_str[right_opnd_match.end():]
-                        elif value_string_iterator:
-                            right_opnd = value_string_iterator
-                            # query_str = query_str[right_opnd_match.end():]
-                        else:
-                            raise Exception("Something went wrong during right operand match")
-                        query_str = query_str[right_opnd_match.end():]
-                    else:
-                        raise Exception("Expected right operand")
-
-                    logical_operator_match = _Patterns.logical_operator_pat.match(query_str)
-
-                    if logical_operator_match:
-                        query_str = query_str[logical_operator_match.end():]
-                        logical_join_list.append(
-                            (left_opnd, operator, right_opnd, logical_operator_match.group("logical_operator"))
-                        )
-                        continue
-                    else:
-                        logical_join_list.append(
-                            (left_opnd, operator, right_opnd, None)
-                        )
-                        break
-
-                if len(logical_join_list) == 1:
-                    # no logical and or or whatever
-                    logic_opn = logical_join_list[0]
-                    left_opnd = logic_opn[0]
-                    operator = logic_opn[1]
-                    right_opnd = logic_opn[2]
-
-                    filter_code.add_code(
-                        ".exp(%s)" % ("Q.P." + __filter_funs.operators[operator].__name__ + "(%s)    \\\n" % ", ".join(
-                            [left_opnd, right_opnd]))
-                    )
-                else:
-                    arg_join_str_list = []
-
-                    for logic_opn in logical_join_list:
-                        left_opnd = logic_opn[0]
-                        operator = logic_opn[1]
-                        right_opnd = logic_opn[2]
-                        logic_operator = logic_opn[3]
-
-                        if logic_operator is None:
-                            arg_join_str_list.append(
-                                "Q.P." + __filter_funs.operators[operator].__name__ + "(%s)    \\\n" % ", ".join([left_opnd, right_opnd])
-                            )
-                        else:
-                            if logic_operator == '&' or logic_operator == 'AND':
-                                _logic_operator = '&'
-                            elif logic_operator == '^' or logic_operator == '|' or logic_operator == 'AND':
-                                _logic_operator = '^'
-                            else:
-                                raise Exception("Did not expect so!!!")
-
-                            arg_join_str_list.append(
-                                "Q.P." + __filter_funs.operators[operator].__name__ + "(%s)    \\\n" % (", ".join([left_opnd, right_opnd])) + " " + _logic_operator + " "
-                            )
-
-                    filter_code.add_code(
-                        ".exp(%s)" % " ".join(arg_join_str_list)
-                    )
-
-            cur_len = len(query_str)
-        return filter_code
 
     def __set_values(self, new_values):
         if new_values is None:
@@ -707,34 +752,74 @@ class Query:
             self.__set_values(self.__values[0])
         return result
 
-Filter = Query
+    def result(self):
+        return self.__values
 
 
-d = [
-    {'name': "Sabuj", 'age': 28},
-    {'name': "XSabuj", 'age': 20},
-    {'name': "YSabuj", 'age': 10},
-    {'name': "uabuj", 'age': 18},
-    {'name': "pabuj", 'age': 2},
-    {'name': "SSSSSabuj", 'age': 2},
+def query(synamic_obj, query_text, filter_id=None):
+    filter_what = module_name = _Patterns.module_name_pat.match(query_text).group("module_name").strip()
+    filter_str = query_text[len(module_name):].strip()
+    function_src = _produce_python_function_source(filter_str, filter_id)
+    function, src, filter_id = function_src
 
-]
+    # get values from synamic object
+    # mock values
+    values = synamic_obj.get_contents_by_module_name(module_name)
+    #
+    q = Query(filter_id, filter_what, filter_str, values)
 
-import pprint
+    # def result(self):
+    print(src)
+    try:
+        function(q)
+    except:
+        raise
+    result = q.result()
+    return result
+
+def filter():
+    pass
 
 
-class O:
-    def __init__(self, d):
-        self.name = d['name']
-        self.age = d['age']
+def mock_values():
+    d = [
+        {'name': "Sabuj", 'age': 28},
+        {'name': "XSabuj", 'age': 20},
+        {'name': "YSabuj", 'age': 10},
+        {'name': "uabuj", 'age': 18},
+        {'name': "pabuj", 'age': 2},
+        {'name': "SSSSSabuj", 'age': 2},
 
-    def __str__(self):
-        return str({'name': self.name, 'age': self.age})
+    ]
 
-    def __repr__(self):
-        return self.__str__()
+    class O:
+        def __init__(self, d):
+            self.name = d['name']
+            self.age = d['age']
 
-o = [O(x) for x in d]
-f = "xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1"
-result = Filter(f, o).result()
-pprint.pprint(result)
+        def __str__(self):
+            return str({'name': self.name, 'age': self.age})
+
+        def __repr__(self):
+            return self.__str__()
+
+    o = [O(x) for x in d]
+
+    return o
+
+
+class MockSynamic:
+    def __init__(self, module_values):
+        self.__values = module_values
+
+    def get_contents_by_module_name(self, whatever):
+        return self.__values
+
+
+def test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1"):
+    mock_synamic = MockSynamic(mock_values())
+    result = query(mock_synamic, q)
+    pprint.pprint(result)
+
+if __name__ == '__main__':
+    test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1")
