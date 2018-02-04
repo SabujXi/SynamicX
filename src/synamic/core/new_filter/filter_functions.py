@@ -2,12 +2,6 @@ import re
 from collections import namedtuple
 import pprint
 
-v0 = """
-texts | title.length > 1 OR title.length < 100 | | title.length > 1 AND title.length < 100 | title contains "yo yo" | tags contains ["done", "complete"] | title startswith "no no" | :limit 20 | :offset 2 | id > 6 | :from 2 5 | :first 5 | :last 1 | @one
-"""
-
-v = """texts | title.length > 1 OR title.length < 100 | title.length > 1 AND title.length < 100 | title contains "yo yo" | tags contains ["done", "complete"] | title startswith "no no" | :limit 20 | :offset 2 | id > 6 | :from 2 5 | :first 5 | :last 1 | @one"""
-
 valid_logical_operator_fun_names = {
     'AND',
     'OR'
@@ -131,13 +125,6 @@ class CodeGenerator:
     def dedent(self):
         self.__indentation_level -= 1
 
-    # def add_code(self, code):
-    #     if len(self.__code_lines) > 0:
-    #         self.__code_lines[-1] += code
-    #     else:
-    #         self.__code_lines.append("")
-    #         self.__code_lines[-1] += code
-
     def add_code_line(self, line):
         lines = self.newline_pat.split(line)
         line = ("\n " * self.__space_count * self.__indentation_level).join(lines)
@@ -156,13 +143,6 @@ class CodeGenerator:
     def to_str(self):
         s = "\n".join(self.__code_lines)
         return s.rstrip().rstrip('\\')
-
-
-# def decorator_clear_F(fun):
-#     def wrapper(self, *args, **kwargs):
-#         self.F.clear()
-#         return fun(*args, **kwargs)
-#     return wrapper
 
 
 class _QueryProxy:
@@ -184,13 +164,11 @@ class _QueryProxy:
     def __getattr__(self, key):
         if self.__query_fun_name is None:
             self.__query_fun_name = key
-            # print("WAS SET Q FUN MAME: " + str(key))
             return self
         else:
             raise Exception("Beyond first level function is not allowed")
 
     def __call__(self, *args):
-        # print("Q FUN MAME: " + str(self.__query_fun_name))
         assert self.__query_fun_name is not None, "Cannot call an attr before accessing it"
         self.__opnds = args
         return self
@@ -274,19 +252,16 @@ def _produce_python_function_source(filter_src, filter_id=None):
 
     cur_len = len(filter_src)
     while cur_len > 0:
-        # print(query_str)
         pipe_match = _Patterns.pipe_pat.match(filter_src)
         if not pipe_match:
             raise Exception("Expected a pipe for further query")
         filter_src = filter_src[pipe_match.end():]
-        # queries = _Patterns.pipe_pat.split(query_str)
 
         producer_name_match = _Patterns.producer_name_pat.match(filter_src)
         limiter_name_match = _Patterns.limiter_name_pat.match(filter_src)
         if producer_name_match:  # call producer
             # query_str
             producer_name = producer_name_match.group('producer_name')
-            # print("Producers: %s" % list(__filter_funs.producers.keys()))
             filter_code.add_code_line(
                 ".%s" % (__filter_funs.producers[producer_name].__name__ + "()    \\")
             )
@@ -341,19 +316,14 @@ def _produce_python_function_source(filter_src, filter_id=None):
                     if value_dotted:
                         right_opnd = 'Q.F.' + value_dotted
                         is_identifier_operand = True
-                        # query_str = query_str[right_opnd_match.end():]
                     elif value_integer:
                         right_opnd = value_integer
-                        # query_str = query_str[right_opnd_match.end():]
                     elif value_float:
                         right_opnd = value_float
-                        # query_str = query_str[right_opnd_match.end():]
                     elif value_string:
                         right_opnd = value_string
-                        # query_str = query_str[right_opnd_match.end():]
                     elif value_string_iterator:
                         right_opnd = value_string_iterator
-                        # query_str = query_str[right_opnd_match.end():]
                     else:
                         raise Exception("Something went wrong during right operand match")
                     filter_src = filter_src[right_opnd_match.end():]
@@ -461,9 +431,6 @@ class Query:
         """
         assert self.__filter_id is not None, "Cannot access query_id property before it is set."
         return self.__filter_id
-
-    # expression can be unary (without &, ^) or binary (with &, ^)
-    # operators are always binary
 
     @property
     def P(self, values=None):
@@ -719,13 +686,10 @@ class Query:
         return self
 
     def _get_limiter_opnd_value_4_sort(self, value, opnd):
-        # print("OPND: " + str(opnd))
-        # print("OPND: " + str(opnd))
         val = value
         if type(opnd) is self.F_TYPE():
             for field in opnd.fields:
                 val = getattr(val, field)
-        # print("Val: " + str(val))
         return val
 
     @limiter_decorator('sort_by')
@@ -763,12 +727,10 @@ def query(synamic_obj, query_text, filter_id=None):
     function, src, filter_id = function_src
 
     # get values from synamic object
-    # mock values
     values = synamic_obj.get_contents_by_module_name(module_name)
     #
     q = Query(filter_id, filter_what, filter_str, values)
 
-    # def result(self):
     print(src)
     try:
         function(q)
@@ -776,6 +738,7 @@ def query(synamic_obj, query_text, filter_id=None):
         raise
     result = q.result()
     return result
+
 
 def filter():
     pass
@@ -821,5 +784,19 @@ def test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort
     result = query(mock_synamic, q)
     pprint.pprint(result)
 
+"""
+# expression can be unary (without &, ^) or binary (with &, ^)
+# operators are always binary
+
+v0 =>
+texts | title.length > 1 OR title.length < 100 | | title.length > 1 AND title.length < 100 | title contains "yo yo" | tags contains ["done", "complete"] | title startswith "no no" | :limit 20 | :offset 2 | id > 6 | :from 2 5 | :first 5 | :last 1 | @one
+
+
+v => 
+texts | title.length > 1 OR title.length < 100 | title.length > 1 AND title.length < 100 | title contains "yo yo" | tags contains ["done", "complete"] | title startswith "no no" | :limit 20 | :offset 2 | id > 6 | :from 2 5 | :first 5 | :last 1 | @one
+
+"""
+
 if __name__ == '__main__':
     test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1")
+
