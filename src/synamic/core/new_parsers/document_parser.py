@@ -287,12 +287,19 @@ class FieldParser:
 class Field:
     def __init__(self, at_level, field_name, value=None):
         assert at_level >= -1
-        self.__at_level = at_level
-        self.__value = value
+        assert type(field_name) is str
+        # self.__has_children
 
+        self.__at_level = at_level
+        self.__field_name = field_name
+        self.__value = value
         self.__values_map = OrderedDict()
 
-        self.__field_name = field_name
+    @property
+    def is_root(self):
+        if self.__at_level == -1:
+            return True
+        return False
 
     def __bool__(self):
         return self.value is not None and self.children_map is not None

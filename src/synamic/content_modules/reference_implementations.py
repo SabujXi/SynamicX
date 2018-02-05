@@ -282,7 +282,6 @@ class ContentWrapper:
         return self.__content.url_object.path
 
 
-
 class MarkedContentModuleImplementation(BaseContentModuleContract):
     __slots__ = ('__config', '__is_loaded', '__contents_by_id', '__dynamic_contents', '__auxiliary_contents')
 
@@ -353,7 +352,6 @@ class MarkedContentModuleImplementation(BaseContentModuleContract):
             else:
                 static_content = self.__config.create_static_content(self, file_path)
                 static_contents.add(static_content)
-
 
         self.__dynamic_contents = frozenset(dynamic_contents)
         self.__static_contents = frozenset(static_contents)

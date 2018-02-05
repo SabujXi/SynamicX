@@ -548,6 +548,7 @@ class SynamicConfig(object):
 
 @enum.unique
 class EventTypes(enum.Enum):
-    CONFIG_LOADED = 'config_loaded'
-    ALL_MODULES_LOADED = 'all_modules_loaded'
-
+    CONFIG_LOADED = 'config_loaded'  # config will be passed to the event handler
+    BEFORE_MODULE_LOADED = ''        # the to be loaded module will be passed to event handlers
+    AFTER_MODULE_LOADED = ''         # the loaded module will be passed to event handlers
+    ALL_MODULES_LOADED = 'all_modules_loaded'  # modules will be used
