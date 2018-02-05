@@ -60,6 +60,51 @@ class _Pat:
     field_linear_value = re.compile(r"^(?P<field_name>[_a-z]+[_a-z0-9]*)?\s*:\s*(?P<single_value>.+)?\s*$", re.I)
     field_multiline_value = re.compile(r"^(?P<field_name>[_a-z]+[_a-z0-9]*)?\s*~\s*:", re.I)  # everything after ~: is skipped
 
+    frontmatter = re.compile(r'^\s*(={4,})(\r\n|\n|\r)(?P<fields_txt>.*?)\1(\r\n|\n|\r)', re.I|re.MULTILINE|re.DOTALL)
+
+
+class DocumentParser:
+    def __init__(self, txt):
+        self.__txt = txt
+
+        self.__body = None
+        self.__fields = None
+        self.__parsing_complete = False
+
+    @property
+    def body(self):
+        assert self.__parsing_complete is True
+        return self.__body
+
+    @property
+    def fields(self):
+        assert self.__parsing_complete is True
+        return self.__fields
+
+    def parse(self):
+        assert self.__parsing_complete is False
+        m_frontmatter = _Pat.frontmatter.match(self.__txt)
+        if not m_frontmatter:
+            print("No, frontmatter found")
+            self.__fields = tuple()
+            self.__body = self.__txt
+        else:
+            root_f = FieldParser(m_frontmatter.group('fields_txt')).parse()
+            self.__fields = tuple(root_f.children)
+            self.__body = self.__txt[m_frontmatter.end():]
+        del self.__txt
+        self.__parsing_complete = True
+        return self
+
+    def __str__(self):
+        fields_str = (str(f) for f in self.fields)
+        fs = "FIELDS: \n------\n" + "\n".join(fields_str)
+        bs = "BODY: : \n------\n" + self.body
+        return fs + bs
+
+    def __repr__(self):
+        return repr(self.__str__())
+
 
 class FieldParser:
     def __init__(self, txt):
@@ -295,6 +340,7 @@ class Field:
         return repr(self.__str__())
 
 test_txt = """
+====
 field01:
     field0101:  
         list_of_values: | this will |, | build |, | an |, | ordered |, | list |
@@ -311,14 +357,23 @@ field01:
             the preceding white spaces are stripped off
             ---
 another_field: 1
-more_field1: hey yo yo mama
+more_field1: hey yo yo...
+
+====
+Body here.
+end
+
+next a newline
+
 """
 
 
 def test():
-    p = FieldParser(test_txt)
-    f = p.parse()
-    print(f)
+    d = DocumentParser(test_txt)
+    p = d.parse()
+    # p = FieldParser(test_txt)
+    # f = p.parse()
+    print(p)
 
 if __name__ == '__main__':
     test()
