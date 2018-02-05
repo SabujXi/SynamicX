@@ -172,7 +172,7 @@ class FieldParser:
         # print("Parsing started...")
         assert self.__parsing_complete is False, "Cannot call parse again, save value"
         fields_stack = deque()
-        fields_stack.append(Field(0, '__root__'))
+        fields_stack.append(Field(-1, '__root__'))
 
         lines = _Pat.line_breaker.split(self.__txt)
         # print(lines)
@@ -286,16 +286,41 @@ class FieldParser:
 
 class Field:
     def __init__(self, at_level, field_name, value=None):
-        assert at_level >= 0
+        assert at_level >= -1
         self.__at_level = at_level
         self.__value = value
 
-        if value is None:
-            self.__values_map = OrderedDict()
-        else:
-            self.__values_map = None
+        self.__values_map = OrderedDict()
 
         self.__field_name = field_name
+
+    def __bool__(self):
+        return self.value is not None and self.children_map is not None
+
+    def __getattr__(self, key):
+        if self.has_children:
+            f = self.children_map.get(key, None)
+            if f is not None:
+                return f.value
+        raise AttributeError('Could not find `%s`' % key)
+
+    def __getitem__(self, item):
+        try:
+            return getattr(self, item)
+        except AttributeError:
+            raise KeyError('Could not find `%s`' % item)
+
+    def to_dict(self):
+        m = {
+            'name': self.name,
+            'value': self.value,
+            'children': []
+        }
+
+        if self.__values_map:
+            for field in self.__values_map.values():
+                m['children'].append(field.to_dict())
+        return m
 
     @property
     def name(self):

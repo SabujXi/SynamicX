@@ -16,7 +16,7 @@ from synamic.template_modules.synamic_template import SynamicTemplate
 from synamic.content_modules.static import StaticModule
 from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
 from synamic.core.dependency_resolver import create_dep_list
-from synamic.core.classes.site_settings import SiteSettings
+from synamic.core.site_settings.site_settings import SiteSettings
 # from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.classes.frontmatter import DefaultFrontmatterValueParsers
 from synamic.core.classes.utils import DictUtils
@@ -387,7 +387,7 @@ class SynamicConfig(object):
 
     @property
     def settings_file_name(self):
-        return "settings.yaml"
+        return "settings.txt"
 
     @property
     def hostname(self):

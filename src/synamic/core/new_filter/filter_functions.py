@@ -803,5 +803,5 @@ texts | title.length > 1 OR title.length < 100 | title.length > 1 AND title.leng
 """
 
 if __name__ == '__main__':
-    test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1 | name contains 'q' | @one")
+    test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1 | name contains 'S' | @one")
 

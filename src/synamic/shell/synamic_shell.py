@@ -5,9 +5,17 @@ class CommandProcessor(BaseShell):
     intro_text = 'Welcome to the Synamic shell.   Type help or ? to list commands.\n'
     prompt_text = '(synamic): '
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, synamic_obj, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__global_for_py = {}
+        self.__synamic_object = synamic_obj
+
+    def on_settings(self, arg):
+        if not arg:
+            self.pprint(self.__synamic_object.site_settings.values())
+        else:
+            val = self.__synamic_object.site_settings.get(arg, 'null')
+            self.print(val)
 
     def on_init(self, arg):
         'Initialize a synamic project'
@@ -41,5 +49,5 @@ class CommandProcessor(BaseShell):
         self.print("on_s(): %s" % str(shellargs))
 
 
-def start_shell():
-    CommandProcessor().loop()
+def start_shell(synamic_bject):
+    CommandProcessor(synamic_bject).loop()
