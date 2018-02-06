@@ -8,5 +8,5 @@ print("SITE-ROOT: %s" % site_root)
 
 syn = Synamic(site_root)
 syn.load()
-syn.initialize_site_dirs()
+syn.initialize_site()
 serve(syn, 8000)

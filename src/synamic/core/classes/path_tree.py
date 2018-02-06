@@ -307,3 +307,7 @@ class PathTree(object):
     def open_file(self, file_name, *args, **kwargs):
         fn = self.get_full_path(file_name)
         return open(fn, *args, **kwargs)
+
+    def makedirs(self, dir_path):
+        full_p = self.get_full_path(dir_path)
+        os.makedirs(full_p)

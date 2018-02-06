@@ -222,20 +222,6 @@ class SynamicConfig(object):
                 for aux in auxiliary_contents:
                     self.add_document(aux)
 
-    @loaded
-    def initialize_site_dirs(self):
-        dirs = [
-            self.path_tree.get_full_path(self.output_dir),
-        ]
-        for mod in self.modules:
-
-            mod_dir = self.get_module_dir(mod)
-            dir = self.path_tree.get_full_path(mod_dir)
-            dirs.append(dir)
-        for dir in dirs:
-            if not os.path.exists(dir):
-                os.makedirs(dir)
-
     # Module things
     # Module things
     # Module things
@@ -413,7 +399,7 @@ class SynamicConfig(object):
     # Build Things
     @loaded
     def build(self):
-        self.initialize_site_dirs()
+        self.initialize_site()
 
         for cont in self.__content_map[self.KEY.CONTENTS_SET]:
             url = cont.url_object
@@ -429,7 +415,24 @@ class SynamicConfig(object):
                 # print("BUILD():: Wrote: %s" % f.name)
                 stream.close()
 
+    @loaded
+    def initialize_site(self):
+        dirs = [
+            self.site_settings.output_dir
+        ]
+        for mod in self.modules:
+            mod_dir = self.get_module_dir(mod)
+            dirs.append(mod_dir)
 
+        # execution: directories creation
+        for dir in dirs:
+            if not self.path_tree.exists(dir):
+                self.path_tree.makedirs(dir)
+
+        # creating empty site settings file
+        if not self.path_tree.exists(self.settings_file_name):
+            with self.path_tree.open_file(self.settings_file_name, 'w') as f:
+                pass
 
     @loaded
     def filter_content(self, filter_txt):
