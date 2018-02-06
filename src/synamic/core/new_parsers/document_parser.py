@@ -368,18 +368,13 @@ class Field:
         return m
 
     def to_dict_ordinary(self):
-        name = self.name
-        value = self.value
         d = OrderedDict()
-        if value is not None:
+        for field_name, field in self.__values_map.items():
+            name = field_name
+            value = field.value
+            if field.value is None:
+                value = field.to_dict_ordinary()
             d[name] = value
-        else:
-            children_array = []
-            for field in self.__values_map.values():
-                children_array.append(
-                    field.to_dict_ordinary()
-                )
-            d[name] = tuple(children_array)
         return d
 
     @property

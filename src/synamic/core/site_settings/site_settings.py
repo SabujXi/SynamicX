@@ -66,7 +66,7 @@ class SiteSettings:
             return True
 
     def __str__(self):
-        return str(self.__root_field.to_dict())
+        return str(self.__root_field.to_dict_ordinary())
 
     def __repr__(self):
         return repr(self.__str__())
