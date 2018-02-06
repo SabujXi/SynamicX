@@ -1,7 +1,7 @@
 import re
 from collections import deque
 from collections import OrderedDict
-
+import pprint
 """Example DOC: #s are comments
 ========
 key: value x y z value - single line key value
@@ -288,12 +288,64 @@ class Field:
     def __init__(self, at_level, field_name, value=None):
         assert at_level >= -1
         assert type(field_name) is str
-        # self.__has_children
-
         self.__at_level = at_level
         self.__field_name = field_name
         self.__value = value
         self.__values_map = OrderedDict()
+        self.__multiple_values_map = OrderedDict()
+
+    def add(self, another_field):
+        assert self.__value is None, "This field has single value, so you cannot add children. The value is `%s`" % self.__value
+        name = another_field.name
+        if name in self.__values_map:
+            list_4_multiple = self.__multiple_values_map.get(name, None)
+            if list_4_multiple is None:
+                list_4_multiple = []
+            list_4_multiple.append(another_field)
+        else:
+            self.__values_map[another_field.name] = another_field
+
+    def get(self, dotted_name, default=None):
+        names = dotted_name.split('.')
+        if len(names) == 1:
+            field = self.__values_map.get(names[0], None)
+            if field is None:
+                return default
+            else:
+                return field
+        else:
+            idx = 0
+            for name in names:
+                if idx == 0:
+                    field = self.__values_map.get(name, None)
+                else:
+                    field = field.get(name, None)
+                if field is None:
+                    return default
+                idx += 1
+            return field
+
+    def get_multi(self, dotted_name, default=None):
+        names = dotted_name.split('.')
+        if len(names) == 1:
+            field = self.__values_map.get(names[0], None)
+        else:
+            idx = 0
+            for name in names:
+                if idx == 0:
+                    field = self.__values_map.get(name, None)
+                else:
+                    field = field.get(name, None)
+                idx += 1
+        if field is None:
+            res = default
+        else:
+            fields_in_mulit = self.__multiple_values_map.get(field.name, None)
+            if fields_in_mulit is None:
+                res = (field,)
+            else:
+                res = (field, *fields_in_mulit)
+        return res
 
     @property
     def is_root(self):
@@ -301,33 +353,34 @@ class Field:
             return True
         return False
 
-    def __bool__(self):
-        return self.value is not None and self.children_map is not None
-
-    def __getattr__(self, key):
-        if self.has_children:
-            f = self.children_map.get(key, None)
-            if f is not None:
-                return f.value
-        raise AttributeError('Could not find `%s`' % key)
-
-    def __getitem__(self, item):
-        try:
-            return getattr(self, item)
-        except AttributeError:
-            raise KeyError('Could not find `%s`' % item)
-
     def to_dict(self):
+        __children__ = []
         m = {
             'name': self.name,
             'value': self.value,
-            'children': []
         }
 
         if self.__values_map:
             for field in self.__values_map.values():
-                m['children'].append(field.to_dict())
+                __children__.append(field.to_dict())
+        if __children__:
+            m['__children__'] = tuple(__children__)
         return m
+
+    def to_dict_ordinary(self):
+        name = self.name
+        value = self.value
+        d = OrderedDict()
+        if value is not None:
+            d[name] = value
+        else:
+            children_array = []
+            for field in self.__values_map.values():
+                children_array.append(
+                    field.to_dict_ordinary()
+                )
+            d[name] = tuple(children_array)
+        return d
 
     @property
     def name(self):
@@ -339,34 +392,42 @@ class Field:
 
     @property
     def children(self):
-        return list(self.__values_map.values())
+        return tuple(self.__values_map.values())
 
     @property
     def children_map(self):
-        return self.__values_map
+        return self.__values_map.copy()
 
     @property
     def has_children(self):
         return True if self.__value is None else False
 
-    def add(self, another_field):
-        assert self.__value is None, "This field has single value, so you cannot add more. The value is `%s`" % self.__value
-        self.__values_map[another_field.name] = another_field
+    @property
+    def flat_fields(self):
+        """
+        This will take children,
+        then it will take only the child who are single values (not having any nested child)
+        and return another Field instance - so it will be OK to call a_field.value from there.
+        """
+        fv = self.__class__(-1, '__flat_values__')
+        for child in self.__values_map.items():
+            if child.is_single:
+                fv.add(
+                    Field(0, child.name, child.value)
+                )
+        return fv
+
+    def __bool__(self):
+        return self.value is not None and self.children_map is not None
+
+    def __getattr__(self, key):
+        raise AttributeError('Could not find `%s`' % key)
+
+    def __getitem__(self, item):
+        return self.get(item)
 
     def __str__(self):
-        fn = (self.__at_level * '    ') + "field_name: %s\n" % self.name
-        if not self.has_children:
-            v = (self.__at_level * '    ') +  "Value: %s\n" % self.value
-        else:
-            v = ""
-        if self.has_children:
-            l = []
-            for c in self.children:
-                l.append(str(c))
-            ch = (self.__at_level * '    ') + "Children:\n" + "\n".join(l) + "\n"
-        else:
-            ch = ""
-        return fn + v + ch
+        return pprint.pformat(self.to_dict())
 
     def __repr__(self):
         return repr(self.__str__())

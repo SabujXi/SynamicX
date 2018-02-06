@@ -91,10 +91,11 @@ class SynamicConfig(object):
             'meta'
         )
 
-        # initializing
-        self.__initiate()
+        # # initializing modules
+        self.__initiate_modules()
 
-    def __initiate(self):
+    def __initiate_modules(self):
+        """Initializes modules - it has this single responsibility"""
         # text
         self.add_module(TextModule(self))
         # Series
@@ -113,36 +114,46 @@ class SynamicConfig(object):
         self.__taxonomy = tax_mod.taxonomy_wrapper
         # sitemap
         self.add_module(SitemapModule(self))
-        # site settings
-        self.__site_settings = SiteSettings(self)
 
     @property
     def site_settings(self):
+        if self.__site_settings is None:
+            self.__site_settings = SiteSettings(self)
         return self.__site_settings
 
     @property
     @loaded
+    def taxonomy(self):
+        return self.__taxonomy
+
+    @property
+    @loaded
+    def series(self):
+        return self.__series
+
+    @property
+    @loaded
     def modules(self):
-        return list(self.__modules_map.values()).copy()
+        return tuple(self.__modules_map.values())
 
     @property
     @loaded
     def module_names(self):
-        return set(self.__modules_map.keys()).copy()
+        return tuple(self.__modules_map.keys())
 
     @property
     @loaded
     def content_modules(self):
-        return list(self.__content_modules_map.values()).copy()
+        return tuple(self.__content_modules_map.values())
 
     @property
     @loaded
     def template_modules(self):
-        return list(self.__template_modules_map.values()).copy()
+        return tuple(self.__template_modules_map.values())
 
     @property
     def module_types(self):
-        return {self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE, self.MODULE_TYPE_META}
+        return tuple({self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE, self.MODULE_TYPE_META})
 
     def get_module_type(self, mod_instance):
         """Returns the type of the module_object as the contract class"""
@@ -225,6 +236,9 @@ class SynamicConfig(object):
             if not os.path.exists(dir):
                 os.makedirs(dir)
 
+    # Module things
+    # Module things
+    # Module things
     def add_module(self, mod_obj):
         """Module type can be contract classes or any subclass of them. At the end, the contract class will be the key 
         of the map"""
@@ -257,6 +271,9 @@ class SynamicConfig(object):
         mod_name = mod_name.lower()
         return self.__modules_map[mod_name]
 
+    # Content &| Document Things
+    # Content &| Document Things
+    # Content &| Document Things
     def add_content(self, content):
         self.add_document(content)
 
@@ -303,6 +320,9 @@ class SynamicConfig(object):
         assert doc_id in d, "Content id does not exist %s:%s" % (mod_name, d)
         return d[doc_id]
 
+    # URL Things
+    # URL Things
+    # URL Things
     def get_url(self, parameter):
         """
         Finds a content objects depending on name/content-id/url-path/file-path
@@ -365,6 +385,9 @@ class SynamicConfig(object):
             url = None
         return url
 
+    # Primary Configs
+    # Primary Configs
+    # Primary Configs
     @property
     def site_root(self):
         return self.__site_root
@@ -382,25 +405,12 @@ class SynamicConfig(object):
         return self.__module_root_dirs.META_MODULE_ROOT_DIR
 
     @property
-    def output_dir(self):
-        return "_html"
-
-    @property
     def settings_file_name(self):
         return "settings.txt"
 
-    @property
-    def hostname(self):
-        return "example.com"
-
-    @property
-    def hostname_scheme(self):
-        return "http"
-
-    @property
-    def host_address(self):
-        return self.hostname_scheme + "://" + self.hostname
-
+    # Build Things
+    # Build Things
+    # Build Things
     @loaded
     def build(self):
         self.initialize_site_dirs()
@@ -419,37 +429,7 @@ class SynamicConfig(object):
                 # print("BUILD():: Wrote: %s" % f.name)
                 stream.close()
 
-    def get(self, key, default=None):
-        key = normalize_key(key)
-        return self.__key_values.get(key, default)
 
-    def set(self, key, value):
-        key = normalize_key(key)
-        self.__key_values[key] = value
-
-    def delete(self, key):
-        key = normalize_key(key)
-        del self.__key_values[key]
-
-    def update(self, obj: dict):
-        for key, value in obj.items():
-            self.set(key, value)
-
-    def contains(self, key):
-        key = normalize_key(key)
-        return key in self.__key_values
-
-    def __getitem__(self, key):
-        return self.get(key)
-
-    def __setitem__(self, key, value):
-        self.set(key, value)
-
-    def __delitem__(self, key):
-        return self.delete(key)
-
-    def __contains__(self, item):
-        return self.contains(item)
 
     @loaded
     def filter_content(self, filter_txt):
@@ -530,18 +510,9 @@ class SynamicConfig(object):
         mod = self.get_module('static')
         return mod.create_static_content(mod_obj, path)
 
-    @property
-    # @loaded
-    def taxonomy(self):
-        return self.__taxonomy
-
-    @property
-    @loaded
-    def series(self):
-        return self.__series
-
     @not_loaded
     def add_event(self, evt_type, clabl):
+        """Not implemented yet."""
         assert callable(clabl)
         assert type(evt_type) is EventTypes
 
