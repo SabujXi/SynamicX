@@ -25,6 +25,7 @@ from synamic.meta_modules.taxonomy import TaxonomyModule
 from synamic.content_modules.sitemap import SitemapModule
 from synamic.content_modules.series import SeriesModule
 from synamic.core.contracts.module import BaseModuleContract
+from synamic.core.type_system.type_system import TypeSystem
 
 
 class SynamicConfig(object):
@@ -75,6 +76,8 @@ class SynamicConfig(object):
         self.__is_loaded = False
         self.__dependency_list = None
 
+        # type system
+        self.__type_system = TypeSystem(self)
         # site settings
         self.__site_settings = None
 
@@ -114,6 +117,10 @@ class SynamicConfig(object):
         self.__taxonomy = tax_mod.taxonomy_wrapper
         # sitemap
         self.add_module(SitemapModule(self))
+
+    @property
+    def type_system(self):
+        return self.__type_system
 
     @property
     def site_settings(self):
