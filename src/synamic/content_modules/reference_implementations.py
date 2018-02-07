@@ -27,7 +27,6 @@ class MarkedContentImplementation(MarkedDocumentContract):
         self.__file_content = file_content
         self.__pagination = None
 
-        self.__front_text = ""
         self.__body_text = ""
         self.__frontmatter = None
         self.__has_front_matter = False
@@ -106,22 +105,6 @@ class MarkedContentImplementation(MarkedDocumentContract):
         auxiliary_clone._set_auxiliary()
         auxiliary_clone.url_object = self.url_object.create_auxiliary_url(prefix, serial)
         return auxiliary_clone
-
-    @property
-    def is_frontmatter_valid(self):
-        return self.__is_front_matter_valid
-
-    @property
-    def has_frontmatter(self):
-        return self.__has_front_matter
-
-    @property
-    def has_valid_frontmatter(self):
-        return self.has_frontmatter and self.is_frontmatter_valid
-
-    @property
-    def raw_frontmatter(self):
-        return self.__front_text
 
     @property
     def frontmatter(self):

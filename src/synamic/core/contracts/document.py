@@ -22,30 +22,9 @@ class StaticDocumentContract(BaseDocumentContract):
 
 
 class MarkedDocumentContract(BaseDocumentContract):
-
     @property
     @abstractmethod
-    def is_frontmatter_valid(self):
-        pass
-
-    @property
-    @abstractmethod
-    def has_frontmatter(self):
-        pass
-
-    @property
-    @abstractmethod
-    def has_valid_frontmatter(self):
-        pass
-
-    @property
-    @abstractmethod
-    def raw_frontmatter(self):
-        pass
-
-    @property
-    @abstractmethod
-    def frontmatter(self):
+    def fields(self):
         pass
 
     @property
