@@ -8,11 +8,6 @@ class BaseDocumentContract(ContentContract):
     def url_object(self):
         pass
 
-    @url_object.setter
-    @abstractmethod
-    def url_object(self, url_object):
-        pass
-
 
 class StaticDocumentContract(BaseDocumentContract):
     @property
@@ -31,17 +26,3 @@ class MarkedDocumentContract(BaseDocumentContract):
     @abstractmethod
     def body(self):
         pass
-
-    @property
-    @abstractmethod
-    def template_name(self):
-        """
-        Returns template name  
-        """
-
-    @property
-    @abstractmethod
-    def template_module_object(self):
-        """
-        Returns template module_object
-        """

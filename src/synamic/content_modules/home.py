@@ -18,7 +18,7 @@ class HomeModule(TextModule):
 
     @property
     def dependencies(self):
-        return {"synamic-template", "text"}
+        return {"text"}
 
     @property
     def root_url_path(self):

@@ -5,14 +5,12 @@ from collections import namedtuple
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.contracts import (
     BaseContentModuleContract,
-    TemplateModuleContract,
 )
 from synamic.core.contracts.module import BaseMetaModuleContract
 from synamic.core.exceptions import InvalidModuleType
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.content_modules.text import TextModule
 from synamic.content_modules.home import HomeModule
-from synamic.template_modules.synamic_template import SynamicTemplate
 from synamic.content_modules.static import StaticModule
 from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
 from synamic.core.dependency_resolver import create_dep_list
@@ -27,20 +25,21 @@ from synamic.content_modules.series import SeriesModule
 from synamic.core.contracts.module import BaseModuleContract
 from synamic.core.type_system.type_system import TypeSystem
 from synamic.core.services.model_service import ModelService
+from synamic.core.services.template_service import SynamicTemplateService
+
+
+@enum.unique
+class Key(enum.Enum):
+    CONTENTS_BY_ID = 0
+    CONTENTS_BY_URL_PATH = 2
+    CONTENTS_BY_GENERALIZED_URL_PATH = 3
+    CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH = 5
+    CONTENTS_SET = 4
 
 
 class SynamicConfig(object):
-    @enum.unique
-    class KEY(enum.Enum):
-        CONTENTS_BY_ID = 0
-        CONTENTS_BY_URL_PATH = 2
-        CONTENTS_BY_GENERALIZED_URL_PATH = 3
-        CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH = 5
-        CONTENTS_SET = 4
-
     # module types
     MODULE_TYPE_CONTENT = BaseContentModuleContract
-    MODULE_TYPE_TEMPLATE = TemplateModuleContract
     MODULE_TYPE_META = BaseMetaModuleContract
 
     def __init__(self, site_root):
@@ -51,55 +50,35 @@ class SynamicConfig(object):
         # modules: key => module.name, value => module
         self.__modules_map = {}
         self.__content_modules_map = {}
-        self.__template_modules_map = {}
         self.__meta_modules_map = {}
 
         # Content Map
         self.__content_map = {
-            self.KEY.CONTENTS_BY_ID: dict(),
-            self.KEY.CONTENTS_BY_URL_PATH: dict(),
-            self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH: dict(),
-            self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH: dict(),
-            self.KEY.CONTENTS_SET: set()
+            Key.CONTENTS_BY_ID: dict(),
+            Key.CONTENTS_BY_URL_PATH: dict(),
+            Key.CONTENTS_BY_GENERALIZED_URL_PATH: dict(),
+            Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH: dict(),
+            Key.CONTENTS_SET: set()
         }
-
         # setting path tree
         self.__path_tree = PathTree(self)
-
+        # templates service
+        self.__templates = SynamicTemplateService(self)
         # type system
         self.__type_system = TypeSystem(self)
-
         # model service
         self.__model_service = ModelService(self)
-
         # Taxonomy
         self.__taxonomy = None
-
         # Series
         self.__series = None
-
         # key values
         self.__key_values = {}
         self.__is_loaded = False
         self.__dependency_list = None
-
         # site settings
         self.__site_settings = None
-
-        self.__frontmatter_value_parser = {}
-
-        # module root dirs
-        # Initiate module root dirs
-        ModuleRootDirs = namedtuple("ModuleRootDirs",
-                                    ['CONTENT_MODULE_ROOT_DIR',
-                                     'TEMPLATE_MODULE_ROOT_DIR', 'META_MODULE_ROOT_DIR'])
-        self.__module_root_dirs = ModuleRootDirs(
-            'content',
-            'templates',
-            'meta'
-        )
-
-        # # initializing modules
+        # initializing modules
         self.__initiate_modules()
 
     def __initiate_modules(self):
@@ -112,8 +91,6 @@ class SynamicConfig(object):
         # self.__series = series_mod
         # home
         self.add_module(HomeModule(self))
-        # template
-        self.add_module(SynamicTemplate(self))
         # static
         self.add_module(StaticModule(self))
         # # taxonomy
@@ -130,6 +107,10 @@ class SynamicConfig(object):
     @property
     def path_tree(self):
         return self.__path_tree
+
+    @property
+    def templates(self):
+        return self.__templates
 
     @property
     def type_system(self):
@@ -171,20 +152,13 @@ class SynamicConfig(object):
         return tuple(self.__content_modules_map.values())
 
     @property
-    @loaded
-    def template_modules(self):
-        return tuple(self.__template_modules_map.values())
-
-    @property
     def module_types(self):
-        return tuple({self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_TEMPLATE, self.MODULE_TYPE_META})
+        return tuple({self.MODULE_TYPE_CONTENT, self.MODULE_TYPE_META})
 
     def get_module_type(self, mod_instance):
         """Returns the type of the module_object as the contract class"""
         if isinstance(mod_instance, self.MODULE_TYPE_CONTENT):
             typ = self.MODULE_TYPE_CONTENT
-        elif isinstance(mod_instance, self.MODULE_TYPE_TEMPLATE):
-            typ = self.MODULE_TYPE_TEMPLATE
         else:
             assert isinstance(mod_instance, self.MODULE_TYPE_META)
             typ = self.MODULE_TYPE_META
@@ -194,8 +168,6 @@ class SynamicConfig(object):
         mod_type = self.get_module_type(mod_instance)
         if mod_type is self.MODULE_TYPE_CONTENT:
             return self.content_dir
-        elif mod_type is self.MODULE_TYPE_TEMPLATE:
-            return self.template_dir
         else:
             assert mod_type is self.MODULE_TYPE_META
             return self.meta_dir
@@ -205,13 +177,12 @@ class SynamicConfig(object):
 
     @not_loaded
     def load(self):
+        # load templates service
+        self.__templates.load()
         # load model service
         self.__model_service.load()
         # """Load must be called after dependency list is built"""
         self.__dependency_list = create_dep_list(self.__modules_map)
-
-        # Registering front matter value parsers
-        DefaultFrontmatterValueParsers.register_default_value_parsers(self)
 
         for mod_name in self.__dependency_list:
             mod = self.__modules_map[mod_name]
@@ -266,11 +237,9 @@ class SynamicConfig(object):
 
         if mod_type is self.MODULE_TYPE_CONTENT:
             self.__content_modules_map[mod_name] = mod_obj
-        elif mod_type is self.MODULE_TYPE_META:
-            self.__meta_modules_map[mod_name] = mod_obj
         else:
-            assert mod_type is self.MODULE_TYPE_TEMPLATE
-            self.__template_modules_map[mod_name] = mod_obj
+            assert mod_type is self.MODULE_TYPE_META
+            self.__meta_modules_map[mod_name] = mod_obj
 
     def get_module(self, mod_name):
         mod_name = mod_name.lower()
@@ -291,7 +260,7 @@ class SynamicConfig(object):
         if not document.is_auxiliary:
             # 4. Content id
             if document.content_id is not None and document.content_id != "":
-                parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
+                parent_d = self.__content_map[Key.CONTENTS_BY_ID]
                 d = DictUtils.get_or_create_dict(parent_d, mod_name)
 
                 assert document.content_id not in d,\
@@ -302,25 +271,25 @@ class SynamicConfig(object):
         if document.content_type != document.types.AUXILIARY:
             _path = document.path_object.normalized_listing_relative_path
             # print("Rormalized relative file path: %s" % _path)
-            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
+            parent_d = self.__content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
             assert _path not in d, "Duplicate normalized relative file path: %s" % _path
             d[_path] = document
 
         # 2. Url path
-        assert document.url_object.path not in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH], "Path %s in content map" % document.url_object.path
-        self.__content_map[self.KEY.CONTENTS_BY_URL_PATH][document.url_object.path] = document
+        assert document.url_object.path not in self.__content_map[Key.CONTENTS_BY_URL_PATH], "Path %s in content map" % document.url_object.path
+        self.__content_map[Key.CONTENTS_BY_URL_PATH][document.url_object.path] = document
 
         # 3. Generalized real path
-        assert url_object.generalized_real_path not in self.__content_map[self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH],\
+        assert url_object.generalized_real_path not in self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH],\
             "Multiple resource with the same generalized url cannot coexist"
-        self.__content_map[self.KEY.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.generalized_real_path] = document
+        self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.generalized_real_path] = document
 
         # 5. Contents set
-        self.__content_map[self.KEY.CONTENTS_SET].add(document)
+        self.__content_map[Key.CONTENTS_SET].add(document)
 
     def get_document_by_id(self, mod_name, doc_id):
-        parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
+        parent_d = self.__content_map[Key.CONTENTS_BY_ID]
         d = DictUtils.get_or_create_dict(parent_d, mod_name)
         assert doc_id in d, "Content id does not exist %s:%s" % (mod_name, d)
         return d[doc_id]
@@ -354,13 +323,13 @@ class SynamicConfig(object):
             search_what = normalize_relative_file_path(search_what)
 
         if search_type == normalize_key('name'):
-            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NAME]
+            parent_d = self.__content_map[Key.CONTENTS_BY_NAME]
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
             res = d[search_what]
 
         # 4. Content id
         elif search_type == normalize_key('id'):
-            parent_d = self.__content_map[self.KEY.CONTENTS_BY_ID]
+            parent_d = self.__content_map[Key.CONTENTS_BY_ID]
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
             assert search_what in d, "Content id does not exist %s:%s:%s %s" % (mod_name, search_type, search_what, d)
             res = d[search_what]
@@ -369,7 +338,7 @@ class SynamicConfig(object):
         elif search_type == normalize_key('file'):
             # _search_what = os.path.join(mod_name, search_what)
             _search_what = normalize_relative_file_path(search_what)
-            parent_d = self.__content_map[self.KEY.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
+            parent_d = self.__content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
             d = DictUtils.get_or_create_dict(parent_d, mod_name)
             # for key in d.keys():
             #     print(key)
@@ -384,8 +353,8 @@ class SynamicConfig(object):
     def get_content_by_url_path(self, path):
         path = normalize_content_url_path(path)
         print("ContentPath requested: %s (normalized)" % path)
-        if path in self.__content_map[self.KEY.CONTENTS_BY_URL_PATH]:
-            url = self.__content_map[self.KEY.CONTENTS_BY_URL_PATH][path]
+        if path in self.__content_map[Key.CONTENTS_BY_URL_PATH]:
+            url = self.__content_map[Key.CONTENTS_BY_URL_PATH][path]
         else:
             url = None
         return url
@@ -399,15 +368,15 @@ class SynamicConfig(object):
 
     @property
     def content_dir(self):
-        return self.__module_root_dirs.CONTENT_MODULE_ROOT_DIR
+        return 'content'
 
     @property
     def template_dir(self):
-        return self.__module_root_dirs.TEMPLATE_MODULE_ROOT_DIR
+        return 'templates'
 
     @property
     def meta_dir(self):
-        return self.__module_root_dirs.META_MODULE_ROOT_DIR
+        return 'meta'
 
     @property
     def settings_file_name(self):
@@ -419,10 +388,8 @@ class SynamicConfig(object):
     @loaded
     def build(self):
         self.initialize_site()
-
-        for cont in self.__content_map[self.KEY.CONTENTS_SET]:
+        for cont in self.__content_map[Key.CONTENTS_SET]:
             url = cont.url_object
-            # print("BUILD():: Going to Write cont: ", url.path)
             dir = os.path.join(self.site_root, '_html', *url.dir_components)
             if not os.path.exists(dir):
                 os.makedirs(dir)
@@ -431,7 +398,6 @@ class SynamicConfig(object):
             with open(fs_path, 'wb') as f:
                 stream = cont.get_stream()
                 f.write(stream.read())
-                # print("BUILD():: Wrote: %s" % f.name)
                 stream.close()
 
     @loaded
@@ -440,13 +406,8 @@ class SynamicConfig(object):
             self.site_settings.output_dir
         ]
         for mod in self.modules:
-            print("Module name: %s " % mod.name)
             mod_dir = self.get_module_dir(mod)
-            print("Module dir: %s " % mod_dir)
             dirs.append(mod_dir)
-
-        print("Module dirs: %s" % dirs)
-
         # execution: directories creation
         for dir in dirs:
             if not self.path_tree.exists(dir):
@@ -469,7 +430,7 @@ class SynamicConfig(object):
         for mod_name in needed_module_names:
             contents_map[mod_name] = set()
 
-        for cont in self.__content_map[self.KEY.CONTENTS_SET]:
+        for cont in self.__content_map[Key.CONTENTS_SET]:
             cnt = cont
             if cnt.is_dynamic and cnt.module_object.name in needed_module_names:
                 contents_map[cnt.module_object.name].add(cnt)
@@ -523,29 +484,20 @@ class SynamicConfig(object):
         print("Filter content(): \n%s\n" % sorted_content)
         return sorted_content
 
-    def register_frontmatter_value_parser(self, key, _callable):
-        key = normalize_key(key)
-        assert key not in self.__frontmatter_value_parser, 'A parser is already there for key: %s' % key
-        self.__frontmatter_value_parser[key] = _callable
-
-    def get_frontmatter_value_parser(self, key):
-        key = normalize_key(key)
-        return self.__frontmatter_value_parser.get(key, None)
-
     def create_static_content(self, mod_obj, path):
         mod = self.get_module('static')
         return mod.create_static_content(mod_obj, path)
 
-    @not_loaded
-    def add_event(self, evt_type, clabl):
-        """Not implemented yet."""
-        assert callable(clabl)
-        assert type(evt_type) is EventTypes
-
-
-@enum.unique
-class EventTypes(enum.Enum):
-    CONFIG_LOADED = 'config_loaded'  # config will be passed to the event handler
-    BEFORE_MODULE_LOADED = 'b...'        # the to be loaded module will be passed to event handlers
-    AFTER_MODULE_LOADED = 'a...'         # the loaded module will be passed to event handlers
-    ALL_MODULES_LOADED = 'all_modules_loaded'  # modules will be used
+#     @not_loaded
+#     def add_event(self, evt_type, clabl):
+#         """Not implemented yet."""
+#         assert callable(clabl)
+#         assert type(evt_type) is EventTypes
+#
+#
+# @enum.unique
+# class EventTypes(enum.Enum):
+#     CONFIG_LOADED = 'config_loaded'  # config will be passed to the event handler
+#     BEFORE_MODULE_LOADED = 'b...'        # the to be loaded module will be passed to event handlers
+#     AFTER_MODULE_LOADED = 'a...'         # the loaded module will be passed to event handlers
+#     ALL_MODULES_LOADED = 'all_modules_loaded'  # modules will be used

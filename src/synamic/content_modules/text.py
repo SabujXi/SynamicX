@@ -17,5 +17,5 @@ class TextModule(MarkedContentModuleImplementation):
 
     @property
     def dependencies(self):
-        return {"synamic-template"}
+        return set()
 

@@ -59,8 +59,8 @@ class MarkedContentImplementation(MarkedDocumentContract):
         return self.fields.get('id', None)
 
     def get_stream(self):
-        template_module, template_name = self.template_module_object, self.template_name
-        res = template_module.render(template_name, content=self.get_content_wrapper())
+        template_name = self.fields.get('template', None)
+        res = self.__config.templates.render(template_name, content=self.get_content_wrapper())
         f = io.BytesIO(res.encode('utf-8'))
         return f
 
@@ -95,18 +95,6 @@ class MarkedContentImplementation(MarkedDocumentContract):
     @property
     def absolute_url(self):
         return self.url_object.full_url
-
-    @property
-    def template_name(self):
-        template_name = self.fields.get('template', None)
-        # TODO: later support other template module than synamic template
-        return template_name
-
-    @property
-    def template_module_object(self):
-        # TODO: later support other template module than synamic template
-        template_name = self.fields.get('template', None)
-        return self.__config.get_module('synamic-template')
 
     def get_content_wrapper(self):
         # TODO: should place in contract!
@@ -162,7 +150,7 @@ class MarkedContentModuleImplementation(BaseContentModuleContract):
 
     @property
     def dependencies(self):
-        return {"synamic-template"}
+        return set()
 
     @property
     def is_loaded(self):

@@ -27,7 +27,7 @@ class SitemapModule(MarkedContentModuleImplementation):
 
     @property
     def dependencies(self):
-        return {"synamic-template", "text", 'static'}
+        return {"text", 'static'}
 
     @property
     def root_url_path(self):

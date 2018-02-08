@@ -79,10 +79,3 @@ class BaseContentModuleContract(BaseModuleContract):
     @abc.abstractmethod
     def get_content_by_id(self, content_id):
         pass
-
-
-class TemplateModuleContract(BaseModuleContract):
-    @abc.abstractmethod
-    def render(self, template_name, context=None, **kwargs):
-        """Will return a string of rendered content"""
-        pass

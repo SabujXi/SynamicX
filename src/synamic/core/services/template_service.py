@@ -1,10 +1,9 @@
 import jinja2
-from synamic.core.contracts import TemplateModuleContract
-from synamic.core.functions.decorators import loaded
+from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.classes.template_tags import GetUrlExtension
 
 
-class SynamicTemplate(TemplateModuleContract):
+class SynamicTemplateService:
     def __init__(self, _cfg):
         self.__is_loaded = False
         self.__config = _cfg
@@ -12,21 +11,18 @@ class SynamicTemplate(TemplateModuleContract):
 
     @property
     def name(self):
-        return "synamic-template"
+        return "templates"
 
     @property
     def config(self):
         return self.__config
 
-    @property
-    def dependencies(self):
-        return set()
-
+    @not_loaded
     def load(self):
         assert not self.__is_loaded, "Module cannot be loaded twice"
         self.__template_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(
-                self.__config.path_tree.get_full_path(self.__config.template_dir, self.name),
+                self.__config.path_tree.get_full_path(self.__config.template_dir),
                 encoding='utf-8', followlinks=False),
             autoescape=jinja2.select_autoescape(['html', 'xml']),
             extensions=[GetUrlExtension]
@@ -45,10 +41,5 @@ class SynamicTemplate(TemplateModuleContract):
         assert self.__is_loaded, "Render cannot work until the template module_object is loaded"
         context = {} if context is None else context
         context.update(kwargs)
-        # test
-        # context['config2'] =
-        # test 2
         template = self.__template_env.get_template(template_name)
         return template.render(context)
-
-
