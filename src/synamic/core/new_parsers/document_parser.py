@@ -69,6 +69,7 @@ class DocumentParser:
 
         self.__body = None
         self.__fields = None
+        self.__root_field = None
         self.__parsing_complete = False
 
     @property
@@ -81,15 +82,22 @@ class DocumentParser:
         assert self.__parsing_complete is True
         return self.__fields
 
+    @property
+    def root_field(self):
+        return self.__root_field
+
     def parse(self):
         assert self.__parsing_complete is False
         m_frontmatter = _Pat.frontmatter.match(self.__txt)
         if not m_frontmatter:
             print("No, frontmatter found")
+            root_f = Field(-1, '__root__')
+            self.__root_field = root_f
             self.__fields = tuple()
             self.__body = self.__txt
         else:
             root_f = FieldParser(m_frontmatter.group('fields_txt')).parse()
+            self.__root_field = root_f
             self.__fields = tuple(root_f.children)
             self.__body = self.__txt[m_frontmatter.end():]
         del self.__txt
@@ -140,7 +148,7 @@ class FieldParser:
     def guess_nesting_level_for_field(line):
         m = re.match(r'^(?P<whitespaces>\s*)[a-z][a-z0-9_]*\s*~?\s*:', line, re.I)
         if not m:
-            raise Exception("No field pattern found")
+            raise Exception("No field pattern found: `%s`" % line)
         whitespaces = m.group('whitespaces')
         if whitespaces == '':
             return 0
@@ -173,6 +181,9 @@ class FieldParser:
         assert self.__parsing_complete is False, "Cannot call parse again, save value"
         fields_stack = deque()
         fields_stack.append(Field(-1, '__root__'))
+
+        if self.__txt.strip() == '':
+            return fields_stack[-1]
 
         lines = _Pat.line_breaker.split(self.__txt)
         # print(lines)
@@ -281,15 +292,15 @@ class FieldParser:
                         nesting_level = new_nesting_level
 
         self.__parsing_complete = True
+        # print(fields_stack[0])
+        # input()
         return fields_stack[0]
 
 
 class Field:
-    def __init__(self, at_level, at_pos, field_name, value=None):
-        assert at_level >= -1 and at_pos >= 0
+    def __init__(self, at_level, field_name, value=None):
         assert type(field_name) is str
         self.__at_level = at_level
-        self.__at_pos = at_pos
         self.__field_name = field_name
         self.__value = value
         self.__values_map = OrderedDict()

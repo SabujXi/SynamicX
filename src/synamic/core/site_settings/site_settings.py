@@ -40,23 +40,23 @@ class SiteSettings:
         return host_address
 
     def get(self, dotted_key, default=None):
-        field = self.__root_field.get(dotted_key, default=default)
-        if field == default:
-            return default
-        elif field is None:
-            return None
+        field = self.__root_field.get(dotted_key, default=None)
+        if field is None:
+            if dotted_key in self.__default_values:
+                return self.__default_values[dotted_key]
+            else:
+                return default
         else:
             if field.is_single:
                 return field.value
             else:
-                d = field.to_dict_ordinary()
-                return d
+                return field.to_dict_ordinary()
 
     def __getitem__(self, item):
         return self.get(item)
 
     def __getattr__(self, key):
-        self.get(key)
+        return self.get(key)
 
     def __contains__(self, item):
         res = self.get(item, None)

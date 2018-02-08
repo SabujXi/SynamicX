@@ -72,7 +72,7 @@ class TypeSystem:
     @classmethod
     def get_converter(cls, type_name):
         converter = cls.__type_converters.get(type_name, None)
-        if converter is None:
+        if converter is not None:
             return converter
         raise Exception("Converter with name `%s` not found" % type_name)
 
@@ -104,35 +104,35 @@ def _decorator_default_converter(type_name):
 
 
 @_decorator_default_converter('datetime')
-def _datetime_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _datetime_converter(txt, synamic_config_obj=None, *args, **kwargs):
     return parse_datetime(txt)
 
 
 @_decorator_default_converter('date')
-def _date_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _date_converter(txt, synamic_config_obj=None, *args, **kwargs):
     return parse_date(txt)
 
 
 @_decorator_default_converter('time')
-def _time_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _time_converter(txt, synamic_config_obj=None, *args, **kwargs):
     return parse_time(txt)
 
 
 @_decorator_default_converter('string')
-def _string_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _string_converter(txt, synamic_config_obj=None, *args, **kwargs):
     """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
     txts = _Pat.newline_pat.split(txt)
     return txts[0]
 
 
 @_decorator_default_converter('text')
-def _text_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _text_converter(txt, synamic_config_obj=None, *args, **kwargs):
     """return as is"""
     return txt
 
 
 @_decorator_default_converter('markdown')
-def _markdown_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _markdown_converter(txt, synamic_config_obj=None, *args, **kwargs):
     """
     Return a markdown instance.
     """
@@ -141,7 +141,7 @@ def _markdown_converter(txt, synamic_config_obj=None, *args, *kwargs):
 
 
 @_decorator_default_converter('html')
-def _html_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _html_converter(txt, synamic_config_obj=None, *args, **kwargs):
     """
     Probably should return a Html instance. 
     """
@@ -149,7 +149,7 @@ def _html_converter(txt, synamic_config_obj=None, *args, *kwargs):
 
 
 @_decorator_default_converter('number[]')
-def _number_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _number_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
     txts = txt.split(',')
     num_strs = [x.strip() for x in txts]
     numbers = []
@@ -171,7 +171,7 @@ def _number_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
 
 
 @_decorator_default_converter('string[]')
-def _string_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _string_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
     """
     Separator for string is comma (,) - so what if someone want to put a comma inside their string?
      Ans: precede that with another comma.
@@ -187,7 +187,7 @@ def _string_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
 
 
 @_decorator_default_converter('date[]')
-def _date_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _date_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
     res = []
     txt = txt.strip()
     date_str_list = txt.split(',')
@@ -200,7 +200,7 @@ def _date_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
 
 
 @_decorator_default_converter('time[]')
-def _time_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _time_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
     res = []
     txt = txt.strip()
     time_str_list = txt.split(',')
@@ -213,7 +213,7 @@ def _time_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
 
 
 @_decorator_default_converter('datetime[]')
-def _datetime_list_converter(txt, synamic_config_obj=None, *args, *kwargs):
+def _datetime_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
     res = []
     txt = txt.strip()
     datetime_str_list = txt.split(',')

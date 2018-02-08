@@ -12,7 +12,7 @@ regex_type = type(re.compile(""))
 class ContentPath2:
     META_FILE_EXTENSION = ".meta.yaml"
 
-    def __init__(self, path_tree: PathTree, root_absolute_path, relative_path_comps, comp_relative_starting_idx=0, is_file=True, is_meta=False):
+    def __init__(self, path_tree, root_absolute_path, relative_path_comps, comp_relative_starting_idx=0, is_file=True, is_meta=False):
         self.__path_tree = path_tree
         self.__relative_path_comps = relative_path_comps
         self.__root_absolute_path = root_absolute_path
@@ -105,7 +105,6 @@ class ContentPath2:
         """Real time checking"""
         return self.__path_tree.exists(self.relative_path)
 
-    @property
     def open(self, *args, **kwargs):
         return open(self.__path_tree.get_full_path(self.relative_path), *args, **kwargs)
 
@@ -272,7 +271,7 @@ class PathTree(object):
 
     def get_full_path(self, *_path):
         """Comma separated arguments of path components or os.sep separated paths"""
-        # print(repr(_path))
+        print(repr((self.__config.site_root, *_path)))
         return os.path.join(self.__config.site_root, *_path)
 
     def get_full_path_by_module(self, mod, *_path):

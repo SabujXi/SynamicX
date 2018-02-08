@@ -34,41 +34,6 @@ class MarkedDocumentContract(BaseDocumentContract):
 
     @property
     @abstractmethod
-    def title(self):
-        pass
-
-    @property
-    @abstractmethod
-    def created_on(self):
-        pass
-
-    @property
-    @abstractmethod
-    def updated_on(self):
-        pass
-
-    @property
-    @abstractmethod
-    def summary(self):
-        pass
-
-    @property
-    @abstractmethod
-    def terms(self):
-        """Taxonomy terms"""
-
-    @property
-    @abstractmethod
-    def tags(self):
-        pass
-
-    @property
-    @abstractmethod
-    def categories(self):
-        pass
-
-    @property
-    @abstractmethod
     def template_name(self):
         """
         Returns template name  
@@ -80,12 +45,3 @@ class MarkedDocumentContract(BaseDocumentContract):
         """
         Returns template module_object
         """
-
-    @abstractmethod
-    def trigger_pagination(self):
-        pass
-
-    @abstractmethod
-    def create_auxiliary(self, prefix, serial):
-        pass
-

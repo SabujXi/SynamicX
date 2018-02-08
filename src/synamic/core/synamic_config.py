@@ -26,6 +26,7 @@ from synamic.content_modules.sitemap import SitemapModule
 from synamic.content_modules.series import SeriesModule
 from synamic.core.contracts.module import BaseModuleContract
 from synamic.core.type_system.type_system import TypeSystem
+from synamic.core.services.model_service import ModelService
 
 
 class SynamicConfig(object):
@@ -68,6 +69,9 @@ class SynamicConfig(object):
         # type system
         self.__type_system = TypeSystem(self)
 
+        # model service
+        self.__model_service = ModelService(self)
+
         # Taxonomy
         self.__taxonomy = None
 
@@ -102,22 +106,22 @@ class SynamicConfig(object):
         """Initializes modules - it has this single responsibility"""
         # text
         self.add_module(TextModule(self))
-        # Series
-        series_mod = SeriesModule(self)
-        self.add_module(series_mod)
-        self.__series = series_mod
+        # # Series
+        # series_mod = SeriesModule(self)
+        # self.add_module(series_mod)
+        # self.__series = series_mod
         # home
         self.add_module(HomeModule(self))
         # template
         self.add_module(SynamicTemplate(self))
         # static
         self.add_module(StaticModule(self))
-        # taxonomy
-        tax_mod = TaxonomyModule(self)
-        self.add_module(tax_mod)
-        self.__taxonomy = tax_mod.taxonomy_wrapper
-        # sitemap
-        self.add_module(SitemapModule(self))
+        # # taxonomy
+        # tax_mod = TaxonomyModule(self)
+        # self.add_module(tax_mod)
+        # self.__taxonomy = tax_mod.taxonomy_wrapper
+        # # sitemap
+        # self.add_module(SitemapModule(self))
 
     @property
     def is_loaded(self):
@@ -130,6 +134,10 @@ class SynamicConfig(object):
     @property
     def type_system(self):
         return self.__type_system
+
+    @property
+    def model_service(self):
+        return self.__model_service
 
     @property
     def site_settings(self):
@@ -197,6 +205,8 @@ class SynamicConfig(object):
 
     @not_loaded
     def load(self):
+        # load model service
+        self.__model_service.load()
         # """Load must be called after dependency list is built"""
         self.__dependency_list = create_dep_list(self.__modules_map)
 
@@ -217,18 +227,19 @@ class SynamicConfig(object):
                     self.add_document(document)
                 for document in mod.dynamic_contents:
                     self.add_document(document)
+
         self.__is_loaded = True
 
         # time to add auxiliary contents
-        for mod_name in self.__dependency_list:
-            if mod_name in self.__content_modules_map:
-                mod = self.__content_modules_map[mod_name]
-                auxiliary_contents = []
-                for document in mod.dynamic_contents:
-                        aux_contents_ = document.trigger_pagination()
-                        auxiliary_contents.extend(aux_contents_)
-                for aux in auxiliary_contents:
-                    self.add_document(aux)
+        # for mod_name in self.__dependency_list:
+        #     if mod_name in self.__content_modules_map:
+        #         mod = self.__content_modules_map[mod_name]
+        #         auxiliary_contents = []
+        #         for document in mod.dynamic_contents:
+        #                 aux_contents_ = document.trigger_pagination()
+        #                 auxiliary_contents.extend(aux_contents_)
+        #         for aux in auxiliary_contents:
+        #             self.add_document(aux)
 
     # Module things
     # Module things
@@ -429,8 +440,12 @@ class SynamicConfig(object):
             self.site_settings.output_dir
         ]
         for mod in self.modules:
+            print("Module name: %s " % mod.name)
             mod_dir = self.get_module_dir(mod)
+            print("Module dir: %s " % mod_dir)
             dirs.append(mod_dir)
+
+        print("Module dirs: %s" % dirs)
 
         # execution: directories creation
         for dir in dirs:
@@ -531,6 +546,6 @@ class SynamicConfig(object):
 @enum.unique
 class EventTypes(enum.Enum):
     CONFIG_LOADED = 'config_loaded'  # config will be passed to the event handler
-    BEFORE_MODULE_LOADED = ''        # the to be loaded module will be passed to event handlers
-    AFTER_MODULE_LOADED = ''         # the loaded module will be passed to event handlers
+    BEFORE_MODULE_LOADED = 'b...'        # the to be loaded module will be passed to event handlers
+    AFTER_MODULE_LOADED = 'a...'         # the loaded module will be passed to event handlers
     ALL_MODULES_LOADED = 'all_modules_loaded'  # modules will be used

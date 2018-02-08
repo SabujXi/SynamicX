@@ -56,7 +56,7 @@ class SeriesContent(MarkedContentImplementation):
         super().__init__(config, module_object, path_object, file_content)
         self.__chapters = None
         # print("\n\nCreating series content objectn\n\n")
-        module_object.index_mod_n_cid(self.frontmatter.values.get(normalize_key('chapters'), None), self)
+        # module_object.index_mod_n_cid(self.frontmatter.values.get(normalize_key('chapters'), None), self)
 
     def trigger_pagination(self):
         """
