@@ -9,6 +9,7 @@ class ContentContract(metaclass=abc.ABCMeta):
         STATIC = 1
         DYNAMIC = 2
         AUXILIARY = 3
+        NO_RENDER = 4
 
     @property
     @abc.abstractmethod
@@ -42,7 +43,7 @@ class ContentContract(metaclass=abc.ABCMeta):
     @abc.abstractmethod
     def get_stream(self):
         """
-            This will be a file like object. 
+        This will be a file like object. 
         """
 
     @property
@@ -74,3 +75,27 @@ class ContentContract(metaclass=abc.ABCMeta):
     def is_auxiliary(self):
         return self.content_type is self.types.AUXILIARY
 
+    @property
+    def is_no_render(self):
+        return self.content_type is self.types.NO_RENDER
+
+
+class MetaContentContract(metaclass=abc.ABCMeta):
+    @property
+    @abc.abstractmethod
+    def module_object(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def config(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def path_object(self):
+        """
+        This is a path object associated with the file (for static the path, for dynamic the path to things like .md
+         and for auxiliary - i need to think about that :p )
+        """
+        pass

@@ -65,6 +65,9 @@ class SynamicConfig(object):
         # setting path tree
         self.__path_tree = PathTree(self)
 
+        # type system
+        self.__type_system = TypeSystem(self)
+
         # Taxonomy
         self.__taxonomy = None
 
@@ -76,8 +79,6 @@ class SynamicConfig(object):
         self.__is_loaded = False
         self.__dependency_list = None
 
-        # type system
-        self.__type_system = TypeSystem(self)
         # site settings
         self.__site_settings = None
 
@@ -117,6 +118,14 @@ class SynamicConfig(object):
         self.__taxonomy = tax_mod.taxonomy_wrapper
         # sitemap
         self.add_module(SitemapModule(self))
+
+    @property
+    def is_loaded(self):
+        return self.__is_loaded
+
+    @property
+    def path_tree(self):
+        return self.__path_tree
 
     @property
     def type_system(self):
@@ -185,14 +194,6 @@ class SynamicConfig(object):
 
     def get_module_dir(self, mod_instance):
         return os.path.join(self.get_module_root_dir(mod_instance), mod_instance.name)
-
-    @property
-    def path_tree(self):
-        return self.__path_tree
-
-    @property
-    def is_loaded(self):
-        return self.__is_loaded
 
     @not_loaded
     def load(self):

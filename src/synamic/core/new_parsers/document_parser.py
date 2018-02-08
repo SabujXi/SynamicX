@@ -285,10 +285,11 @@ class FieldParser:
 
 
 class Field:
-    def __init__(self, at_level, field_name, value=None):
-        assert at_level >= -1
+    def __init__(self, at_level, at_pos, field_name, value=None):
+        assert at_level >= -1 and at_pos >= 0
         assert type(field_name) is str
         self.__at_level = at_level
+        self.__at_pos = at_pos
         self.__field_name = field_name
         self.__value = value
         self.__values_map = OrderedDict()
@@ -372,7 +373,7 @@ class Field:
         for field_name, field in self.__values_map.items():
             name = field_name
             value = field.value
-            if field.value is None:
+            if value is None:
                 value = field.to_dict_ordinary()
             d[name] = value
         return d
@@ -411,6 +412,28 @@ class Field:
                     Field(0, child.name, child.value)
                 )
         return fv
+
+    @property
+    def level(self):
+        return self.__at_level
+
+    @property
+    def pos(self):
+        return self.__at_pos
+
+    def visit(self, visitor, res_map, field_path=None):
+        field_path = () if field_path is None else (*field_path,)
+        if self.is_root:
+            for field in self.children:
+                # field_path.extend(field_path); field_path.append(field.name)
+                field.visit(visitor, res_map, (*field_path, field.name))
+        else:
+            if not self.has_children:
+                visitor(self, field_path, res_map)
+            else:
+                for field in self.children:
+                    field.visit(visitor, res_map, (*field_path, field.name))
+        return res_map
 
     def __bool__(self):
         return self.value is not None and self.children_map is not None

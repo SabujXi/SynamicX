@@ -12,8 +12,8 @@ regex_type = type(re.compile(""))
 class ContentPath2:
     META_FILE_EXTENSION = ".meta.yaml"
 
-    def __init__(self, root_absolute_path, relative_path_comps, comp_relative_starting_idx=0, is_file=True, is_meta=False):
-
+    def __init__(self, path_tree: PathTree, root_absolute_path, relative_path_comps, comp_relative_starting_idx=0, is_file=True, is_meta=False):
+        self.__path_tree = path_tree
         self.__relative_path_comps = relative_path_comps
         self.__root_absolute_path = root_absolute_path
         self.__relative_start_idx = comp_relative_starting_idx
@@ -103,7 +103,11 @@ class ContentPath2:
     @property
     def exists(self):
         """Real time checking"""
-        return os.path.exists(self.__root_absolute_path)
+        return self.__path_tree.exists(self.relative_path)
+
+    @property
+    def open(self, *args, **kwargs):
+        return open(self.__path_tree.get_full_path(self.relative_path), *args, **kwargs)
 
     @property
     def meta_path(self):
@@ -242,11 +246,11 @@ class PathTree(object):
                 continue
             if os.path.isfile(path_abs):
                 if files_only is True or files_only is None:
-                    path_obj = ContentPath2(absolute_site_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=True)
+                    path_obj = ContentPath2(self, absolute_site_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=True)
                     files.append(path_obj)
             elif os.path.isdir(path_abs):
                 if directories_only is True or directories_only is None:
-                    path_obj = ContentPath2(absolute_site_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=False)
+                    path_obj = ContentPath2(self, absolute_site_root, path_comps, comp_relative_starting_idx=len(starting_components), is_file=False)
                     directories.append(path_obj)
                     # Recurse
                 to_travel.extend(tuple([((*path_comps, comp), path_depth + 1) for comp in os.listdir(path_abs)]))
@@ -298,6 +302,33 @@ class PathTree(object):
         file_paths = self.__list_mod_files(mod_obj, depth=depth)
         # assert paths is not None, "Module name must exist"
         return file_paths
+
+    def list_paths(self, initial_path='', files_only=None, directories_only=None, depth=None):
+        if initial_path == '':
+            starting_comps = ()
+        else:
+            starting_comps = tuple(re.split(r'\\|/', initial_path))
+        dirs, files = self.__list_paths_loop2(starting_comps, files_only=files_only, directories_only=directories_only,
+                                              depth=depth)
+        return dirs, files
+
+    def list_file_paths(self, initial_path='', files_only=None, directories_only=None, depth=None):
+        if initial_path == '':
+            starting_comps = ()
+        else:
+            starting_comps = tuple(re.split(r'\\|/', initial_path))
+        dirs, files = self.__list_paths_loop2(starting_comps, files_only=files_only, directories_only=directories_only,
+                                       depth=depth)
+        return files
+
+    def list_dir_paths(self, initial_path='', files_only=None, directories_only=None, depth=None):
+        if initial_path == '':
+            starting_comps = ()
+        else:
+            starting_comps = tuple(re.split(r'\\|/', initial_path))
+        dirs, files = self.__list_paths_loop2(starting_comps, files_only=files_only, directories_only=directories_only,
+                                       depth=depth)
+        return dirs
 
     def get_module_dir_paths(self, mod_obj, depth=None):
         dir_paths = self.__list_mod_dirs(mod_obj, depth=depth)
