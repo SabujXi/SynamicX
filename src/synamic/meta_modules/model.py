@@ -1,3 +1,14 @@
+"""
+    author: "Md. Sabuj Sarker"
+    copyright: "Copyright 2017-2018, The Synamic Project"
+    credits: ["Md. Sabuj Sarker"]
+    license: "MIT"
+    maintainer: "Md. Sabuj Sarker"
+    email: "md.sabuj.sarker@gmail.com"
+    status: "Development"
+"""
+
+
 from synamic.core.functions.normalizers import normalize_key, normalize_keys
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.contracts.module import BaseMetaModuleContract

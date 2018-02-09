@@ -1,3 +1,14 @@
+"""
+    author: "Md. Sabuj Sarker"
+    copyright: "Copyright 2017-2018, The Synamic Project"
+    credits: ["Md. Sabuj Sarker"]
+    license: "MIT"
+    maintainer: "Md. Sabuj Sarker"
+    email: "md.sabuj.sarker@gmail.com"
+    status: "Development"
+"""
+
+
 def loaded(f):
     def method_wrapper(self, *args, **kwargs):
         assert self.is_loaded, "Class object of the method `%s`'s must be loaded before this method can be called" % f.__qualname__

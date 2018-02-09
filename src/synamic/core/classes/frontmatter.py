@@ -1,4 +1,14 @@
 """
+    author: "Md. Sabuj Sarker"
+    copyright: "Copyright 2017-2018, The Synamic Project"
+    credits: ["Md. Sabuj Sarker"]
+    license: "MIT"
+    maintainer: "Md. Sabuj Sarker"
+    email: "md.sabuj.sarker@gmail.com"
+    status: "Development"
+"""
+
+"""
 Frontmatter must be normalized, and yes, the normalize_string() will be used. This normalizer will always normalize to
 lowercase.
 """

@@ -1,3 +1,14 @@
+"""
+    author: "Md. Sabuj Sarker"
+    copyright: "Copyright 2017-2018, The Synamic Project"
+    credits: ["Md. Sabuj Sarker"]
+    license: "MIT"
+    maintainer: "Md. Sabuj Sarker"
+    email: "md.sabuj.sarker@gmail.com"
+    status: "Development"
+"""
+
+
 import os
 from synamic.core.synamic import Synamic
 from synamic.shell.synamic_shell import start_shell

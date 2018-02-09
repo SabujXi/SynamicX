@@ -1,4 +1,15 @@
 """
+    author: "Md. Sabuj Sarker"
+    copyright: "Copyright 2017-2018, The Synamic Project"
+    credits: ["Md. Sabuj Sarker"]
+    license: "MIT"
+    maintainer: "Md. Sabuj Sarker"
+    email: "md.sabuj.sarker@gmail.com"
+    status: "Development"
+"""
+
+
+"""
 1. Every module should have a .module.config.txt file at the root of it,
 2. The module config file will have info about which data model it will follow.
 3. Models will be stored inside 'models' of the site root folder.
