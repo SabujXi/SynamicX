@@ -11,7 +11,7 @@ from synamic.core.exceptions import InvalidModuleType
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.content_modules.text import TextModule
 from synamic.content_modules.home import HomeModule
-from synamic.content_modules.static import StaticModule
+from synamic.content_modules.static_module import StaticModule
 from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
 from synamic.core.dependency_resolver import create_dep_list
 from synamic.core.site_settings.site_settings import SiteSettings
@@ -26,6 +26,10 @@ from synamic.core.contracts.module import BaseModuleContract
 from synamic.core.type_system.type_system import TypeSystem
 from synamic.core.services.model_service import ModelService
 from synamic.core.services.template_service import SynamicTemplateService
+from synamic.core.classes.path_tree import ContentPath2
+from synamic.core.classes.virtual_file import VirtualFile
+from synamic.core.classes.url import ContentUrl
+from synamic.core.classes.static import StaticContent
 
 
 @enum.unique
@@ -78,6 +82,10 @@ class SynamicConfig(object):
         self.__dependency_list = None
         # site settings
         self.__site_settings = None
+
+        # registered directories, path
+        self.__registered_dir_paths = set()
+        self.__registered_virtual_files = set()
         # initializing modules
         self.__initiate_modules()
 
@@ -99,6 +107,18 @@ class SynamicConfig(object):
         # self.__taxonomy = tax_mod.taxonomy_wrapper
         # # sitemap
         # self.add_module(SitemapModule(self))
+
+    def register_path(self, dir_path: ContentPath2):
+        assert dir_path.is_dir
+        if dir_path in self.__registered_dir_paths:
+            raise Exception("The same path is already registered")
+        self.__registered_dir_paths.add(dir_path)
+
+    def register_virtual_file(self, virtual_file: VirtualFile):
+        assert type(virtual_file) is VirtualFile
+        if virtual_file in self.__registered_virtual_files:
+            raise Exception("Virtual file already exists")
+        self.__registered_virtual_files.add(virtual_file)
 
     @property
     def is_loaded(self):
@@ -191,13 +211,13 @@ class SynamicConfig(object):
             print("<< Loaded module object: %s\n\n" % mod.name)
             # retrieving module contents
 
-        for mod_name in self.__dependency_list:
-            if mod_name in self.__content_modules_map:
-                mod = self.__content_modules_map[mod_name]
-                for document in mod.static_contents:
-                    self.add_document(document)
-                for document in mod.dynamic_contents:
-                    self.add_document(document)
+        # for mod_name in self.__dependency_list:
+        #     if mod_name in self.__content_modules_map:
+        #         mod = self.__content_modules_map[mod_name]
+        #         for document in mod.static_contents:
+        #             self.add_document(document)
+        #         for document in mod.dynamic_contents:
+        #             self.add_document(document)
 
         self.__is_loaded = True
 
@@ -281,12 +301,37 @@ class SynamicConfig(object):
         self.__content_map[Key.CONTENTS_BY_URL_PATH][document.url_object.path] = document
 
         # 3. Generalized real path
-        assert url_object.generalized_real_path not in self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH],\
+        assert url_object.norm_real_path not in self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH],\
             "Multiple resource with the same generalized url cannot coexist"
-        self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.generalized_real_path] = document
+        self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.norm_real_path] = document
 
         # 5. Contents set
         self.__content_map[Key.CONTENTS_SET].add(document)
+
+    def add_static_content(self, file_path, module_name):
+        assert type(file_path) is ContentPath2
+        if file_path.meta_info:
+            permalink = file_path.meta_info.get('permalink', None)
+            if permalink:
+                permalink = permalink.rstrip(r'\/')
+                permalink_comps = re.split(r'(\\|/)+', permalink)
+            else:
+                permalink_comps = file_path.relative_path_components
+
+            id = file_path.meta_info.get('id', None)
+            cnt_url = ContentUrl(self, permalink_comps, is_dir=False)
+        else:
+            cnt_url = ContentUrl(self, file_path.relative_path_components, is_dir=False)
+            id = None
+
+        if id is None:
+            id = "/".join(file_path.relative_path_components)
+
+        mod = self.get_module(module_name)
+
+        static_content = StaticContent(self, file_path, cnt_url, id, module_obj=mod)
+        self.add_content(static_content)
+        return static_content
 
     def get_document_by_id(self, mod_name, doc_id):
         parent_d = self.__content_map[Key.CONTENTS_BY_ID]
@@ -379,6 +424,10 @@ class SynamicConfig(object):
         return 'meta'
 
     @property
+    def models_dir(self):
+        return 'models'
+
+    @property
     def settings_file_name(self):
         return "settings.txt"
 
@@ -394,8 +443,7 @@ class SynamicConfig(object):
             if not os.path.exists(dir):
                 os.makedirs(dir)
 
-            fs_path = os.path.join(self.site_root, '_html', url.real_path.lstrip('\\/'))
-            with open(fs_path, 'wb') as f:
+            with url.to_file_path.open('wb') as f:
                 stream = cont.get_stream()
                 f.write(stream.read())
                 stream.close()
@@ -483,10 +531,6 @@ class SynamicConfig(object):
                 sorted_content = sorted(accepted_contents, reverse=reverse)
         print("Filter content(): \n%s\n" % sorted_content)
         return sorted_content
-
-    def create_static_content(self, mod_obj, path):
-        mod = self.get_module('static')
-        return mod.create_static_content(mod_obj, path)
 
 #     @not_loaded
 #     def add_event(self, evt_type, clabl):

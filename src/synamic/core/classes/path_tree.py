@@ -4,13 +4,14 @@ from synamic.core.functions.normalizers import normalize_relative_file_path
 from synamic.core.functions.yaml_processor import load_yaml
 from synamic.core.functions.normalizers import normalize_keys
 from collections import deque
-
+from synamic.core.new_parsers.document_parser import FieldParser, Field
+from collections import OrderedDict
 
 regex_type = type(re.compile(""))
 
 
 class ContentPath2:
-    META_FILE_EXTENSION = ".meta.yaml"
+    META_FILE_EXTENSION = ".meta.txt"
 
     def __init__(self, path_tree, root_absolute_path, relative_path_comps, comp_relative_starting_idx=0, is_file=True, is_meta=False):
         self.__path_tree = path_tree
@@ -20,7 +21,7 @@ class ContentPath2:
         self.__is_file = is_file
         self.__is_meta = is_meta
 
-        self.__meta_info = dict()
+        self.__meta_info = OrderedDict()
         self.__meta_path = None
 
     @property
@@ -32,6 +33,7 @@ class ContentPath2:
         """
         Relative paths are relative from site root.
         """
+        print("*** rel path: %s" % str(self.relative_path_components))
         return os.path.join(*self.__relative_path_comps)
 
     @property
@@ -100,13 +102,22 @@ class ContentPath2:
                 return ".".join(dotted_parts[-dot_count:])
         return None
 
-    @property
     def exists(self):
         """Real time checking"""
+        print("__REL PATH: %s" % self.relative_path)
         return self.__path_tree.exists(self.relative_path)
 
-    def open(self, *args, **kwargs):
-        return open(self.__path_tree.get_full_path(self.relative_path), *args, **kwargs)
+    def open(self, mode, *args, **kwargs):
+        return self.__path_tree.open_file(self.relative_path, mode, *args, **kwargs)
+
+    def join(self, path_str, is_file=True, is_meta=False):
+        """Creates a new path joining to this one"""
+        comps = [p for p in re.split(r'(\\|/)+', path_str) if p != '']
+        if self.is_dir:
+            new_path_comps = (*self.relative_path_components, *comps)
+        else:
+            new_path_comps = (*self.relative_path_components[:-1], self.relative_path_components[-1] + comps[0], *comps[1:])
+        return ContentPath2(self.__path_tree, self.root_absolute_path, new_path_comps, comp_relative_starting_idx=self.__relative_start_idx, is_file=is_file, is_meta=is_meta)
 
     @property
     def meta_path(self):
@@ -129,27 +140,23 @@ class ContentPath2:
             `.meta.txt` being case sensitive, in users may provide extension in case insensitive ways and fail applications.
         """
         if self.__meta_path is None:
-            mpf = self.basename + self.META_FILE_EXTENSION
-            print("META mpf: %s" % mpf)
-            abs_mp = os.path.join(os.path.dirname(self.absolute_path), mpf)
-            print("META abs_mp: %s" % abs_mp)
-            if os.path.exists(abs_mp) and os.path.isfile(abs_mp):
-                self.__meta_path = self.__class__(self.root_absolute_path, (*self.relative_path_components[:-1], mpf), is_file=True, is_meta=True)
-            print("META PATH: %s" % self.__meta_path)
+            meta_path = self.join(self.META_FILE_EXTENSION, is_file=True, is_meta=True)
+            if meta_path.exists():
+                """
+                Files have meta path like: file_name.meta.txt
+                Directories: dir_name/.meta.txt
+                """
+                self.__meta_path = meta_path
         return self.__meta_path
 
     @property
     def meta_info(self):
         if not self.__meta_info:
             if self.meta_path:
-                with open(self.meta_path.absolute_path, 'r', encoding='utf-8') as f:
+                with self.meta_path.open('r', encoding='utf-8') as f:
                     txt = f.read()
-                    loaded = load_yaml(txt)
-                    if type(loaded) is dict:
-                        self.__meta_info = loaded
-                    elif type(loaded) is not dict:
-                        self.__meta_info = {'__error_info_': "Meta file content could not be loaded as dict"}
-                normalize_keys(self.__meta_info)
+                    root_field = FieldParser(txt).parse()
+                    self.__meta_info = root_field.to_dict_ordinary()
         return self.__meta_info
 
     def __match_process_regex(self, regex, ignorecase=True):
@@ -177,6 +184,14 @@ class ContentPath2:
         """"""
         regex = self.__match_process_regex(regex, ignorecase)
         return regex.match(self.extension)
+
+    def __eq__(self, other):
+        if self.relative_path_components == other.relative_path_components:
+            return True
+        return False
+
+    def __hash__(self):
+        return hash(self.relative_path_components)
 
     def __str__(self):
         return "ContentPath2: %s" % self.relative_path
@@ -334,10 +349,24 @@ class PathTree(object):
         # assert paths is not None, "Module name must exist"
         return dir_paths
 
-    def open_file(self, file_name, *args, **kwargs):
+    def open_file(self, file_name, mode, *args, **kwargs):
         fn = self.get_full_path(file_name)
-        return open(fn, *args, **kwargs)
+        return open(fn, mode, *args, **kwargs)
 
     def makedirs(self, dir_path):
         full_p = self.get_full_path(dir_path)
         os.makedirs(full_p)
+
+    def create_path(self, path_comp, is_file=False):
+        """
+        Create a Content Path object.
+        """
+        if type(path_comp) is str:
+            path_str = path_comp
+            assert path_str.strip() != ''
+            comps = re.split(r'(\\|/)+', path_str)
+        else:
+            assert type(path_comp) in {tuple, set, frozenset, list}
+            comps = path_comp
+        path_obj = ContentPath2(self, self.__config.site_root, comps, is_file=is_file)
+        return path_obj

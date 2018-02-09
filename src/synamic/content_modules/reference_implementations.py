@@ -132,9 +132,6 @@ class MarkedContentModuleImplementation(BaseContentModuleContract):
     def __init__(self, _cfg):
         self.__config = _cfg
         self.__is_loaded = False
-        self.__contents_by_id = FinalizableDict()
-        self.__dynamic_contents = frozenset()
-        self.__static_contents = frozenset()
 
     @property
     def name(self):
@@ -177,8 +174,6 @@ class MarkedContentModuleImplementation(BaseContentModuleContract):
     def load(self):
         paths = self.__config.path_tree.get_module_file_paths(self)
         print(paths)
-        dynamic_contents = set()
-        static_contents = set()
 
         for file_path in paths:
             if file_path.extension.lower() in {'md', 'markdown'}:
@@ -187,33 +182,14 @@ class MarkedContentModuleImplementation(BaseContentModuleContract):
                     content_obj = self.content_class(self.__config, self, file_path, text)
 
                     content_id = content_obj.fields.get('id', None)
-                    if content_id in self.__dynamic_contents:
-                        if content_obj.content_id is not None:
-                            raise Exception("Duplicate `{module_name}` content id. It is `{content_id}`".format(module_name=self.name, content_id=content_obj.id))
-                        self.__contents_by_id[content_obj.content_id] = content_obj
-                    dynamic_contents.add(content_obj)
+                    # if content_id in self.__dynamic_contents:
+                    #     if content_obj.content_id is not None:
+                    #         raise Exception("Duplicate `{module_name}` content id. It is `{content_id}`".format(module_name=self.name, content_id=content_obj.id))
+                    self.__config.add_document(content_obj)
             else:
-                static_content = self.__config.create_static_content(self, file_path)
-                static_contents.add(static_content)
-        self.__dynamic_contents = frozenset(dynamic_contents)
-        self.__static_contents = frozenset(static_contents)
-        self.__contents_by_id.finalize()
+                self.__config.add_static_content(file_path, self)
         self.__is_loaded = True
 
     @property
     def root_url_path(self):
         return ""
-
-    @property
-    @loaded
-    def static_contents(self):
-        return self.__static_contents
-
-    @property
-    @loaded
-    def dynamic_contents(self):
-        return self.__dynamic_contents
-
-    def get_content_by_id(self, content_id, default=None):
-        return self.__contents_by_id.get(content_id, default)
-

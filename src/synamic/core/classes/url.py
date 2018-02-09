@@ -2,37 +2,26 @@ import os
 import urllib.parse
 from synamic.core.contracts.url import ContentUrlContract
 from synamic.core.functions.normalizers import normalize_content_url_path, generalize_content_url_path, normalize_key, split_content_url_path_components
+import re
 
 
-class ContentUrl(ContentUrlContract):
-    def __init__(self, config, url_str, is_dir=True):
+class ContentUrl:
+    def __init__(self, config, url_comps, is_dir=True):
         self.__config = config
         # self.__content = content_object
-        self.__url_str = url_str
+        if type(url_comps) is str:
+            url_comps = url_comps.strip().strip(r'\/')
+            self.__url_comps = re.split(r'(\\|/)+', url_comps)
+            if re.match(r'.*\.[a-z0-9]+$', url_comps, re.I):
+                is_dir = False
+        else:
+            assert type(url_comps) in {list, tuple, set, frozenset}, "Url components can either be str, list or tuple"
+            self.__url_comps = url_comps
+        self.__url_comps = tuple([x for x in self.__url_comps if x != ''])
         # self.__url_name = url_name
         self.__is_dir = is_dir
 
-        self.__url_str = normalize_content_url_path(self.__url_str)
-        # if self.__url_name:
-        #     self.__url_name = normalize_key(self.__url_name)
-
-        # validation
-        # if it is not is_dir - that is is_file - it must not end with a '/'
-        if not is_dir:
-            assert not self.__url_str.endswith('/'), "A file url_object path cannot end with '/'"
-
-    # def append_component(self, component):
-    #     # self.__is_dir = True
-    #     if self.__is_dir:
-    #         if self.__url_str.endswith('/'):
-    #             self.__url_str += component + '/'
-    #         else:
-    #             self.__url_str += '/' + component + '/'
-    #     else:  # file
-    #         if self.__url_str.endswith('/'):
-    #             self.__url_str = self.__url_str.rstrip('/')
-    #         self.__url_str += '-' + component + '/'
-    #         self.__is_dir = True
+        self.__url_str = None
 
     @property
     def absolute_url(self):
@@ -51,48 +40,47 @@ class ContentUrl(ContentUrlContract):
         return urllib.parse.quote_plus(self.path, safe='/', encoding='utf-8')
 
     @property
+    def path_components(self):
+        return self.__url_comps
+
+    @property
     def path(self):
+        if self.__url_str is None:
+            start = '/'
+            end = '/' if self.__is_dir else ''
+            self.__url_str = start + "/".join(self.__url_comps) + end
         return self.__url_str
 
     @property
-    def generalized_path(self):
-        return generalize_content_url_path(self.path)
-
-    @property
-    def generalized_real_path(self):
-        return generalize_content_url_path(self.real_path)
-
-    # @property
-    # def content(self):
-    #     return self.__content
+    def real_path_components(self):
+        if self.is_file:
+            return self.__url_comps
+        else:
+            return (*self.__url_comps, "index.html")
 
     @property
     def real_path(self):
-        if self.is_file:
-            return self.path
-        else:
-            return self.path + "/index.html"  # TO-DO: Make it dynamic later to take that value 'index.html' or whatever from settings and/or config
+        end = '/' if self.is_dir else ''
+        return "/" + "/".join(self.real_path_components) + end
+
+    @property
+    def norm_real_path(self):
+        return self.real_path.lower()
+
+    @property
+    def norm_path_components(self):
+        return tuple(c.lower() for c in self.__url_comps)
 
     @property
     def dir_components(self):
-        comps = split_content_url_path_components(self.path)
         if self.is_file:
-            return comps[:-1]
+            return self.__url_comps[:-1]
         else:
-            return comps
+            return self.__url_comps
 
     @property
     def to_file_path(self):
-        return os.path.join(split_content_url_path_components(self.real_path))
-
-    def create_auxiliary_url(self, serial_prefix, serial):
-        """
-        Intended for auxiliary content.
-        """
-        url_str = self.__url_str
-        if not url_str.endswith('/'):
-            url_str += '/'
-
-        url_str = serial_prefix + str(serial) + '/'
-
-        return ContentUrl(self.__config, url_str, is_dir=True)
+        return self.__config.path_tree.create_path(
+            (self.__config.site_settings.output_dir, *self.real_path_components),
+            is_file=True
+        )

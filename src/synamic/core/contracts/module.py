@@ -66,16 +66,16 @@ class BaseContentModuleContract(BaseModuleContract):
                 final url_object: meau/me/mo
         """
 
-    @property
-    @abc.abstractmethod
-    def dynamic_contents(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def static_contents(self):
-        pass
-
-    @abc.abstractmethod
-    def get_content_by_id(self, content_id):
-        pass
+    # @property
+    # @abc.abstractmethod
+    # def dynamic_contents(self):
+    #     pass
+    #
+    # @property
+    # @abc.abstractmethod
+    # def static_contents(self):
+    #     pass
+    #
+    # @abc.abstractmethod
+    # def get_content_by_id(self, content_id):
+    #     pass
