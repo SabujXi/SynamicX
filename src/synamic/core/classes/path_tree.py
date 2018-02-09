@@ -135,7 +135,7 @@ class ContentPath2:
 
     def join(self, path_str, is_file=True, is_meta=False):
         """Creates a new path joining to this one"""
-        comps = [p for p in re.split(r'(\\|/)+', path_str) if p != '']
+        comps = [p for p in re.split(r'[\\/]+', path_str) if p != '']
         if self.is_dir:
             new_path_comps = (*self.relative_path_components, *comps)
         else:
@@ -395,7 +395,7 @@ class PathTree(object):
         if type(path_comp) is str:
             path_str = path_comp
             assert path_str.strip() != ''
-            comps = re.split(r'(\\|/)+', path_str)
+            comps = [x for x in re.split(r'[\\/]+', path_str) if x != '']
         else:
             assert type(path_comp) in {tuple, set, frozenset, list}
             comps = path_comp

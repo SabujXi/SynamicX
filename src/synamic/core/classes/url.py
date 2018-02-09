@@ -11,7 +11,7 @@ class ContentUrl:
         # self.__content = content_object
         if type(url_comps) is str:
             url_comps = url_comps.strip().strip(r'\/')
-            self.__url_comps = re.split(r'(\\|/)+', url_comps)
+            self.__url_comps = [x for x in re.split(r'[\\/]+', url_comps) if x != '']
             if re.match(r'.*\.[a-z0-9]+$', url_comps, re.I):
                 is_dir = False
         else:

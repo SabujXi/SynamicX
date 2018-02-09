@@ -6,7 +6,6 @@ from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
 from synamic.core.site_settings.site_settings import SiteSettings
 from synamic.core.classes.utils import DictUtils
-from synamic.core.functions import query_compiler
 from synamic.core.type_system.type_system import TypeSystem
 from synamic.core.services.model_service import ModelService
 from synamic.core.services.template_service import SynamicTemplateService
@@ -29,10 +28,16 @@ class Key(enum.Enum):
     DYNAMIC_CONTENTS = 6
 
 
+@enum.unique
+class EventTypes(enum.Enum):
+    NOTHING_NOW = 1
+
+
 class SynamicConfig(object):
     def __init__(self, site_root):
         assert os.path.exists(site_root), "Base path must not be non existent"
         assert os.path.exists(os.path.join(site_root, '.synamic')) and os.path.isfile(os.path.join(site_root, '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(site_root, '.synamic')
+        self.__event_types = EventTypes
         self.__site_root = site_root
 
         self.__services_list = []
@@ -74,6 +79,10 @@ class SynamicConfig(object):
         self.__registered_dir_paths = set()
         self.__registered_virtual_files = set()
         # initializing modules
+
+    @property
+    def event_types(self):
+        return self.__event_types
 
     def register_path(self, dir_path: ContentPath2):
         assert dir_path.is_dir
@@ -135,9 +144,15 @@ class SynamicConfig(object):
 
         self.__is_loaded = True
 
+        # post processing
+        for cnt in self.__content_map[Key.DYNAMIC_CONTENTS]:
+            cnt.trigger_post_processing()
+
+
+
         # test
-        fil_res = self.filter_content('txt | :sort_by created_on "des"|@one')
-        print(fil_res)
+        # fil_res = self.filter_content('txt | :sort_by created_on "des"|@one')
+        # print(fil_res)
 
     # Content &| Document Things
     # Content &| Document Things
@@ -194,7 +209,7 @@ class SynamicConfig(object):
             permalink = file_path.meta_info.get('permalink', None)
             if permalink:
                 permalink = permalink.rstrip(r'\/')
-                permalink_comps = re.split(r'(\\|/)+', permalink)
+                permalink_comps = [x for x in re.split(r'[\\/]+', permalink)]
             else:
                 permalink_comps = file_path.relative_path_components
 
@@ -338,3 +353,8 @@ class SynamicConfig(object):
     @loaded
     def filter_content(self, filter_txt):
         return query(self, filter_txt)
+
+    def register_event(self, fun):
+        pass
+
+

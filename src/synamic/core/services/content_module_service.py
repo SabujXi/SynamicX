@@ -5,18 +5,83 @@ from synamic.core.classes.pagination import PaginationStream
 from synamic.core.contracts import BaseContentModuleContract, ContentContract
 from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.functions.decorators import not_loaded, loaded
-from synamic.core.functions.frontmatter import parse_front_matter
-from synamic.core.functions.yaml_processor import load_yaml
-from synamic.core.classes.frontmatter import Frontmatter
 from synamic.core.classes.url import ContentUrl
-from markupsafe import Markup
-from synamic.core.functions.normalizers import normalize_key
-from synamic.core.functions.md import render_markdown
-from synamic.core.classes.mapping import FinalizableDict
 from synamic.core.new_parsers.document_parser import DocumentParser
 from collections import OrderedDict
 
+
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
+
+
+class AuxMarkedContentImplementation(MarkedDocumentContract):
+    def __init__(self, marked_content, page_no):
+        self.__marked_content = marked_content
+        self.__page_no = page_no
+        self.__url = None
+
+        self.__pagination = None
+
+    @property
+    def pagination(self):
+        return self.__pagination
+
+    @pagination.setter
+    def pagination(self, pgn):
+        self.__pagination = pgn
+
+    @property
+    def config(self):
+        return self.__marked_content.config
+
+    @property
+    def path_object(self):
+        return None
+
+    @property
+    def content_id(self):
+        return None
+
+    def get_stream(self):
+        template_name = self.fields.get('template', None)
+        res = self.config.templates.render(template_name, content=self.get_content_wrapper())
+        f = io.BytesIO(res.encode('utf-8'))
+        return f
+
+    @property
+    def content_type(self):
+        return self.types.AUXILIARY
+
+    @property
+    def mime_type(self):
+        return self.__marked_content.mime_type
+
+    @property
+    def body(self):
+        return self.__marked_content.body
+
+    @property
+    def fields(self):
+        return self.__marked_content.fields
+
+    @property
+    def field_converters(self):
+        return self.__marked_content.field_converters
+
+    @property
+    def url_object(self):
+        if self.__url is None:
+            print("Fields: %s" % self.fields)
+            self.__url = ContentUrl(self.config, '_/' + self.fields['permalink'] + '/' + str(self.__page_no), is_dir=True)
+        return self.__url
+
+    @property
+    def absolute_url(self):
+        return self.url_object.full_url
+
+    def get_content_wrapper(self):
+        # TODO: should place in contract!
+        # So, with cotract it can be used in paginator too
+        return ContentWrapper(self)
 
 
 class MarkedContentImplementation(MarkedDocumentContract):
@@ -44,6 +109,8 @@ class MarkedContentImplementation(MarkedDocumentContract):
             self.__fields[k] = v['value']
             self.field_converters[k] = v['converter']
         print("Resp Map2: %s" % res_map)
+
+        self.__pagination = None
 
     # temporary for fixing sitemap
     @property
@@ -104,6 +171,26 @@ class MarkedContentImplementation(MarkedDocumentContract):
         # TODO: should place in contract!
         # So, with cotract it can be used in paginator too
         return ContentWrapper(self)
+
+    @property
+    def pagination(self):
+        return self.__pagination
+
+    @pagination.setter
+    def pagination(self, pgn):
+        self.__pagination = pgn
+
+    def trigger_post_processing(self):
+        """For example: pagination"""
+        query_str = self.fields.get('pagination', None)
+        if query_str is not None:
+            page_stream = PaginationStream(self.__config, self, query_str)
+
+            for aux_cnt in page_stream.auxiliary_contents:
+                self.__config.add_document(aux_cnt)
+
+    def create_auxiliary(self, page_no):
+        return AuxMarkedContentImplementation(self, page_no)
 
     def __str__(self):
         return self.path_object.relative_path

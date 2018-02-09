@@ -100,7 +100,7 @@ class PaginationStream:
         rules_txt = self.__filter_txt
         per_page = self.__contents_per_page
         cnts = self.__config.filter_content(rules_txt)
-        print("__paginate():\n\n%s" %cnts)
+        print("__paginate():\n\n%s" % str(cnts))
         aux_contents = []
 
         paginations = []
@@ -135,7 +135,7 @@ class PaginationStream:
                     prev_page = self.__starting_content
 
                 else:
-                    aux = self.__starting_content.create_auxiliary("", pagination.position)
+                    aux = self.__starting_content.create_auxiliary(pagination.position)
 
                     aux.pagination = pagination
                     pagination.host_page = aux
@@ -158,3 +158,10 @@ class PaginationStream:
     @property
     def paginations(self):
         return self.__paginations
+
+    def __bool__(self):
+        return True if len(self.paginations) > 0 else False
+
+    def __len__(self):
+        return len(self.paginations)
+

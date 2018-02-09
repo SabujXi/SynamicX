@@ -483,20 +483,22 @@ class Query:
         is_r_operand_field = False
         if type(right_opnd) is self.F_TYPE():
             is_r_operand_field = True
-        if type(right_opnd) is self.F_TYPE():
-            is_r_operand_field = True
 
         ll = left_opnd.fields
         l_dotted_field = ".".join(ll)
 
-        l_value = value.fields[l_dotted_field]
+        l_value = value.fields.get(l_dotted_field)
 
         if is_r_operand_field:
             rl = right_opnd.fields
             dotted_field = ".".join(rl)
-            r_value = value.fields[dotted_field]
+            r_value = value.fields.get(dotted_field, None)
         else:
-            r_value = value.field_converters[l_dotted_field](right_opnd)
+            conv = value.field_converters.get(l_dotted_field, None)
+            if conv is not None:
+                r_value = conv(right_opnd)
+            else:
+                r_value = right_opnd
 
         return l_value, r_value
 
