@@ -14,6 +14,7 @@ from synamic.core.functions.normalizers import normalize_key
 from synamic.core.functions.md import render_markdown
 from synamic.core.classes.mapping import FinalizableDict
 from synamic.core.new_parsers.document_parser import DocumentParser
+from collections import OrderedDict
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
@@ -36,8 +37,12 @@ class MarkedContentImplementation(MarkedDocumentContract):
         res_map = self.__config.model_service.get_converted('text', doc.root_field, doc.body)
         print("Resp Map : %s" % res_map)
         self.__body = res_map['__body__']
-        # del res_map['__body__']
-        self.__fields = res_map
+        del res_map['__body__']
+        self.__fields = OrderedDict()
+        self.__field_converters = OrderedDict()
+        for k, v in res_map.items():
+            self.__fields[k] = v['value']
+            self.field_converters[k] = v['converter']
         print("Resp Map2: %s" % res_map)
 
     # temporary for fixing sitemap
@@ -79,6 +84,10 @@ class MarkedContentImplementation(MarkedDocumentContract):
     @property
     def fields(self):
         return self.__fields
+
+    @property
+    def field_converters(self):
+        return self.__field_converters
 
     @property
     def url_object(self):
@@ -132,7 +141,7 @@ class MarkedContentService(BaseContentModuleContract):
     @property
     def service_home_path(self):
         if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path(('content', ))
+            self.__service_home_path = self.__config.path_tree.create_path((self.__config.site_root, 'content'))
         return self.__service_home_path
 
     @property
@@ -149,7 +158,7 @@ class MarkedContentService(BaseContentModuleContract):
 
     @not_loaded
     def load(self):
-        paths = self.__config.path_tree.list_file_paths(*self.service_home_path.relative_path_components)
+        paths = self.__config.path_tree.list_file_paths(*('content',))
         print(paths)
 
         for file_path in paths:
@@ -164,5 +173,5 @@ class MarkedContentService(BaseContentModuleContract):
                     #         raise Exception("Duplicate `{module_name}` content id. It is `{content_id}`".format(module_name=self.name, content_id=content_obj.id))
                     self.__config.add_document(content_obj)
             else:
-                self.__config.add_static_content(file_path, self)
+                self.__config.add_static_content(file_path)
         self.__is_loaded = True

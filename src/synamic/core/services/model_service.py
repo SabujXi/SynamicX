@@ -10,14 +10,6 @@ class ModelService:
         self.__model_map = {}
         self.__is_loaded = False
 
-        self.__service_home_path = None
-
-    @property
-    def service_home_path(self):
-        if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path((self.__config.site_root, 'models'))
-        return self.__service_home_path
-
     @property
     def is_loaded(self):
         return self.__is_loaded
@@ -61,11 +53,12 @@ class ModelService:
             else:
                 type_field = model_field.children_map.get('type', None)
                 assert type_field is not None, "Type must be defined"
+                # default_value_str = model_field.children_map.get('default', None)
                 type_name = type_field.value
                 # default_str = model_field.children_map.get('default', None)
             converter = self.__config.type_system.get_converter(type_name)
             converted_value = converter(a_field.value, self.__config)
-            _res_map_[dotted_field] = converted_value
+            _res_map_[dotted_field] = {'value': converted_value, 'converter': converter}
             return _res_map_
 
         # print('model map %s' % self.__model_map)

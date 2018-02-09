@@ -33,5 +33,5 @@ class StaticModuleService(BaseContentModuleContract):
         for file_path in paths:
             print("File path relative is: ", file_path.relative_path)
             assert file_path.is_file  # Remove in prod
-            self.__config.add_static_content(file_path, self.name)
+            self.__config.add_static_content(file_path)
         self.__is_loaded = True

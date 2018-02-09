@@ -16,6 +16,7 @@ from synamic.core.classes.url import ContentUrl
 from synamic.core.classes.static import StaticContent
 from synamic.core.services.content_module_service import MarkedContentService
 from synamic.core.services.static_module_service import StaticModuleService
+from synamic.core.new_filter.filter_functions import query
 
 
 @enum.unique
@@ -25,6 +26,7 @@ class Key(enum.Enum):
     CONTENTS_BY_GENERALIZED_URL_PATH = 3
     CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH = 5
     CONTENTS_SET = 4
+    DYNAMIC_CONTENTS = 6
 
 
 class SynamicConfig(object):
@@ -40,7 +42,8 @@ class SynamicConfig(object):
             Key.CONTENTS_BY_URL_PATH: dict(),
             Key.CONTENTS_BY_GENERALIZED_URL_PATH: dict(),
             Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH: dict(),
-            Key.CONTENTS_SET: set()
+            Key.CONTENTS_SET: set(),
+            Key.DYNAMIC_CONTENTS: set()
         }
         # setting path tree
         self.__path_tree = PathTree(self)
@@ -132,6 +135,10 @@ class SynamicConfig(object):
 
         self.__is_loaded = True
 
+        # test
+        fil_res = self.filter_content('txt | :sort_by created_on "des"|@one')
+        print(fil_res)
+
     # Content &| Document Things
     # Content &| Document Things
     # Content &| Document Things
@@ -174,7 +181,14 @@ class SynamicConfig(object):
         # 5. Contents set
         self.__content_map[Key.CONTENTS_SET].add(document)
 
-    def add_static_content(self, file_path, module_name):
+        if document.is_dynamic and not document.is_auxiliary:
+            self.__content_map[Key.DYNAMIC_CONTENTS].add(document)
+
+    @property
+    def dynamic_contents(self):
+        return tuple(self.__content_map[Key.DYNAMIC_CONTENTS])
+
+    def add_static_content(self, file_path):
         assert type(file_path) is ContentPath2
         if file_path.meta_info:
             permalink = file_path.meta_info.get('permalink', None)
@@ -323,66 +337,4 @@ class SynamicConfig(object):
 
     @loaded
     def filter_content(self, filter_txt):
-        query_container = query_compiler.get_query_container(filter_txt)
-        queries = query_container.queries
-        # print("\n\nfilter_content(): filter txt %s\n" % filter_txt)
-
-        # parsed_rules, sort = parse_rules(filter_txt, self.module_names)
-        needed_module_names = set([rule.module_name for rule in queries])
-        contents_map = {}
-        for mod_name in needed_module_names:
-            contents_map[mod_name] = set()
-
-        for cont in self.__content_map[Key.CONTENTS_SET]:
-            cnt = cont
-            if cnt.is_dynamic and cnt.module_object.name in needed_module_names:
-                contents_map[cnt.module_object.name].add(cnt)
-
-        accepted_contents_combination = []
-
-        for query in queries:
-            contents = contents_map[query.module_name]
-            passed_contents = set()
-            for cnt in contents:
-                if query_compiler.filter_dispatcher(query, cnt):
-                    passed_contents.add(cnt)
-            accepted_contents_combination.append((passed_contents, query.combinator))
-
-        accepted_contents = set()
-        i = 0
-        previous_combinator = None
-        while i < len(accepted_contents_combination):
-
-            contents = accepted_contents_combination[i][0]
-            combinator = accepted_contents_combination[i][1]
-            if previous_combinator is None:
-                accepted_contents.update(contents)
-                if combinator is None:
-                    break
-                previous_combinator = combinator
-            else:
-                if previous_combinator == '&':
-                    accepted_contents = accepted_contents.intersection(contents)
-                elif previous_combinator == '|':
-                    accepted_contents = accepted_contents.union(contents)
-
-                if combinator is None:
-                    break
-            i += 1
-        # sort
-        # sorted_content = None
-        if not query_container.sort_filter_name:
-            # sort by created on in desc
-            sorted_content = sorted(accepted_contents, key=lambda _cont: 0 if _cont.created_on is None else _cont.created_on.toordinal(), reverse=True)
-        else:
-            reverse = False
-            if query_container.sort_filter_order == 'desc':
-                reverse = True
-
-            if query_container.sort_filter_name == 'created-on':
-                sorted_content = sorted(accepted_contents,
-                                        key=lambda cnt: 0 if cnt.created_on is None else cnt.created_on.toordinal, reverse=reverse)
-            else:
-                sorted_content = sorted(accepted_contents, reverse=reverse)
-        print("Filter content(): \n%s\n" % sorted_content)
-        return sorted_content
+        return query(self, filter_txt)

@@ -478,6 +478,28 @@ class Query:
 
         return l_value, r_value
 
+    def _get_lr_values_4_content_fields(self, value, left_opnd: _Field, right_opnd):
+        """get left and right values"""
+        is_r_operand_field = False
+        if type(right_opnd) is self.F_TYPE():
+            is_r_operand_field = True
+        if type(right_opnd) is self.F_TYPE():
+            is_r_operand_field = True
+
+        ll = left_opnd.fields
+        l_dotted_field = ".".join(ll)
+
+        l_value = value.fields[l_dotted_field]
+
+        if is_r_operand_field:
+            rl = right_opnd.fields
+            dotted_field = ".".join(rl)
+            r_value = value.fields[dotted_field]
+        else:
+            r_value = value.field_converters[l_dotted_field](right_opnd)
+
+        return l_value, r_value
+
     def expr(self, query_proxy: _QueryProxy):
         values_set = set()
         ctx_values = tuple(query_proxy.values)
@@ -487,7 +509,7 @@ class Query:
         fun = getattr(self, one_fun_name)
 
         for value in ctx_values:
-            l_opnd, r_opnd = self._get_lr_values(value, *one_opnds)
+            l_opnd, r_opnd = self._get_lr_values_4_content_fields(value, *one_opnds)
             if fun(l_opnd, r_opnd):
                 values_set.add(value)
 
@@ -502,7 +524,7 @@ class Query:
             another_values_set = set()
             res = set()
             for value in ctx_values:
-                l_opnd, r_opnd = self._get_lr_values(value, *opnds)
+                l_opnd, r_opnd = self._get_lr_values_4_content_fields(value, *opnds)
                 if fun(l_opnd, r_opnd):
                     another_values_set.add(value)
 
@@ -688,8 +710,9 @@ class Query:
     def _get_limiter_opnd_value_4_sort(self, value, opnd):
         val = value
         if type(opnd) is self.F_TYPE():
-            for field in opnd.fields:
-                val = getattr(val, field)
+            dotted_field = ".".join(opnd.fields)
+            # for field in opnd.fields:
+            val = value.fields[dotted_field]#(val, field)
         return val
 
     @limiter_decorator('sort_by')
@@ -722,12 +745,14 @@ class Query:
 
 def query(synamic_obj, query_text, filter_id=None):
     filter_what = module_name = _Patterns.module_name_pat.match(query_text).group("module_name").strip()
+    # will ignore filter what in the new version
     filter_str = query_text[len(module_name):].strip()
     function_src = _produce_python_function_source(filter_str, filter_id)
     function, src, filter_id = function_src
 
     # get values from synamic object
-    values = synamic_obj.get_contents_by_module_name(module_name)
+    values = synamic_obj.dynamic_contents
+    # values = synamic_obj.get_contents_by_module_name(None)
     #
     q = Query(filter_id, filter_what, filter_str, values)
 
