@@ -4,16 +4,11 @@ from synamic.core.contracts.content import ContentContract
 
 class StaticContent(ContentContract):
 
-    def __init__(self, config, path, url, content_id, module_obj=None):
+    def __init__(self, config, path, url, content_id):
         self.__url = url
         self.__config = config
         self.__path = path
         self.__content_id = content_id
-        self.__module_obj = module_obj
-
-    @property
-    def module_object(self):
-        return self.__module_obj
 
     @property
     def config(self):

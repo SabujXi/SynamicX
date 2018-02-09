@@ -10,6 +10,14 @@ class ModelService:
         self.__model_map = {}
         self.__is_loaded = False
 
+        self.__service_home_path = None
+
+    @property
+    def service_home_path(self):
+        if self.__service_home_path is None:
+            self.__service_home_path = self.__config.path_tree.create_path((self.__config.site_root, 'models'))
+        return self.__service_home_path
+
     @property
     def is_loaded(self):
         return self.__is_loaded

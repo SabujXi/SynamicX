@@ -13,11 +13,6 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def module_object(self):
-        pass
-
-    @property
-    @abc.abstractmethod
     def config(self):
         pass
 

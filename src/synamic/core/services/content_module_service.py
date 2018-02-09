@@ -19,9 +19,8 @@ _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
 
 class MarkedContentImplementation(MarkedDocumentContract):
-    def __init__(self, config, module_object, path_object, file_content: str):
+    def __init__(self, config, path_object, file_content: str):
         self.__config = config
-        self.__module = module_object
         self.__path = path_object
         self.__content_type = ContentContract.types.DYNAMIC
         self.__file_content = file_content
@@ -45,10 +44,6 @@ class MarkedContentImplementation(MarkedDocumentContract):
     @property
     def config(self):
         return self.__config
-
-    @property
-    def module_object(self):
-        return self.__module
 
     @property
     def path_object(self):
@@ -137,7 +132,7 @@ class MarkedContentService(BaseContentModuleContract):
     @property
     def service_home_path(self):
         if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path((self.__config.site_root, 'content'))
+            self.__service_home_path = self.__config.path_tree.create_path(('content', ))
         return self.__service_home_path
 
     @property
@@ -152,33 +147,16 @@ class MarkedContentService(BaseContentModuleContract):
     def is_loaded(self):
         return self.__is_loaded
 
-    def _create_url_object(self, frontmatter):
-        is_dir = True
-        url_str = frontmatter['permalink']  # need to change to path
-        assert not _invalid_url.match(url_str), "url_object cannot have scheme"
-
-        if url_str.endswith('/'):
-            is_dir = True
-        else:
-            if '.' in url_str:
-                is_dir = False
-
-        if self.root_url_path:
-            url_str += self.root_url_path
-
-        url = ContentUrl(self.__config, url_str, is_dir=is_dir)
-        return url
-
     @not_loaded
     def load(self):
-        paths = self.__config.path_tree.get_module_file_paths(self)
+        paths = self.__config.path_tree.list_file_paths(*self.service_home_path.relative_path_components)
         print(paths)
 
         for file_path in paths:
             if file_path.extension.lower() in {'md', 'markdown'}:
                 with file_path.open("r", encoding="utf-8") as f:
                     text = f.read()
-                    content_obj = MarkedContentImplementation(self.__config, self, file_path, text)
+                    content_obj = MarkedContentImplementation(self.__config, file_path, text)
 
                     content_id = content_obj.fields.get('id', None)
                     # if content_id in self.__dynamic_contents:
