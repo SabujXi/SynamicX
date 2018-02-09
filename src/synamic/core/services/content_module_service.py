@@ -126,28 +126,27 @@ class ContentWrapper:
         return self.__content.url_object.path
 
 
-class MarkedContentModuleImplementation(BaseContentModuleContract):
+class MarkedContentService(BaseContentModuleContract):
     __slots__ = ('__config', '__is_loaded', '__contents_by_id', '__dynamic_contents', '__auxiliary_contents')
 
     def __init__(self, _cfg):
         self.__config = _cfg
         self.__is_loaded = False
+        self.__service_home_path = None
+
+    @property
+    def service_home_path(self):
+        if self.__service_home_path is None:
+            self.__service_home_path = self.__config.path_tree.create_path((self.__config.site_root, 'content'))
+        return self.__service_home_path
 
     @property
     def name(self):
-        return normalize_key('reference-marked-content-module')
+        return 'content'
 
     @property
     def config(self):
         return self.__config
-
-    @property
-    def content_class(self):
-        return MarkedContentImplementation
-
-    @property
-    def dependencies(self):
-        return set()
 
     @property
     def is_loaded(self):
@@ -179,7 +178,7 @@ class MarkedContentModuleImplementation(BaseContentModuleContract):
             if file_path.extension.lower() in {'md', 'markdown'}:
                 with file_path.open("r", encoding="utf-8") as f:
                     text = f.read()
-                    content_obj = self.content_class(self.__config, self, file_path, text)
+                    content_obj = MarkedContentImplementation(self.__config, self, file_path, text)
 
                     content_id = content_obj.fields.get('id', None)
                     # if content_id in self.__dynamic_contents:
@@ -189,7 +188,3 @@ class MarkedContentModuleImplementation(BaseContentModuleContract):
             else:
                 self.__config.add_static_content(file_path, self)
         self.__is_loaded = True
-
-    @property
-    def root_url_path(self):
-        return ""

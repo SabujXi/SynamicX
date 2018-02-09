@@ -8,7 +8,7 @@ from synamic.core.classes.mapping import FinalizableDict
 from synamic.core.classes.static import StaticContent
 
 
-class StaticModule(BaseContentModuleContract):
+class StaticModuleService(BaseContentModuleContract):
     def __init__(self, config):
         self.__config = config
         self.__is_loaded = False
@@ -16,10 +16,6 @@ class StaticModule(BaseContentModuleContract):
     @property
     def name(self):
         return 'static'
-
-    @property
-    def content_class(self):
-        return StaticContent
 
     @property
     def config(self):
@@ -37,11 +33,3 @@ class StaticModule(BaseContentModuleContract):
             assert file_path.is_file  # Remove in prod
             self.__config.add_static_content(file_path, self.name)
         self.__is_loaded = True
-
-    @property
-    def dependencies(self):
-        return set()
-
-    @property
-    def root_url_path(self):
-        return ''
