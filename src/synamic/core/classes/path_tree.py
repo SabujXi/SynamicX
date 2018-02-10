@@ -43,7 +43,7 @@ class ContentPath2:
         """
         Relative paths are relative from site root.
         """
-        print("*** rel path: %s" % str(self.relative_path_components))
+        # print("*** rel path: %s" % str(self.relative_path_components))
         return os.path.join(*self.__relative_path_comps)
 
     @property

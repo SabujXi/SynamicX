@@ -98,7 +98,7 @@ class SynamicConfig(object):
 
     def register_path(self, dir_path: ContentPath2):
         assert dir_path.is_dir
-        print(self.__registered_dir_paths)
+        # print(self.__registered_dir_paths)
         if dir_path in self.__registered_dir_paths:
             raise Exception("The same path is already registered")
         self.__registered_dir_paths.add(dir_path)
@@ -266,7 +266,7 @@ class SynamicConfig(object):
         mod_name = normalize_key(parts[0])
         search_type = normalize_key(parts[1])
         search_what = parts[2].strip()
-        print("Search what: %s" % search_what)
+        # print("Search what: %s" % search_what)
 
         if search_type == normalize_key('file'):
             search_what = normalize_relative_file_path(search_what)
@@ -292,7 +292,7 @@ class SynamicConfig(object):
 
     def get_content_by_url_path(self, path):
         path = normalize_content_url_path(path)
-        print("ContentPath requested: %s (normalized)" % path)
+        # print("ContentPath requested: %s (normalized)" % path)
         if path in self.__content_map[Key.CONTENTS_BY_URL_PATH]:
             url = self.__content_map[Key.CONTENTS_BY_URL_PATH][path]
         else:

@@ -756,19 +756,26 @@ class Query:
 
 
 def query(synamic_obj, query_text, filter_id=None):
+    # get values from synamic object
+    values = synamic_obj.dynamic_contents
+    if query_text.strip() == '':
+        return values
+
     filter_what = module_name = _Patterns.module_name_pat.match(query_text).group("module_name").strip()
     # will ignore filter what in the new version
     filter_str = query_text[len(module_name):].strip()
+    if filter_str.strip() == '':
+        return values
+
     function_src = _produce_python_function_source(filter_str, filter_id)
     function, src, filter_id = function_src
 
-    # get values from synamic object
-    values = synamic_obj.dynamic_contents
+
     # values = synamic_obj.get_contents_by_module_name(None)
     #
     q = Query(filter_id, filter_what, filter_str, values)
 
-    print(src)
+    # print(src)
     try:
         function(q)
     except:

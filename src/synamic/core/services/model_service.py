@@ -41,14 +41,14 @@ class ModelService:
         for file_path in file_paths:
             if file_path.basename.endswith('.model.txt') and len(file_path.basename) > len('.model.txt'):
                 model_name = file_path.basename[:-(len('.model.txt'))]
-                print(":::::::::::::::::::::: Model name `%s`" % model_name)
+                # print(":::::::::::::::::::::: Model name `%s`" % model_name)
                 with file_path.open('r', encoding='utf-8') as f:
                     model_txt = f.read()
                     model_file_paths_map[model_name] = {
                         'file_path': file_path,
                         'root_field': FieldParser(model_txt).parse()
                     }
-                    print("\n\n\n\nModel parsing: %s" % file_path.absolute_path)
+                    # print("\n\n\n\nModel parsing: %s" % file_path.absolute_path)
         self.__is_loaded = True
 
     @loaded
@@ -63,7 +63,7 @@ class ModelService:
             :param a_field: 
             :param field_path: is a tuple of nested field names 
             """
-            print("Processing field: %s" % a_field.name)
+            # print("Processing field: %s" % a_field.name)
             dotted_field = ".".join([field for field in field_path])
             model_field = model_root_field.get(dotted_field, None)
             if model_field is None:

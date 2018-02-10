@@ -30,6 +30,9 @@ class CommandProcessor(BaseShell):
             self.__synamic_object = self.__synamic_class(self.__site_root)
         return self.__synamic_object
 
+    def on_cwd(self):
+        self.pprint("Site Root: %s" % self.__site_root)
+
     def on_settings(self, arg):
         if not arg:
             self.pprint(self.__synamic_object.site_settings.values())
@@ -46,11 +49,15 @@ class CommandProcessor(BaseShell):
         self.__synamic_object = self.__synamic_class(self.__site_root)
         self.__synamic_object.initialize_site()
 
+    def on_load(self, arg):
+        'Reload the current synamic project'
+        s = self.get_or_create_synamic()
+        s.load()
+
     def on_reload(self, arg):
         'Reload the current synamic project'
         self.__synamic_object = self.__synamic_class(self.__site_root)
         self.__synamic_object.load()
-        self.__synamic_object.build()
 
     def on_build(self, arg):
         'Build Synamic project that will result in static site'
@@ -69,7 +76,11 @@ class CommandProcessor(BaseShell):
 
     def on_filter(self, arg):
         'Work with filter for pagination'
-        print("filter: ", arg)
+        s = self.get_or_create_synamic()
+        if not s.is_loaded:
+            s.load()
+        self.pprint(s.filter_content(arg))
+
 
     def on_clean(self, arg):
         'Clean the build folder'

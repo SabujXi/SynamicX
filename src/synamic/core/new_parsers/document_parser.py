@@ -100,7 +100,7 @@ class DocumentParser:
         assert self.__parsing_complete is False
         m_frontmatter = _Pat.frontmatter.match(self.__txt)
         if not m_frontmatter:
-            print("No, frontmatter found")
+            # print("No, frontmatter found")
             root_f = Field(-1, '__root__')
             self.__root_field = root_f
             self.__fields = tuple()
