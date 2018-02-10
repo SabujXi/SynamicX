@@ -47,7 +47,7 @@ class EventTypes(enum.Enum):
 class SynamicConfig(object):
     def __init__(self, site_root):
         assert os.path.exists(site_root), "Base path must not be non existent"
-        assert os.path.exists(os.path.join(site_root, '.synamic')) and os.path.isfile(os.path.join(site_root, '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(site_root, '.synamic')
+        # assert os.path.exists(os.path.join(site_root, '.synamic')) and os.path.isfile(os.path.join(site_root, '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(site_root, '.synamic')
         self.__event_types = EventTypes
         self.__site_root = site_root
 
