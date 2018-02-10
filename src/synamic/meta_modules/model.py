@@ -58,7 +58,7 @@ class ModelModule(BaseMetaModuleContract):
         model_txts = []
 
         for model_file_path in model_file_paths:
-            with self.__config.path_tree.open_file(model_file_path.relative_path, 'r', encoding='utf-8') as f:
+            with self.__config.path_tree.open(model_file_path.relative_path, 'r', encoding='utf-8') as f:
                 model_txt = f.read()
                 model_txts.append(model_txt)
 

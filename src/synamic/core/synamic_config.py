@@ -14,7 +14,7 @@ import re
 import enum
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path, normalize_relative_file_path
+from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path  #, normalize_relative_file_path
 from synamic.core.site_settings.site_settings import SiteSettings
 from synamic.core.classes.utils import DictUtils
 from synamic.core.type_system.type_system import TypeSystem
@@ -192,10 +192,8 @@ class SynamicConfig(object):
 
         # 6. Normalized relative file path
         if document.content_type != document.types.AUXILIARY:
-            _path = document.path_object.normalized_listing_relative_path
-            # print("Rormalized relative file path: %s" % _path)
+            _path = document.path_object.norm_relative_path
             parent_d = self.__content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
-            # d = DictUtils.get_or_create_dict(parent_d, mod_name)
             assert _path not in parent_d, "Duplicate normalized relative file path: %s" % _path
             parent_d[_path] = document
 
@@ -226,16 +224,16 @@ class SynamicConfig(object):
                 permalink = permalink.rstrip(r'\/')
                 permalink_comps = [x for x in re.split(r'[\\/]+', permalink)]
             else:
-                permalink_comps = file_path.relative_path_components
+                permalink_comps = file_path.path_components
 
             id = file_path.meta_info.get('id', None)
             cnt_url = ContentUrl(self, permalink_comps, is_dir=False)
         else:
-            cnt_url = ContentUrl(self, file_path.relative_path_components, is_dir=False)
+            cnt_url = ContentUrl(self, file_path.path_components, is_dir=False)
             id = None
 
         if id is None:
-            id = "/".join(file_path.relative_path_components)
+            id = "/".join(file_path.path_components)
 
         static_content = StaticContent(self, file_path, cnt_url, id)
         self.add_content(static_content)
@@ -272,9 +270,6 @@ class SynamicConfig(object):
         search_what = parts[2].strip()
         # print("Search what: %s" % search_what)
 
-        if search_type == normalize_key('file'):
-            search_what = normalize_relative_file_path(search_what)
-
         # 4. Content id
         if search_type == normalize_key('id'):
             parent_d = self.__content_map[Key.CONTENTS_BY_ID]
@@ -284,7 +279,9 @@ class SynamicConfig(object):
         # 6. Normalized relative file path
         elif search_type == normalize_key('file'):
             # _search_what = os.path.join(mod_name, search_what)
-            _search_what = normalize_relative_file_path(search_what)
+            _search_what = search_what.lower().lstrip(r'\/')
+            _search_what = mod_name + '/' + _search_what
+            _search_what = os.path.join(*self.__path_tree.to_components(_search_what))
             parent_d = self.__content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
             assert _search_what in parent_d, "File not found with the module and name: %s:%s:%s:  " % (mod_name, search_type, _search_what)
             res = parent_d[_search_what]
@@ -355,7 +352,7 @@ class SynamicConfig(object):
 
         for dir_path in dir_paths:
             if not dir_path.exists():
-                self.path_tree.makedirs(*dir_path.relative_path_components)
+                self.path_tree.makedirs(*dir_path.path_components)
 
         for v in self.__registered_virtual_files:
             if not v.file_path.exists():

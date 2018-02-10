@@ -215,8 +215,14 @@ class ContentWrapper:
     def __init__(self, content):
         self.__content = content
 
-    def __getattr__(self, item):
-        return getattr(self.__content, item)
+    def __getitem__(self, key):
+        res = getattr(self.__content, key, None)
+        if res is None:
+            res = self.__content.fields.get(key, None)
+        return res
+
+    def __getattr__(self, key):
+        return self.__getitem__(key)
 
     @property
     def id(self):

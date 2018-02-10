@@ -28,7 +28,7 @@ class SiteSettings:
     def load(self):
         fn = self.__config.settings_file_name
         if not self.__config.path_tree.exists(fn):
-            with self.__config.path_tree.open_file(fn, 'r', encoding='utf-8') as f:
+            with self.__config.path_tree.open(fn, 'r', encoding='utf-8') as f:
                 text = f.read()
             _root_f = FieldParser(text).parse()
             self.__root_field = _root_f
