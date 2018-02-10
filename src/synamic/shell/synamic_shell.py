@@ -12,6 +12,7 @@
 from .base_shell import BaseShell
 import os
 from shutil import rmtree
+from synamic.dev_server.server import serve
 
 
 class CommandProcessor(BaseShell):
@@ -30,8 +31,18 @@ class CommandProcessor(BaseShell):
             self.__synamic_object = self.__synamic_class(self.__site_root)
         return self.__synamic_object
 
+    def get_loaded_or_load_synamic(self):
+        s = self.get_or_create_synamic()
+        if not s.is_loaded:
+            s.load()
+        return s
+
     def on_cwd(self):
         self.pprint("Site Root: %s" % self.__site_root)
+
+    def on_urls(self):
+        s = self.get_loaded_or_load_synamic()
+        self.pprint(s.urls)
 
     def on_settings(self, arg):
         if not arg:
@@ -72,7 +83,7 @@ class CommandProcessor(BaseShell):
 
     def on_serve(self, arg):
         'Serve the current synamic project in localhost'
-        print("serve: ", arg)
+        serve(self.get_loaded_or_load_synamic(), 8000)
 
     def on_filter(self, arg):
         'Work with filter for pagination'

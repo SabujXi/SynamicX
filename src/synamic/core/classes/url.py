@@ -38,6 +38,13 @@ class ContentUrl:
     def absolute_url(self):
         raise NotImplemented
 
+    @classmethod
+    def normalize_url_path(self, url_path):
+        url_path = re.sub(r'[\\/]+', r'/', url_path)
+        if not url_path.startswith('/'):
+            url_path = '/' + url_path
+        return url_path
+
     @property
     def is_dir(self):
         return self.__is_dir
@@ -59,7 +66,10 @@ class ContentUrl:
         if self.__url_str is None:
             start = '/'
             end = '/' if self.__is_dir else ''
-            self.__url_str = start + "/".join(self.__url_comps) + end
+            if self.__url_comps:
+                self.__url_str = start + "/".join(self.__url_comps) + end
+            else:
+                self.__url_str = start
         return self.__url_str
 
     @property

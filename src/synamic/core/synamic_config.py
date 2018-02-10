@@ -93,6 +93,10 @@ class SynamicConfig(object):
         NullService(self)
 
     @property
+    def urls(self):
+        return self.__content_map[Key.CONTENTS_BY_URL_PATH].copy()
+
+    @property
     def event_types(self):
         return self.__event_types
 

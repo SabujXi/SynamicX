@@ -11,6 +11,7 @@
 
 import http.server
 from urllib.parse import unquote
+from synamic.core.classes.url import ContentUrl
 
 
 class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -23,6 +24,8 @@ class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
             path = self.path
 
         path = unquote(path)
+
+        path = ContentUrl.normalize_url_path(path)
 
         if path.endswith('/index.html'):
             path = path[:-len('index.html')]
