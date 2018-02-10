@@ -16,7 +16,14 @@ setup(
             'synamic = synamic.entry_points.synamic_shell:main'
         ]
     },
-    data_files=[('', ['README.md', 'LICENSE'])]
+    data_files=[('', ['README.md', 'LICENSE'])],
+    install_requires=[
+        'Jinja2>=2.10',
+        'MarkupSafe>=1.0',
+        'mistune>=0.8.3',
+        'ruamel.yaml>=0.15.34'
+    ],
+    python_requires='>=3.5',
 )
 
 # print(find_packages('src', exclude=('synamic',)))
