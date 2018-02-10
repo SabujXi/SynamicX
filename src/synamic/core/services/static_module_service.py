@@ -19,6 +19,8 @@ class StaticModuleService(BaseContentModuleContract):
         self.__is_loaded = False
         self.__service_home_path = None
 
+        self.__config.register_path(self.service_home_path)
+
     @property
     def service_home_path(self):
         if self.__service_home_path is None:

@@ -27,7 +27,7 @@ from synamic.core.classes.static import StaticContent
 from synamic.core.services.content_module_service import MarkedContentService
 from synamic.core.services.static_module_service import StaticModuleService
 from synamic.core.new_filter.filter_functions import query
-
+from synamic.core.services.null_service import NullService
 
 @enum.unique
 class Key(enum.Enum):
@@ -46,8 +46,11 @@ class EventTypes(enum.Enum):
 
 class SynamicConfig(object):
     def __init__(self, site_root):
+        # registered directories, path
+        self.__registered_dir_paths = set()
+        self.__registered_virtual_files = set()
+
         assert os.path.exists(site_root), "Base path must not be non existent"
-        # assert os.path.exists(os.path.join(site_root, '.synamic')) and os.path.isfile(os.path.join(site_root, '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(site_root, '.synamic')
         self.__event_types = EventTypes
         self.__site_root = site_root
 
@@ -78,7 +81,7 @@ class SynamicConfig(object):
         self.__is_loaded = False
         self.__dependency_list = None
         # site settings
-        self.__site_settings = None
+        self.__site_settings = SiteSettings(self)
 
         # content service
         self.__content_service = MarkedContentService(self)
@@ -86,10 +89,8 @@ class SynamicConfig(object):
         # static service
         self.__static_service = StaticModuleService(self)
 
-        # registered directories, path
-        self.__registered_dir_paths = set()
-        self.__registered_virtual_files = set()
-        # initializing modules
+        # null service for adding some virtual files
+        NullService(self)
 
     @property
     def event_types(self):
@@ -97,6 +98,7 @@ class SynamicConfig(object):
 
     def register_path(self, dir_path: ContentPath2):
         assert dir_path.is_dir
+        print(self.__registered_dir_paths)
         if dir_path in self.__registered_dir_paths:
             raise Exception("The same path is already registered")
         self.__registered_dir_paths.add(dir_path)
@@ -129,8 +131,6 @@ class SynamicConfig(object):
 
     @property
     def site_settings(self):
-        if self.__site_settings is None:
-            self.__site_settings = SiteSettings(self)
         return self.__site_settings
 
     @property
@@ -145,6 +145,8 @@ class SynamicConfig(object):
 
     @not_loaded
     def load(self):
+        assert os.path.exists(os.path.join(self.site_root, '.synamic')) and os.path.isfile(os.path.join(self.site_root, '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(self.site_root, '.synamic')
+        self.__site_settings.load()
         # load templates service
         self.__templates.load()
         # load model service
@@ -159,11 +161,9 @@ class SynamicConfig(object):
         for cnt in self.__content_map[Key.DYNAMIC_CONTENTS]:
             cnt.trigger_post_processing()
 
-
-
-        # test
-        # fil_res = self.filter_content('txt | :sort_by created_on "des"|@one')
-        # print(fil_res)
+            # test
+            # fil_res = self.filter_content('txt | :sort_by created_on "des"|@one')
+            # print(fil_res)
 
     # Content &| Document Things
     # Content &| Document Things
@@ -182,7 +182,7 @@ class SynamicConfig(object):
                 parent_d = self.__content_map[Key.CONTENTS_BY_ID]
                 # d = DictUtils.get_or_create_dict(parent_d, mod_name)
 
-                assert document.content_id not in parent_d,\
+                assert document.content_id not in parent_d, \
                     "Duplicate content id cannot exist %s" % document.content_id
                 parent_d[document.content_id] = document
 
@@ -200,7 +200,7 @@ class SynamicConfig(object):
         self.__content_map[Key.CONTENTS_BY_URL_PATH][document.url_object.path] = document
 
         # 3. Generalized real path
-        assert url_object.norm_real_path not in self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH],\
+        assert url_object.norm_real_path not in self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH], \
             "Multiple resource with the same generalized url cannot coexist"
         self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.norm_real_path] = document
 
@@ -343,23 +343,20 @@ class SynamicConfig(object):
                 f.write(stream.read())
                 stream.close()
 
-    @loaded
     def initialize_site(self):
-        dirs = [
-            self.site_settings.output_dir
+        dir_paths = [
+            self.path_tree.create_path(self.site_settings.output_dir),
+            *self.__registered_dir_paths
         ]
-        # for mod in self.modules:
-        #     mod_dir = self.get_module_dir(mod)
-        #     dirs.append(mod_dir)
-        # execution: directories creation
-        for dir in dirs:
-            if not self.path_tree.exists(dir):
-                self.path_tree.makedirs(dir)
 
-        # creating empty site settings file
-        if not self.path_tree.exists(self.settings_file_name):
-            with self.path_tree.open_file(self.settings_file_name, 'w') as f:
-                pass
+        for dir_path in dir_paths:
+            if not dir_path.exists():
+                self.path_tree.makedirs(*dir_path.relative_path_components)
+
+        for v in self.__registered_virtual_files:
+            if not v.file_path.exists():
+                with v.file_path.open('w') as f:
+                    f.write(v.file_content)
 
     @loaded
     def filter_content(self, filter_txt):

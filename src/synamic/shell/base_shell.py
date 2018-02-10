@@ -52,7 +52,8 @@ class BaseShell(object):
     intor_text = "Basic Shell By Md. Sabuj Sarker"
     prompt_text = "(sabuj): "
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, startup_commands=None, *args, **kwargs):
+        self.__startup_commands = startup_commands
         self.symbol_to_method = {
             '@': 'py',
             '!': 'py',
@@ -61,6 +62,10 @@ class BaseShell(object):
         self.__loop_running = False
         self.__permanent_local_for_py = {}
         self.__last_set_value = None
+        self.__setup_windows_console()
+
+    def __setup_windows_console(self):
+        sys.stdout = open(sys.stdout.fileno(), mode='w', encoding='utf8', buffering=1)
 
     def on_help(self, cmd=None):
         self.print("Help needed...")

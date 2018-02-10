@@ -23,15 +23,15 @@ class SiteSettings:
 
     def __init__(self, config):
         self.__config = config
+        self.__root_field = FieldParser('').parse()
 
-        fn = config.settings_file_name
-        if config.path_tree.exists(fn):
-            _root_f = FieldParser('').parse()
-        else:
-            with config.path_tree.open_file(fn, encoding='utf-8') as f:
+    def load(self):
+        fn = self.__config.settings_file_name
+        if not self.__config.path_tree.exists(fn):
+            with self.__config.path_tree.open_file(fn, 'r', encoding='utf-8') as f:
                 text = f.read()
             _root_f = FieldParser(text).parse()
-        self.__root_field = _root_f
+            self.__root_field = _root_f
 
     @property
     def host_address(self):

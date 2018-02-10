@@ -128,7 +128,7 @@ class ContentPath2:
 
     def exists(self):
         """Real time checking"""
-        print("__REL PATH: %s" % self.relative_path)
+        # print("__REL PATH: %s" % self.relative_path)
         return self.__path_tree.exists(self.relative_path)
 
     def parent_dir_path(self):
@@ -278,7 +278,7 @@ class PathTree(object):
         prefix_relative_root is fixed on every recursion
         BUT next_relative_root isn't
         """
-        print("Starting Components in list path loop: %s" % str(starting_components))
+        # print("Starting Components in list path loop: %s" % str(starting_components))
         for x in starting_components:
             assert '/' not in x and '\\' not in x
 
@@ -345,7 +345,8 @@ class PathTree(object):
 
     def get_full_path(self, *_path):
         """Comma separated arguments of path components or os.sep separated paths"""
-        print(repr((self.__config.site_root, *_path)))
+        p = str((self.__config.site_root, *_path)).encode('utf-8')
+        # print(p)
         return os.path.join(self.__config.site_root, *_path)
 
     def exists(self, *_path):
@@ -394,8 +395,8 @@ class PathTree(object):
         fn = self.get_full_path(file_name)
         return open(fn, mode, *args, **kwargs)
 
-    def makedirs(self, dir_path):
-        full_p = self.get_full_path(dir_path)
+    def makedirs(self, *dir_path):
+        full_p = self.get_full_path(*dir_path)
         os.makedirs(full_p)
 
     def create_path(self, path_comp, is_file=False):

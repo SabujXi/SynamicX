@@ -287,7 +287,7 @@ class FieldParser:
             # predict next line level
             if line_no < len(lines):
                 next_line = lines[line_no]
-                print('Next Line: %s' % next_line)
+                # print('Next Line: %s' % next_line)
 
                 new_nesting_level = self.guess_nesting_level_for_field(next_line)
 
@@ -295,7 +295,7 @@ class FieldParser:
                     assert new_nesting_level == nesting_level + 1, "The next nesting level (%s) is not up to the expectation to current (%s)" % (new_nesting_level, nesting_level)
                     nesting_level += 1
                 else:
-                    print("New level: `%s`, Nesting level: `%s`" % (new_nesting_level, nesting_level))
+                    # print("New level: `%s`, Nesting level: `%s`" % (new_nesting_level, nesting_level))
                     if nesting_level != new_nesting_level:
                         assert new_nesting_level < nesting_level, "Without having nested fields, nesting can only go backward"
                         diff = nesting_level - new_nesting_level

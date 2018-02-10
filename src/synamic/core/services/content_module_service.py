@@ -80,7 +80,7 @@ class AuxMarkedContentImplementation(MarkedDocumentContract):
     @property
     def url_object(self):
         if self.__url is None:
-            print("Fields: %s" % self.fields)
+            # print("Fields: %s" % self.fields)
             self.__url = ContentUrl(self.config, '_/' + self.fields['permalink'] + '/' + str(self.__page_no), is_dir=True)
         return self.__url
 
@@ -110,7 +110,7 @@ class MarkedContentImplementation(MarkedDocumentContract):
         doc = DocumentParser(self.__file_content).parse()
 
         res_map = self.__config.model_service.get_converted('text', doc.root_field, doc.body)
-        print("Resp Map : %s" % res_map)
+        # print("Resp Map : %s" % res_map)
         self.__body = res_map['__body__']
         del res_map['__body__']
         self.__fields = OrderedDict()
@@ -118,7 +118,7 @@ class MarkedContentImplementation(MarkedDocumentContract):
         for k, v in res_map.items():
             self.__fields[k] = v['value']
             self.field_converters[k] = v['converter']
-        print("Resp Map2: %s" % res_map)
+        # print("Resp Map2: %s" % res_map)
 
         self.__pagination = None
 
@@ -169,7 +169,7 @@ class MarkedContentImplementation(MarkedDocumentContract):
     @property
     def url_object(self):
         if self.__url is None:
-            print("Fields: %s" % self.fields)
+            # print("Fields: %s" % self.fields)
             self.__url = ContentUrl(self.__config, self.fields['permalink'])
         return self.__url
 
@@ -235,10 +235,12 @@ class MarkedContentService(BaseContentModuleContract):
         self.__is_loaded = False
         self.__service_home_path = None
 
+        self.__config.register_path(self.service_home_path)
+
     @property
     def service_home_path(self):
         if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path((self.__config.site_root, 'content'))
+            self.__service_home_path = self.__config.path_tree.create_path(('content',))
         return self.__service_home_path
 
     @property
@@ -256,7 +258,7 @@ class MarkedContentService(BaseContentModuleContract):
     @not_loaded
     def load(self):
         paths = self.__config.path_tree.list_file_paths(*('content',))
-        print(paths)
+        # print(paths)
 
         for file_path in paths:
             if file_path.extension.lower() in {'md', 'markdown'}:

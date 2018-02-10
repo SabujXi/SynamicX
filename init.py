@@ -11,10 +11,12 @@
 
 import os
 from synamic.core.synamic import Synamic
-from synamic.shell.synamic_shell import start_shell
-
-site_root = os.path.join(os.path.abspath(os.path.dirname(__file__)), "test_site")
+site_root = os.path.join(os.path.abspath(os.path.dirname(__file__)), "experiment_dir")
 
 print("SITE-ROOT: %s" % site_root)
 
-start_shell(Synamic, site_root)
+syn = Synamic(site_root)
+syn.initialize_site()
+
+syn.load()
+syn.build()
