@@ -392,6 +392,14 @@ class Field:
         return m
 
     def to_dict_ordinary(self):
+        """
+        {
+            name: value
+            name2: {
+                xname: value
+            }
+        } 
+        """
         d = OrderedDict()
         for field_name, field in self.__values_map.items():
             name = field_name
