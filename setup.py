@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 from setuptools import setup, find_packages
 
+with open('README.rst', 'r', encoding='utf-8') as f:
+    long_description = f.read()
+
 setup(
     name='synamic',
-    version='0.2.dev2',
+    version='0.2.dev3',
     description='Synamic',
     author='Md. Sabuj Sarker',
     author_email='md.sabuj.sarker@gmail.com',
@@ -24,6 +27,7 @@ setup(
         'ruamel.yaml>=0.15.34'
     ],
     python_requires='>=3.5',
+    long_description=long_description
 )
 
 # print(find_packages('src', exclude=('synamic',)))
