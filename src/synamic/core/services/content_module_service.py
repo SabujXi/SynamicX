@@ -170,6 +170,8 @@ class MarkedContentImplementation(MarkedDocumentContract):
     def url_object(self):
         if self.__url is None:
             # print("Fields: %s" % self.fields)
+
+            # so, /404.html should not be /404.html/(index.html) - see below.
             slug = self.fields['permalink']
             if not re.match(r'.*\.[a-z0-9]+$', slug, re.I):
                 if not slug.endswith('/'):

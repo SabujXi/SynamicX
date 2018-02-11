@@ -62,6 +62,16 @@ class ContentUrl:
             res_url_comps[-1] = ''
         return tuple(res_url_comps)
 
+    @classmethod
+    def __to_content_components(cls, _url_comps):
+        """
+        __to_components() can be used for anything (e.g. in join() to join another string and construct url)
+         and thus it does not prepend and empty string at the start. So, here this one comes handy.
+         """
+        if _url_comps[0] != '':
+            _url_comps = ('', *_url_comps)
+        return _url_comps
+
     def __init__(self, config, url_comps, append_slash=False):
         """
         append_slash is only for dynamic contents and only when the url_comps is being passed as sting (not: list, tuple, content path) 
@@ -71,10 +81,9 @@ class ContentUrl:
         
         if we indicate ...
         """
-        _url_comps = self.__to_components(url_comps, append_slash)
-        if _url_comps[0] != '':
-            _url_comps = ('', *_url_comps)
-        self.__url_comps = _url_comps
+        self.__url_comps = self.__to_content_components(
+                self.__to_components(url_comps, append_slash)
+            )
 
         self.__config = config
         self.__of_static_file = type(url_comps) is ContentPath2
