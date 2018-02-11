@@ -29,11 +29,11 @@ from synamic.core.services.static_module_service import StaticModuleService
 from synamic.core.new_filter.filter_functions import query
 from synamic.core.services.null_service import NullService
 
+
 @enum.unique
 class Key(enum.Enum):
     CONTENTS_BY_ID = 0
-    CONTENTS_BY_URL_PATH = 2
-    CONTENTS_BY_GENERALIZED_URL_PATH = 3
+    CONTENTS_BY_CONTENT_URL = 3
     CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH = 5
     CONTENTS_SET = 4
     DYNAMIC_CONTENTS = 6
@@ -58,8 +58,7 @@ class SynamicConfig(object):
         # Content Map
         self.__content_map = {
             Key.CONTENTS_BY_ID: dict(),
-            Key.CONTENTS_BY_URL_PATH: dict(),
-            Key.CONTENTS_BY_GENERALIZED_URL_PATH: dict(),
+            Key.CONTENTS_BY_CONTENT_URL: dict(),
             Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH: dict(),
             Key.CONTENTS_SET: set(),
             Key.DYNAMIC_CONTENTS: set()
@@ -197,14 +196,9 @@ class SynamicConfig(object):
             assert _path not in parent_d, "Duplicate normalized relative file path: %s" % _path
             parent_d[_path] = document
 
-        # 2. Url path
-        assert document.url_object.path not in self.__content_map[Key.CONTENTS_BY_URL_PATH], "Path %s in content map" % document.url_object.path
-        self.__content_map[Key.CONTENTS_BY_URL_PATH][document.url_object.path] = document
-
-        # 3. Generalized real path
-        assert url_object.norm_real_path not in self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH], \
-            "Multiple resource with the same generalized url cannot coexist"
-        self.__content_map[Key.CONTENTS_BY_GENERALIZED_URL_PATH][url_object.norm_real_path] = document
+        # 2. Content Url Object
+        assert document.url_object not in self.__content_map[Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path
+        self.__content_map[Key.CONTENTS_BY_CONTENT_URL][document.url_object] = document
 
         # 5. Contents set
         self.__content_map[Key.CONTENTS_SET].add(document)
@@ -218,24 +212,7 @@ class SynamicConfig(object):
 
     def add_static_content(self, file_path):
         assert type(file_path) is ContentPath2
-        if file_path.meta_info:
-            permalink = file_path.meta_info.get('permalink', None)
-            if permalink:
-                permalink = permalink.rstrip(r'\/')
-                permalink_comps = [x for x in re.split(r'[\\/]+', permalink)]
-            else:
-                permalink_comps = file_path.path_components
-
-            id = file_path.meta_info.get('id', None)
-            cnt_url = ContentUrl(self, permalink_comps, is_dir=False)
-        else:
-            cnt_url = ContentUrl(self, file_path.path_components, is_dir=False)
-            id = None
-
-        if id is None:
-            id = "/".join(file_path.path_components)
-
-        static_content = StaticContent(self, file_path, cnt_url, id)
+        static_content = StaticContent(self, file_path)
         self.add_content(static_content)
         return static_content
 
@@ -291,14 +268,13 @@ class SynamicConfig(object):
 
         return res.url_object.path
 
-    def get_content_by_url_path(self, path):
-        path = normalize_content_url_path(path)
-        # print("ContentPath requested: %s (normalized)" % path)
-        if path in self.__content_map[Key.CONTENTS_BY_URL_PATH]:
-            url = self.__content_map[Key.CONTENTS_BY_URL_PATH][path]
+    def get_content_by_content_url(self, curl: ContentUrl):
+        assert type(curl) is ContentUrl
+        if curl in self.__content_map[Key.CONTENTS_BY_CONTENT_URL]:
+            cont = self.__content_map[Key.CONTENTS_BY_CONTENT_URL][curl]
         else:
-            url = None
-        return url
+            cont = None
+        return cont
 
     # Primary Configs
     # Primary Configs
@@ -339,7 +315,7 @@ class SynamicConfig(object):
             if not os.path.exists(dir):
                 os.makedirs(dir)
 
-            with url.to_file_path.open('wb') as f:
+            with url.to_content_path.open('wb') as f:
                 stream = cont.get_stream()
                 f.write(stream.read())
                 stream.close()

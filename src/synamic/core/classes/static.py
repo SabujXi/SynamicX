@@ -10,15 +10,17 @@
 
 import mimetypes
 from synamic.core.contracts.content import ContentContract
+from synamic.core.classes.url import ContentUrl
 
 
 class StaticContent(ContentContract):
 
-    def __init__(self, config, path, url, content_id):
-        self.__url = url
+    def __init__(self, config, path, file_content=None):
+        assert file_content is None
+        self.__url = None
         self.__config = config
         self.__path = path
-        self.__content_id = content_id
+        self.__content_id = None  # TODO: devise a mechanism for generating it - now set to null
 
     @property
     def config(self):
@@ -55,4 +57,24 @@ class StaticContent(ContentContract):
 
     @property
     def url_object(self):
+        if self.__url is None:
+            self.__url = ContentUrl(self.__config, self.__path)
         return self.__url
+
+        # if file_path.meta_info:
+        #     permalink = file_path.meta_info.get('permalink', None)
+        #     if permalink:
+        #         permalink = permalink.rstrip(r'\/')
+        #         permalink_comps = [x for x in re.split(r'[\\/]+', permalink)]
+        #     else:
+        #         permalink_comps = file_path.path_components
+        #
+        #     id = file_path.meta_info.get('id', None)
+        #     cnt_url = ContentUrl(self, permalink_comps, append_slash=False)
+        # else:
+        #     cnt_url = ContentUrl(self, file_path.path_components, append_slash=False)
+        #     id = None
+        #
+        # if id is None:
+        #     id = "/".join(file_path.path_components)
+

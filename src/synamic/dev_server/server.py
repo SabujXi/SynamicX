@@ -12,10 +12,11 @@
 import http.server
 from urllib.parse import unquote
 from synamic.core.classes.url import ContentUrl
-
+import re
 
 class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        cfg = self.server.synamic_config
         paths = self.path.split("?")
         if len(paths) > 1:
             path = "".join(paths[:-1])
@@ -25,15 +26,18 @@ class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
 
         path = unquote(path)
 
-        path = ContentUrl.normalize_url_path(path)
+        curl = ContentUrl(cfg, path)
 
-        if path.endswith('/index.html'):
-            path = path[:-len('index.html')]
-
-        cont = self.server.synamic_config.get_content_by_url_path(path)
-        if not cont:
-            cont = self.server.synamic_config.get_content_by_url_path(path + "/index.html")
-        if cont:
+        cont = self.server.synamic_config.get_content_by_content_url(curl)
+        if cont is None:
+            # content urls are coditionally slashed, let's try other way
+            slug = path
+            if not re.match(r'.*\.[a-z0-9]+$', slug, re.I):
+                if not slug.endswith('/'):
+                    slug += '/'
+            curl = ContentUrl(cfg, slug)
+            cont = self.server.synamic_config.get_content_by_content_url(curl)
+        if cont is not None:
             self.send_response(200, message="OK")
             self.end_headers()
             stream = cont.get_stream()

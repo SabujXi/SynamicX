@@ -81,7 +81,7 @@ class AuxMarkedContentImplementation(MarkedDocumentContract):
     def url_object(self):
         if self.__url is None:
             # print("Fields: %s" % self.fields)
-            self.__url = ContentUrl(self.config, '_/' + self.fields['permalink'] + '/' + str(self.__page_no), is_dir=True)
+            self.__url = ContentUrl(self.config, '_/' + self.fields['permalink'] + '/' + str(self.__page_no), append_slash=True)
         return self.__url
 
     @property
@@ -170,7 +170,11 @@ class MarkedContentImplementation(MarkedDocumentContract):
     def url_object(self):
         if self.__url is None:
             # print("Fields: %s" % self.fields)
-            self.__url = ContentUrl(self.__config, self.fields['permalink'])
+            slug = self.fields['permalink']
+            if not re.match(r'.*\.[a-z0-9]+$', slug, re.I):
+                if not slug.endswith('/'):
+                    slug += '/'
+            self.__url = ContentUrl(self.__config, slug)
         return self.__url
 
     @property
