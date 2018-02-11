@@ -14,6 +14,7 @@ from urllib.parse import unquote
 from synamic.core.classes.url import ContentUrl
 import re
 
+
 class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         cfg = self.server.synamic_config

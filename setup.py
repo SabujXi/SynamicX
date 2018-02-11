@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='synamic',
-    version='0.2.dev',
+    version='0.2.dev2',
     description='Synamic',
     author='Md. Sabuj Sarker',
     author_email='md.sabuj.sarker@gmail.com',

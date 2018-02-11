@@ -10,3 +10,9 @@ class NullService:
                 ''
             )
         )
+        cfg.register_virtual_file(
+            VirtualFile(
+                ContentPath2(cfg.path_tree, cfg.site_root, ('.synamic',), is_file=True),
+                ''
+            )
+        )

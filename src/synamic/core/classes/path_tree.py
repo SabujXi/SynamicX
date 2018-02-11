@@ -10,8 +10,6 @@
 
 import os
 import re
-from synamic.core.functions.yaml_processor import load_yaml
-from synamic.core.functions.normalizers import normalize_keys
 from collections import deque
 from synamic.core.new_parsers.document_parser import FieldParser, Field
 from collections import OrderedDict
@@ -35,6 +33,13 @@ class ContentPath2:
 
         self.__meta_info = OrderedDict()
         self.__meta_path = None
+
+    @property
+    def parent_path(self):
+        if len(self.__path_comps) <= 2:
+            return None
+        pp = self.__path_tree.create_path()
+        # TODO: complete later
 
     @property
     def site_root(self):
@@ -319,7 +324,7 @@ class PathTree(object):
         full_p = self.__full_path(comps)
         os.makedirs(full_p)
 
-    def get_full_path(self, comps):
+    def get_full_path(self, comps) -> str:
         comps = self.to_components(comps)
         return os.path.join(self.__config.site_root, *comps)
 

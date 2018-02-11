@@ -27,7 +27,7 @@ class SynamicTemplateService:
     @property
     def service_home_path(self):
         if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path((self.__config.site_root, 'templates'))
+            self.__service_home_path = self.__config.path_tree.create_path('templates')
         return self.__service_home_path
 
     @property
