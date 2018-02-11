@@ -34,12 +34,35 @@ class ContentPath2:
         self.__meta_info = OrderedDict()
         self.__meta_path = None
 
+    # def parent_dir_path(self):
+    #     path_comps = self.path_components
+    #     if len(path_comps) in (0, 1):
+    #         raise Exception("Not allowed to query the paths parent of site root")
+    #     # elif len(path_comps) == 1:
+    #     #     return self.__path_tree.site_root_path
+    #     else:
+    #         return self.__path_tree.get_path(self.path_components[:-1])
+
     @property
     def parent_path(self):
-        if len(self.__path_comps) <= 2:
+        if len(self.__path_comps) <= 1:
+            # contents/a-file
+            # contents/dirA/b-file
+            # * contents cannot have parent (==None) (Content Path is not for the site root or above dirs! SO -_-)
             return None
-        pp = self.__path_tree.create_path()
-        # TODO: complete later
+        pp = self.__path_tree.create_path(self.path_components[:-1])
+        assert pp.is_dir, "Logical error, inform the developer (Sabuj)"  # Just to be safe from future bug.
+        return pp
+
+    @property
+    def parent_paths(self) -> deque:
+        parent_paths = deque()
+        pp = self.parent_path
+        while pp is not None:
+            parent_paths.appendleft(pp)
+            pp = pp.parent_path
+
+        return parent_paths
 
     @property
     def site_root(self):
@@ -137,14 +160,7 @@ class ContentPath2:
         # print("__REL PATH: %s" % self.relative_path)
         return self.__path_tree.exists(self.path_components)
 
-    def parent_dir_path(self):
-        path_comps = self.path_components
-        if len(path_comps) in (0, 1):
-            raise Exception("Not allowed to query the paths parent of site root")
-        # elif len(path_comps) == 1:
-        #     return self.__path_tree.site_root_path
-        else:
-            return self.__path_tree.get_path(self.path_components[:-1])
+
 
     def open(self, mode, *args, **kwargs):
         return self.__path_tree.open(self.path_components, mode, *args, **kwargs)
@@ -179,7 +195,13 @@ class ContentPath2:
             `.meta.txt` being case sensitive, in users may provide extension in case insensitive ways and fail applications.
         """
         if self.__meta_path is None:
-            meta_path = self.join(self.META_FILE_EXTENSION, is_file=True, is_meta=True)
+            if self.is_file:
+                comps = "." + self.basename + self.META_FILE_EXTENSION #(*self.path_components[:-1], "." + self.basename + self.META_FILE_EXTENSION)
+            else:
+                assert self.is_dir, "Logical error"  # just for detecting future bug.
+                comps = self.META_FILE_EXTENSION #(*self.path_components, self.META_FILE_EXTENSION)
+            meta_path = self.join(comps, is_file=True, is_meta=True)
+            # print("Meta Path `%s` Comps `%s` for `%s`" % (meta_path, comps, self.path_components))
             if meta_path.exists():
                 """
                 Files have meta path like: file_name.meta.txt

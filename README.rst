@@ -45,8 +45,8 @@ Directory structure:
 
 1. *content*: primarily for keeping your markdown contents (by default
    with .md and .markdown extension). All other files will be considered
-   as static files, except for the files that start with a dot (.) or
-   ends with ``.meta.txt``
+   as static files, except for the files that start with a dot (.)-
+   files end with ``.meta.txt`` are meta files (primarily for configuration purpose). ``.filename.meta.txt`` are for file meta and ``.meta.txt`` are for directory meta.
 2. *static*: for static files.
 3. *models*: for models. Currently you should define the default model
    with file name: ``text.model.txt``

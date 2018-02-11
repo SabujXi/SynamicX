@@ -19,7 +19,7 @@ setup(
             'synamic = synamic.entry_points.synamic_shell:main'
         ]
     },
-    data_files=[('', ['README.md', 'LICENSE'])],
+    data_files=[('', ['README.rst', 'LICENSE'])],
     install_requires=[
         'Jinja2>=2.10',
         'MarkupSafe>=1.0',

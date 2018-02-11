@@ -20,7 +20,8 @@ from typing import Union
 
 class ContentUrl:
     @classmethod
-    def __to_components(cls, url_comps_or_path: Union[str, list, tuple, ContentPath2], append_slash) -> tuple:
+    def __to_components(cls, url_comps_or_path: Union[str, list, tuple, ContentPath2], append_slash=False) -> tuple:
+        # print("URl comps or path: %s" % url_comps_or_path)
         res_url_comps = []
         if type(url_comps_or_path) is str:
             if not re.match(r'[\\/]+$', url_comps_or_path):
@@ -30,23 +31,33 @@ class ContentUrl:
                 res_url_comps.append(url_comp)
 
         elif type(url_comps_or_path) in (list, tuple):
+            # print("URL AS LIST PATH: `%s`" % str(url_comps_or_path))
             assert not append_slash, "Cannot do append slashing for list/tuple comps - list or tuple comps are considered files -- ;) always files first"
-            assert type(url_comps_or_path) in {list, tuple}, "Url components can either be str, list or tuple"
+            # assert type(url_comps_or_path) in {list, tuple}, "Url components can either be str, list or tuple"
             # validation for double space
 
             # removing empty str from middle - they will be intact at both ends
-            idx = 0
-            last_idx = len(url_comps_or_path) - 1
+            # idx = 0
+            # last_idx = len(url_comps_or_path) - 1
+            # last_comp_was_empty = False  # last_comp_was_empty == ''
             for url_comp in url_comps_or_path:
-                assert not re.match(r'^\s+$', url_comp), "A component of an url cannot be one or all whitespaces"
+                # assert not re.match(r'^\s+$', url_comp), "A component of an url cannot be one or all whitespaces"
+                # if url_comp == '':
+                #     if last_comp_was_empty:
+                #         last_comp_was_empty = True
+                #         continue
+                #     last_comp_was_empty = True
+                # else:
+                #     last_comp_was_empty = False
 
-                if url_comp == '' and idx != 0 and idx != last_idx:
-                    idx += 1
-                    continue
+                # if url_comp == '' and idx != 0 and idx != last_idx:
+                #     idx += 1
+                #     continue
                 res_url_comps.append(url_comp)
-            if append_slash and res_url_comps[-1] != '' and res_url_comps[-1] != 'index.html':
-                # index.html (lower) is special
-                res_url_comps.append('')
+
+            # if res_url_comps[-1] != '' and res_url_comps[-1] != 'index.html':
+            #     # index.html (lower) is special
+            #     res_url_comps.append('')
 
         elif type(url_comps_or_path) is ContentPath2:
             assert not append_slash, "Cannot do append slashing for static content (I hope you did not pass path of a dynamic content)"
@@ -58,9 +69,31 @@ class ContentUrl:
             res_url_comps = list(url_comps_or_path.path_components)
         else:
             raise Exception('Invalid argument for url component')
+
         if res_url_comps[-1] == 'index.html':
             res_url_comps[-1] = ''
-        return tuple(res_url_comps)
+
+        final_res_comps = []
+        # print("Res url comps: %s" % str(res_url_comps))
+        # removing duplicate components
+        idx = 0
+        last_idx = len(res_url_comps) - 1
+        # last_comp_was_empty = False  # last_comp_was_empty == ''
+
+        for url_comp in res_url_comps:
+            assert not re.match(r'^\s+$', url_comp), "A component of an url cannot be one or all whitespaces"
+            if not (idx == 0 or idx == last_idx):  # sparing the first and last empty string only
+                if url_comp == '':
+                    idx += 1
+                    continue
+            final_res_comps.append(url_comp)
+            idx += 1
+
+        if len(final_res_comps) == 2:  # eg ['', ''] == '/'.split('/')
+            if final_res_comps[0] == '' and final_res_comps[1] == '':
+                final_res_comps = ['']
+        # print("Final Res url comps: %s" % str(final_res_comps))
+        return tuple(final_res_comps)
 
     @classmethod
     def __to_content_components(cls, _url_comps):
@@ -93,11 +126,25 @@ class ContentUrl:
         assert type(url_comps) is not ContentPath2, "Static files components are all in one to construct an url, no need to include that here"
         this_comps = self.__url_comps
         other_comps = self.__to_components(url_comps, append_slash=append_slash)
-        if this_comps[-1] != '' and other_comps[0] != '':
-            comps = this_comps[:-1] + (this_comps[:-1] + other_comps[0],) + other_comps[1:]
+        this_end = this_comps[-1]
+        # print("Other url comps str: `%s`" % url_comps)
+        # print("Other url comps Tuple: `%s`" % str(other_comps))
+        other_start = other_comps[0]
+        if this_end != '' and other_start != '':
+            comps = this_comps[:-1] + (this_end + other_start,) + other_comps[1:]
+        elif this_end == '' or other_start == '':
+            if this_end == '' and other_start == '':
+                res_comp = ''
+            elif this_end == '':
+                res_comp = other_start
+            else:
+                assert other_start == ''
+                res_comp = this_end
+            comps = this_comps[:-1] + (res_comp,) + other_comps[1:]
         else:
             comps = this_comps + other_comps
-        return self.__class__(self.__config, comps, append_slash=append_slash)
+        # comps = this_comps + other_comps
+        return self.__class__(self.__config, comps)  #, append_slash=append_slash)
 
     @property
     def of_static_file(self):
@@ -125,11 +172,16 @@ class ContentUrl:
     @property
     def path(self):
         if self.__url_str is None:
-            lcomp = list(self.__url_comps)
-            if lcomp[0] != '':
-                # that is: start = '/'
-                lcomp.insert(0, '')
-            self.__url_str = "/".join(lcomp)
+            comps = self.__url_comps
+            # lcomp = list(self.__url_comps)
+            # if lcomp[0] != '':
+            #     # that is: start = '/'
+            #     lcomp.insert(0, '')
+            if len(comps) == 1 and comps[0] == '':
+                self.__url_str = '/'
+            else:
+                self.__url_str = "/".join(self.__url_comps)
+            # print("    Comps: `%s`, url: `%s`" % (self.__url_comps, self.__url_str))
         return self.__url_str
 
     @property
