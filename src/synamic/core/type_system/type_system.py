@@ -211,7 +211,7 @@ def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
             res.append(
                 sy_tags.add_tag(string)
             )
-    print("Tags: %s" % str(res))
+    # print("Tags: %s" % str(res))
     return tuple(res)
 
 

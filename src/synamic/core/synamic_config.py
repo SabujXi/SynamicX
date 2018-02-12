@@ -30,6 +30,7 @@ from synamic.core.new_filter.filter_functions import query
 from synamic.core.services.null_service import NullService
 from synamic.core.services.tags_service import TagsService
 from synamic.core.services.category_service import CategoryService
+from synamic.core.services.menu_service import MenuService
 
 @enum.unique
 class Key(enum.Enum):
@@ -70,6 +71,8 @@ class SynamicConfig(object):
         self.__tags = TagsService(self)
         # categories
         self.__categories = CategoryService(self)
+        # menus
+        self.__menus = MenuService(self)
         # templates service
         self.__templates = SynamicTemplateService(self)
         # type system
@@ -107,6 +110,10 @@ class SynamicConfig(object):
     @property
     def categories(self):
         return self.__categories
+
+    @property
+    def menus(self):
+        return self.__menus
 
     @property
     def event_types(self):
@@ -167,6 +174,8 @@ class SynamicConfig(object):
         self.__tags.load()
         # categories
         self.__categories.load()
+        #menus
+        self.__menus.load()
         # load templates service
         self.__templates.load()
         # load model service

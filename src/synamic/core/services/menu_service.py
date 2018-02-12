@@ -15,16 +15,14 @@ from synamic.core.classes.path_tree import ContentPath2
 
 
 class Menu:
-    __config = None
-
-    @classmethod
-    def set_config(cls, config):
-        cls.__config = config
-
-    def __init__(self, children=None, title=None, link=None):
+    def __init__(self, config, title=None, link=None, id=None, children=None, other_fields=None):
+        assert title is not None
+        self.__config = config
         self.__title = title
         self.__link = link
-        self.__children = children
+        self.__id = id
+        self.__children = children if children is not None else ()
+        self.__other_fields = {} if other_fields is None else other_fields
 
     def __iter__(self):
         return iter(self.__children)
@@ -35,55 +33,40 @@ class Menu:
 
     @property
     def link(self):
-        return self.__link
+        # if self.__link is None:
+        lsrc = self.__link.lower()
+        if lsrc.startswith('geturl://'):
+            _url = self.__link[len('geturl://'):]
+            url = self.__config.get_url(_url)
+        else:
+            url = self.__link
+        # self.__link = url
+
+        # print("link : %s" % url)
+        # return self.__link
+        return url
+
 
     @property
     def children(self):
         return self.__children
 
-    @classmethod
-    def _parse_menu(cls, starting_menu: Field) -> list:
-        # res_list = res_list if res_list is not None else []
-        res_list = []
-        menus = starting_menu.get_multi('menu', None)
-        if menus is not None:
-            for menu in menus:
-                title = menu.get('title', None)
-                link = menu.get('title', None)
+    def __getattr__(self, item):
+        return self.__other_fields.get(item, None)
 
-                if not (title is None or link is None):  # otherwise discard
-                    # let's get the proper url
-                    src = link.value
-                    lsrc = link.value.lower()
-                    if lsrc.startswith('geturl://'):
-                        _url = link.value[len('geturl://'):]
-                        url = cls.__config.get_url(_url)
-                    else:
-                        url = src
-                    link = url
+    def __getitem__(self, item):
+        return self.__other_fields.get(item, None)
 
-                    # title
-                    # link
+    def __str__(self):
+        return self.title + " (%s) : " % self.link + str(self.children)
 
-                    res_list.append(
-                        Menu(
-                            title=title,
-                            link=link,
-                            children=cls._parse_menu(menu.get_multi('menu', None))
-                        )
-                    )
-        return res_list
-
-    def _parse(self, root_field):
-        if self.__children is None:
-            self.__children = self._parse_menu(root_field)
-        return self.__children
+    def __repr__(self):
+        return repr(str(self))
 
 
 class MenuService:
     def __init__(self, synamic_config):
         self.__config = synamic_config
-        self.__type_system = synamic_config.type_system
         self.__menu_map = {}
         self.__is_loaded = False
 
@@ -103,25 +86,53 @@ class MenuService:
     @not_loaded
     def load(self):
         menu_map = self.__menu_map
-
-        file_paths = self.service_home_path.list_paths()
-
-        Menu.set_config(self.__config)
+        file_paths = self.service_home_path.list_files()
 
         for file_path in file_paths:
             if file_path.basename.endswith('.menu.txt') and len(file_path.basename) > len('.menu.txt'):
                 with file_path.open('r', encoding='utf-8') as f:
                     model_txt = f.read()
                     menu_id = file_path.basename[:-len('.menu.txt')]
-                    root_menu = menu_map[menu_id] = Menu(
+                    menu_map[menu_id] = Menu(
+                        config=self.__config,
                         title='__root__',
                         link='__root_link__',
+                        children=self._parse_menu(FieldParser(model_txt).parse())
                     )
-                    root_menu._parse(FieldParser(model_txt).parse())
+
         self.__is_loaded = True
 
+    def _parse_menu(self, starting_menu: Field) -> tuple:
+        # print(starting_menu)
+        # res_list = res_list if res_list is not None else []
+        res_list = []
+        menus = starting_menu.get_multi('menu', None)
+        if menus is not None:
+            for menu in menus:
+                dict_flat = menu.to_dict_flat()
+                title = dict_flat.get('title', None)
+                assert title is not None
+                del dict_flat['title']
+                link = dict_flat.get('link', None)
+                if link is not None:
+                    del dict_flat['link']
+                res_list.append(
+                    Menu(
+                        config=self.__config,
+                        title=title,
+                        link=link,
+                        children=self._parse_menu(menu),
+                        other_fields=dict_flat
+                    )
+                )
+        return tuple(res_list)
+
+    @property
+    def all_root(self):
+        return tuple(self.__root_menus)
+
     def __getattr__(self, key):
-        return self.__menu_map.get(key)
+        return self.__menu_map.get(key, None)
 
     def __getitem__(self, key):
-        return self.__menu_map.get(key)
+        return self.__menu_map.get(key, None)
