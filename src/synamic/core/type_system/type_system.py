@@ -24,16 +24,15 @@ class _Pat:
     newline_pat = re.compile(r'\r\n|\n|\r', re.MULTILINE)
     number_pat = re.compile(r'^(?P<number>[0-9]+(.[0-9]+)?)$')
 
-    separator_comma_pat = re.compile(r'[^^,]*,[^,]*')
-    multiple_commas_pat = re.compile(r'(?P<start>[^,]*)(?P<commas>,{2})*(?P<end>[^,]*)')
+    separator_comma_pat = re.compile(r',[^,]?')
+    # separator_comma_pat = re.compile(r',[^,]*')
+    multiple_commas_pat = re.compile(r'(?P<start>[^,]*)(?P<commas>,{2,})(?P<end>[^,]*)')
+    # multiple_commas_pat = re.compile(r'(?P<start>[^,]*)(?P<commas>,{2})*(?P<end>[^,]*)')
 
     @staticmethod
     def multiple_commas_repl_fun(mobj):
         commas = mobj.group('commas')
-        if commas is None:
-            commas = ''
-        else:
-            commas = commas[1:]
+        commas = commas[1:]
         start = mobj.group('start')
         end = mobj.group('end')
         if start is None:
@@ -53,6 +52,8 @@ class TypeSystem:
         'datetime',
         'markdown',
         'html',
+
+        'taxonomy.tags',
 
         # TODO:
         # template
@@ -195,6 +196,23 @@ def _string_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
         string = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, string)
         res.append(string)
     return tuple(strings)
+
+
+@_decorator_default_converter('taxonomy.tags')
+def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
+    """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
+    sy_tags = synamic_config_obj.tags
+    res = []
+    strings = _Pat.separator_comma_pat.split(txt)
+    for string in strings:
+        string = string.strip()
+        if string != '':
+            string = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, string)
+            res.append(
+                sy_tags.add_tag(string)
+            )
+    print("Tags: %s" % str(res))
+    return tuple(res)
 
 
 @_decorator_default_converter('date[]')

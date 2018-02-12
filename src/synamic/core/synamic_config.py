@@ -28,7 +28,8 @@ from synamic.core.services.content_module_service import MarkedContentService
 from synamic.core.services.static_module_service import StaticModuleService
 from synamic.core.new_filter.filter_functions import query
 from synamic.core.services.null_service import NullService
-
+from synamic.core.services.tags_service import TagsService
+from synamic.core.services.category_service import CategoryService
 
 @enum.unique
 class Key(enum.Enum):
@@ -65,6 +66,10 @@ class SynamicConfig(object):
         }
         # setting path tree
         self.__path_tree = PathTree(self)
+        # tags
+        self.__tags = TagsService(self)
+        # categories
+        self.__categories = CategoryService(self)
         # templates service
         self.__templates = SynamicTemplateService(self)
         # type system
@@ -94,6 +99,14 @@ class SynamicConfig(object):
     @property
     def urls(self):
         return self.__content_map[Key.CONTENTS_BY_URL_PATH].copy()
+
+    @property
+    def tags(self):
+        return self.__tags
+
+    @property
+    def categories(self):
+        return self.__categories
 
     @property
     def event_types(self):
@@ -150,6 +163,10 @@ class SynamicConfig(object):
     def load(self):
         assert os.path.exists(os.path.join(self.site_root, '.synamic')) and os.path.isfile(os.path.join(self.site_root, '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(self.site_root, '.synamic')
         self.__site_settings.load()
+        # tags
+        self.__tags.load()
+        # categories
+        self.__categories.load()
         # load templates service
         self.__templates.load()
         # load model service

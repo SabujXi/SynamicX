@@ -50,6 +50,7 @@ class SynamicTemplateService:
         )
         # setting config object to global of environment
         self.__template_env.synamic_config = self.__config
+        self.__template_env.globals['synamic'] = self.__config
 
         self.__is_loaded = True
 

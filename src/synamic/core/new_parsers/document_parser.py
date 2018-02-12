@@ -316,15 +316,15 @@ class Field:
         self.__field_name = field_name
         self.__value = value
         self.__values_map = OrderedDict()
-        self.__multiple_values_map = OrderedDict()
+        self._multiple_values_map = OrderedDict()
 
     def add(self, another_field):
         assert self.__value is None, "This field has single value, so you cannot add children. The value is `%s`" % self.__value
         name = another_field.name
         if name in self.__values_map:
-            list_4_multiple = self.__multiple_values_map.get(name, None)
+            list_4_multiple = self._multiple_values_map.get(name, None)
             if list_4_multiple is None:
-                list_4_multiple = []
+                list_4_multiple = self._multiple_values_map[name] = []
             list_4_multiple.append(another_field)
         else:
             self.__values_map[another_field.name] = another_field
@@ -351,24 +351,32 @@ class Field:
 
     def get_multi(self, dotted_name, default=None):
         names = dotted_name.split('.')
+        parent_field = self
         if len(names) == 1:
             field = self.__values_map.get(names[0], None)
         else:
-            idx = 0
+            # idx = 0
             for name in names:
-                if idx == 0:
-                    field = self.__values_map.get(name, None)
+                # if idx == 0:
+                field = parent_field.get(name, None)
+                # else:
+                # field = field.get(name, None)
+                if field is None:
+                    parent_field = None
+                    break
+                parent_field = field
+                # idx += 1
+
+        res = default
+        if field is not None:
+            if parent_field is not None:
+                fields_in_mulit = parent_field._multiple_values_map.get(field.name, None)
+
+                if fields_in_mulit is None:
+                    res = (field,)
                 else:
-                    field = field.get(name, None)
-                idx += 1
-        if field is None:
-            res = default
-        else:
-            fields_in_mulit = self.__multiple_values_map.get(field.name, None)
-            if fields_in_mulit is None:
-                res = (field,)
-            else:
-                res = (field, *fields_in_mulit)
+                    res = (field, *fields_in_mulit)
+                    # print(len(res))
         return res
 
     @property
@@ -406,6 +414,15 @@ class Field:
             value = field.value
             if value is None:
                 value = field.to_dict_ordinary()
+            d[name] = value
+        return d
+
+    def to_dict_flat(self):
+        """Just the immediate first level data as dict"""
+        d = OrderedDict()
+        for field_name, field in self.__values_map.items():
+            name = field_name
+            value = field.value
             d[name] = value
         return d
 
