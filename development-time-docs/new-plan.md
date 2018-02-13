@@ -22,3 +22,14 @@
     texts | title length > 1 | title contains "yo yo" | tags contains ["done", ["complete]] | title startswith "no no" | limit 20 | offset 2 | id > 6 | from 2 5 | first 5 | last 1
     
     -*--
+    
+    
+------------
+    
+* A data service is needed - for json, yaml, synamicml, etc*
+
+* filtering system improvement for tags, cats etc *
+
+* thumbnail generation *
+
+* routes caching system *

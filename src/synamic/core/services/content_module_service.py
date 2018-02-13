@@ -137,7 +137,20 @@ class MarkedContentImplementation(MarkedDocumentContract):
         return self.fields.get('id', None)
 
     def get_stream(self):
-        template_name = self.fields.get('template', None)
+        template_name = 'default.html'
+        pp = self.path_object.parent_path
+
+        while pp is not None:
+            meta_template_name = pp.meta_info.get('template', None)
+            print(pp.meta_info)
+            if meta_template_name is not None:
+                template_name = meta_template_name
+                break
+            pp = pp.parent_path
+
+        cont_template_name = self.fields.get('template', None)
+        if cont_template_name is not None:
+            template_name = cont_template_name
         res = self.__config.templates.render(template_name, content=self.get_content_wrapper())
         f = io.BytesIO(res.encode('utf-8'))
         return f

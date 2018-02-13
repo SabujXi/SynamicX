@@ -45,7 +45,7 @@ class ContentPath2:
 
     @property
     def parent_path(self):
-        if len(self.__path_comps) <= 2:
+        if len(self.__path_comps) <= 1:
             # contents/a-file
             # contents/dirA/b-file
             # * contents cannot have parent (==None) (Content Path is not for the site root or above dirs! SO -_-)
