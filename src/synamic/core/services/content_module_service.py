@@ -153,8 +153,34 @@ class MarkedContentImplementation(MarkedDocumentContract):
         self.__body = body_converter(doc.body, self.__config)
 
     @property
+    def language(self):
+        ln = self.__fields.get('language', None)
+        if ln is not None:
+            return ln
+
+        ln = 'en'
+        pp = self.path_object.parent_path
+        while pp is not None:
+            _ln = pp.meta_info.get('language', None)
+            if _ln is None:
+                break
+            else:
+                ln = _ln
+            pp = pp.parent_path
+        return ln
+
+    @property
     def model_name(self):
-        return 'text'
+        mn = 'text'
+        pp = self.path_object.parent_path
+        while pp is not None:
+            _mn = pp.meta_info.get('model', None)
+            if _mn is None:
+                break
+            else:
+                mn = _mn
+            pp = pp.parent_path
+        return mn
 
     @property
     def config(self):
@@ -167,6 +193,14 @@ class MarkedContentImplementation(MarkedDocumentContract):
     @property
     def content_id(self):
         return self.fields.get('id', None)
+
+    @property
+    def id(self):
+        return self.content_id
+
+    @property
+    def url_path(self):
+        return self.url_object.path
 
     def get_stream(self):
         template_name = 'default.html'
@@ -318,21 +352,13 @@ class ContentWrapper:
         self.__content = content
 
     def __getitem__(self, key):
+        return self.__getattr__(key)
+
+    def __getattr__(self, key):
         res = getattr(self.__content, key, None)
         if res is None:
             res = self.__content.fields.get(key, None)
         return res
-
-    # def __getattr__(self, key):
-    #     return self.__getitem__(key)
-
-    @property
-    def id(self):
-        return self.__content.content_id
-
-    @property
-    def url_path(self):
-        return self.__content.url_object.path
 
 
 class MarkedContentService(BaseContentModuleContract):
