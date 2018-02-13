@@ -41,8 +41,8 @@ class Category:
     def children(self):
         return self.__children
 
-    def __getattr__(self, item):
-        return self.__other_fields.get(item, None)
+    # def __getattr__(self, item):
+    #     return self.__other_fields.get(item, None)
 
     def __getitem__(self, item):
         return self.__other_fields.get(item, None)

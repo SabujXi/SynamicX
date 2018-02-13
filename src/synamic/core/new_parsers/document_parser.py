@@ -156,7 +156,7 @@ class FieldParser:
 
     @staticmethod
     def guess_nesting_level_for_field(line):
-        m = re.match(r'^(?P<whitespaces>\s*)[a-z][a-z0-9_]*\s*~?\s*:', line, re.I)
+        m = re.match(r'^(?P<whitespaces>\s*)[a-z_][a-z0-9_]*\s*~?\s*:', line, re.I)
         if not m:
             raise Exception("No field pattern found: `%s`" % line)
         whitespaces = m.group('whitespaces')
@@ -477,7 +477,9 @@ class Field:
                 field.visit(visitor, res_map, (*field_path, field.name))
         else:
             if not self.has_children:
-                visitor(self, field_path, res_map)
+                proceed = visitor(self, field_path, res_map)
+                if not proceed:
+                    return res_map
             else:
                 for field in self.children:
                     field.visit(visitor, res_map, (*field_path, field.name))

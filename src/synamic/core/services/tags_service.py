@@ -51,11 +51,11 @@ class Tag:
     def __getitem__(self, item):
         return self.__other_fields.get(item, None)
 
-    def __getattr__(self, item):
-        return self.__other_fields.get(item, None)
+    # def __getattr__(self, item):
+    #     return self.__other_fields.get(item, None)
 
     def __str__(self):
-        return self.title
+        return self.__title
 
     def __repr__(self):
         # print("REPR: %s" % self.title)

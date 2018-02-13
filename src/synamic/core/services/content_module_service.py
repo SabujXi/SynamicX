@@ -104,26 +104,58 @@ class MarkedContentImplementation(MarkedDocumentContract):
 
         self.__body = None
         self.__fields = None
+        self.__field_converters = None
 
         self.__url = None
-
+        self.__pagination = None
         # loading body and field
         doc = DocumentParser(self.__file_content).parse()
+        model = self.__config.model_service.get_model(self.model_name)
+        self.__convert_fields(model, doc)
 
-        res_map = self.__config.model_service.get_converted('text', doc.root_field, doc.body)
-        # print("Resp Map : %s" % res_map)
-        self.__body = res_map['__body__']
-        del res_map['__body__']
+    def __convert_fields(self, model, doc):
         self.__fields = OrderedDict()
         self.__field_converters = OrderedDict()
-        for k, v in res_map.items():
-            self.__fields[k] = v['value']
-            self.field_converters[k] = v['converter']
-        # print("Resp Map2: %s" % res_map)
 
-        self.__pagination = None
+        def content_fields_visitor(a_field, field_path, _res_map_: OrderedDict):
+            """
+            :param a_field:
+            :param field_path: is a tuple of nested field names
+            """
+            dotted_field = ".".join([field for field in field_path])
+            field_config = model.get(dotted_field, None)
 
-    # temporary for fixing sitemap
+            if field_config is None:
+                # deliver the raw sting to the field
+                # assert model_field is not None, "field `%s` is not defined in the model" % dotted_field
+                type_name = 'text'
+                converter = self.__config.type_system.get_converter(type_name)
+                converted_value = converter(a_field.value, self.__config)
+
+            else:
+                # print(field_config.type)
+                # print("For Field: %s" % field_config.for_field)
+                converter = field_config.converter
+                # print("For Field Converter: %s" % field_config.converter)
+                converted_value = converter(a_field.value, self.__config)
+
+            _res_map_[dotted_field] = converted_value
+            self.__field_converters[dotted_field] = converter
+            proceed = True
+            return proceed
+
+        field_config_4_body = model.get('__body__', None)
+        if field_config_4_body is not None:
+            body_converter = field_config_4_body.converter
+        else:
+            body_converter = self.__config.type_system.get_converter('markdown')
+        doc.root_field.visit(content_fields_visitor, self.__fields)
+        self.__body = body_converter(doc.body, self.__config)
+
+    @property
+    def model_name(self):
+        return 'text'
+
     @property
     def config(self):
         return self.__config
@@ -142,7 +174,7 @@ class MarkedContentImplementation(MarkedDocumentContract):
 
         while pp is not None:
             meta_template_name = pp.meta_info.get('template', None)
-            print(pp.meta_info)
+            # print(pp.meta_info)
             if meta_template_name is not None:
                 template_name = meta_template_name
                 break
@@ -291,8 +323,8 @@ class ContentWrapper:
             res = self.__content.fields.get(key, None)
         return res
 
-    def __getattr__(self, key):
-        return self.__getitem__(key)
+    # def __getattr__(self, key):
+    #     return self.__getitem__(key)
 
     @property
     def id(self):

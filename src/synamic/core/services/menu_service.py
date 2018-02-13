@@ -130,9 +130,9 @@ class MenuService:
     @property
     def all_root(self):
         return tuple(self.__root_menus)
-
-    def __getattr__(self, key):
-        return self.__menu_map.get(key, None)
+    #
+    # def __getattr__(self, key):
+    #     return self.__menu_map.get(key, None)
 
     def __getitem__(self, key):
         return self.__menu_map.get(key, None)
