@@ -7,43 +7,27 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-
-
 import os
-import re
-import enum
-from synamic.core.classes.path_tree import PathTree
-from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.functions.normalizers import normalize_key, normalize_content_url_path  #, normalize_relative_file_path
-from synamic.core.site_settings.site_settings import SiteSettings
-from synamic.core.classes.utils import DictUtils
-from synamic.core.type_system.type_system import TypeSystem
-from synamic.core.services.model_service import ModelService
-from synamic.core.services.template_service import SynamicTemplateService
 from synamic.core.classes.path_tree import ContentPath2
-from synamic.core.classes.virtual_file import VirtualFile
-from synamic.core.classes.url import ContentUrl
+from synamic.core.classes.path_tree import PathTree
 from synamic.core.classes.static import StaticContent
-from synamic.core.services.content_module_service import MarkedContentService
-from synamic.core.services.static_module_service import StaticModuleService
+from synamic.core.classes.url import ContentUrl
+from synamic.core.classes.utils import DictUtils
+from synamic.core.classes.virtual_file import VirtualFile
+from synamic.core.enums import Key
+from synamic.core.functions.decorators import loaded, not_loaded
+from synamic.core.functions.normalizers import normalize_key  # , normalize_relative_file_path
 from synamic.core.new_filter.filter_functions import query
-from synamic.core.services.null_service import NullService
-from synamic.core.services.tags_service import TagsService
 from synamic.core.services.category_service import CategoryService
+from synamic.core.services.content_module_service import MarkedContentService
 from synamic.core.services.menu_service import MenuService
-
-@enum.unique
-class Key(enum.Enum):
-    CONTENTS_BY_ID = 0
-    CONTENTS_BY_CONTENT_URL = 3
-    CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH = 5
-    CONTENTS_SET = 4
-    DYNAMIC_CONTENTS = 6
-
-
-@enum.unique
-class EventTypes(enum.Enum):
-    NOTHING_NOW = 1
+from synamic.core.services.model_service import ModelService
+from synamic.core.services.null_service import NullService
+from synamic.core.services.static_module_service import StaticModuleService
+from synamic.core.services.tags_service import TagsService
+from synamic.core.services.template_service import SynamicTemplateService
+from synamic.core.site_settings.site_settings import SiteSettings
+from synamic.core.type_system.type_system import TypeSystem
 
 
 class SynamicConfig(object):
@@ -51,9 +35,7 @@ class SynamicConfig(object):
         # registered directories, path
         self.__registered_dir_paths = set()
         self.__registered_virtual_files = set()
-
         assert os.path.exists(site_root), "Base path must not be non existent"
-        self.__event_types = EventTypes
         self.__site_root = site_root
 
         self.__services_list = []
@@ -114,10 +96,6 @@ class SynamicConfig(object):
     @property
     def menus(self):
         return self.__menus
-
-    @property
-    def event_types(self):
-        return self.__event_types
 
     def register_path(self, dir_path: ContentPath2):
         assert dir_path.is_dir
@@ -223,7 +201,8 @@ class SynamicConfig(object):
             parent_d[_path] = document
 
         # 2. Content Url Object
-        assert document.url_object not in self.__content_map[Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path
+        assert document.url_object not in self.__content_map[
+            Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path
         self.__content_map[Key.CONTENTS_BY_CONTENT_URL][document.url_object] = document
 
         # 5. Contents set
@@ -365,7 +344,5 @@ class SynamicConfig(object):
     def filter_content(self, filter_txt):
         return query(self, filter_txt)
 
-    def register_event(self, fun):
-        pass
 
 
