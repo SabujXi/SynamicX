@@ -11,6 +11,9 @@ import enum
 
 @enum.unique
 class EventTypes(enum.Enum):
+    """
+    These are all system events - not custom events.
+    """
 
     SETTINGS_PRE_LOAD = 1
     SETTINGS_POST_LOAD = 2
