@@ -755,7 +755,7 @@ class Query:
         return self.__values
 
 
-def query(synamic_obj, query_text, filter_id=None):
+def query_by_synamic(synamic_obj, query_text, filter_id=None):
     # get values from synamic object
     values = synamic_obj.dynamic_contents
     if query_text.strip() == '':
@@ -784,13 +784,41 @@ def query(synamic_obj, query_text, filter_id=None):
     return result
 
 
+def query_by_objects(objects, query_text, filter_id=None):
+    # get values from synamic object
+    values = objects
+    if query_text.strip() == '':
+        return values
+
+    filter_what = module_name = _Patterns.module_name_pat.match(query_text).group("module_name").strip()
+    # will ignore filter what in the new version
+    filter_str = query_text[len(module_name):].strip()
+    if filter_str.strip() == '':
+        return values
+
+    function_src = _produce_python_function_source(filter_str, filter_id)
+    function, src, filter_id = function_src
+
+    # values = synamic_obj.get_contents_by_module_name(None)
+    #
+    q = Query(filter_id, filter_what, filter_str, values)
+
+    # print(src)
+    try:
+        function(q)
+    except:
+        raise
+    result = q.result()
+    return result
+
+
 def query_in_template(query_text):
     # get synamic object from the context
     # for now I am mocking it
     synamic_object = MockSynamic(mock_values())
     # change it later for right implementation
 
-    return query(synamic_object, query_text, None)
+    return query_by_synamic(synamic_object, query_text, None)
 
 
 def mock_values():
@@ -830,7 +858,7 @@ class MockSynamic:
 
 def test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1"):
     mock_synamic = MockSynamic(mock_values())
-    result = query(mock_synamic, q)
+    result = query_by_synamic(mock_synamic, q)
     pprint.pprint(result)
 
 """

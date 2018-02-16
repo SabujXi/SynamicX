@@ -116,7 +116,7 @@ class EventSystem:
 
     @classmethod
     def add_event_handler(cls, etype: EventTypes, handler):
-        assert etype is EventTypes
+        assert type(etype) is EventTypes
         assert type(handler) is Handler
         earr = cls.__event_map[etype]
         earr.append(handler)
@@ -133,7 +133,7 @@ class EventSystem:
 
     @classmethod
     def remove_event_handler(cls, etype, handler):
-        assert etype is EventTypes
+        assert type(etype) is EventTypes
         assert type(handler) is Handler
         earr = cls.__event_map[etype]
         earr.remove(handler)
@@ -150,7 +150,7 @@ class EventSystem:
 
     @classmethod
     def __trigger_event(cls, etype, event):
-        assert etype is EventTypes
+        assert type(etype) is EventTypes
         assert type(event) is Event
         earr = cls.__event_map[etype]
         for handler in earr:
@@ -173,10 +173,11 @@ class EventSystem:
             return
         for handler in earr:
             handler(event)
+        event.mark_complete()
 
     @classmethod
     def handler_exists(cls, etype, handler):
-        assert etype is EventTypes
+        assert type(etype) is EventTypes
         assert type(handler) is Handler
         earr = cls.__event_map[etype]
         if handler in earr:

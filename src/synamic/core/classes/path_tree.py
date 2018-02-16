@@ -32,6 +32,7 @@ class ContentPath2:
         self.__is_meta = is_meta
 
         self.__meta_info = OrderedDict()
+        self.__merged_meta_info = OrderedDict()
         self.__meta_path = None
 
     # def parent_dir_path(self):
@@ -160,8 +161,6 @@ class ContentPath2:
         # print("__REL PATH: %s" % self.relative_path)
         return self.__path_tree.exists(self.path_components)
 
-
-
     def open(self, mode, *args, **kwargs):
         return self.__path_tree.open(self.path_components, mode, *args, **kwargs)
 
@@ -212,6 +211,10 @@ class ContentPath2:
 
     @property
     def meta_info(self):
+        """
+         Meta fields are flat. That means they have depth of one.
+         So, it is key->value pairs - no nested things.
+        """
         if not self.__meta_info:
             if self.meta_path:
                 with self.meta_path.open('r', encoding='utf-8') as f:
@@ -219,6 +222,22 @@ class ContentPath2:
                     root_field = FieldParser(txt).parse()
                     self.__meta_info = root_field.to_dict_ordinary()
         return self.__meta_info
+
+    @property
+    def merged_meta_info(self):
+        if not self.__merged_meta_info:
+            merged_map = OrderedDict()
+            for pp in self.parent_paths:
+                p_meta_info = pp.meta_info
+                if p_meta_info:
+                    for key, value in p_meta_info.items():
+                        merged_map[key] = value
+
+            if self.meta_info:
+                for key, value in self.meta_info:
+                    merged_map[key] = value
+            self.__merged_meta_info = merged_map
+        return self.__merged_meta_info
 
     def __match_process_regex(self, regex, ignorecase=True):
         """Matches against relative path"""

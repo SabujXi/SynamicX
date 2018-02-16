@@ -8,6 +8,7 @@
     status: "Development"
 """
 import os
+import shutil
 from synamic.core.classes.path_tree import ContentPath2
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.classes.static import StaticContent
@@ -17,9 +18,9 @@ from synamic.core.classes.virtual_file import VirtualFile
 from synamic.core.enums import Key
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.functions.normalizers import normalize_key  # , normalize_relative_file_path
-from synamic.core.new_filter.filter_functions import query
+from synamic.core.new_filter.filter_functions import query_by_synamic
 from synamic.core.services.category_service import CategoryService
-from synamic.core.services.content_module_service import MarkedContentService
+from synamic.core.services.content.content_module_service import MarkedContentService
 from synamic.core.services.menu_service import MenuService
 from synamic.core.services.model_service import ModelService
 from synamic.core.services.null_service import NullService
@@ -28,10 +29,13 @@ from synamic.core.services.tags_service import TagsService
 from synamic.core.services.template_service import SynamicTemplateService
 from synamic.core.site_settings.site_settings import SiteSettings
 from synamic.core.type_system.type_system import TypeSystem
+from synamic.core.event_system.events import EventTypes, EventSystem, Event, Handler
 
 
 class SynamicConfig(object):
     def __init__(self, site_root):
+        # acquire trigger function of event system
+        self.__event_trigger = EventSystem._get_trigger()
         # registered directories, path
         self.__registered_dir_paths = set()
         self.__registered_virtual_files = set()
@@ -152,7 +156,7 @@ class SynamicConfig(object):
         self.__tags.load()
         # categories
         self.__categories.load()
-        #menus
+        # menus
         self.__menus.load()
         # load templates service
         self.__templates.load()
@@ -160,13 +164,20 @@ class SynamicConfig(object):
         self.__model_service.load()
 
         self.__static_service.load()
+
+        # content load
         self.__content_service.load()
+
+        self.__event_trigger(
+            EventTypes.CONTENT_POST_LOAD,
+            Event(self)
+        )
 
         self.__is_loaded = True
 
         # post processing
-        for cnt in self.__content_map[Key.DYNAMIC_CONTENTS]:
-            cnt.trigger_post_processing()
+        # for cnt in self.__content_map[Key.DYNAMIC_CONTENTS]:
+        #     cnt.trigger_post_processing()
 
             # test
             # fil_res = self.filter_content('txt | :sort_by created_on "des"|@one')
@@ -179,37 +190,42 @@ class SynamicConfig(object):
         self.add_document(content)
 
     def add_document(self, document):
-        url_object = document.url_object
-        # Checking/Validation and addition
-        # 1. Content Name
+        assert document.is_auxiliary is False
+        # 1. Content id
+        if document.id is not None and document.id != "":
+            parent_d = self.__content_map[Key.CONTENTS_BY_ID]
+            # d = DictUtils.get_or_create_dict(parent_d, mod_name)
 
-        if not document.is_auxiliary:
-            # 4. Content id
-            if document.content_id is not None and document.content_id != "":
-                parent_d = self.__content_map[Key.CONTENTS_BY_ID]
-                # d = DictUtils.get_or_create_dict(parent_d, mod_name)
+            assert document.id not in parent_d, \
+                "Duplicate content id cannot exist %s" % document.id
+            parent_d[document.id] = document
 
-                assert document.content_id not in parent_d, \
-                    "Duplicate content id cannot exist %s" % document.content_id
-                parent_d[document.content_id] = document
+        # 2. Normalized relative file path
+        _path = document.path_object.norm_relative_path
+        parent_d = self.__content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
+        assert _path not in parent_d, "Duplicate normalized relative file path: %s" % _path
+        parent_d[_path] = document
 
-        # 6. Normalized relative file path
-        if document.content_type != document.types.AUXILIARY:
-            _path = document.path_object.norm_relative_path
-            parent_d = self.__content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
-            assert _path not in parent_d, "Duplicate normalized relative file path: %s" % _path
-            parent_d[_path] = document
-
-        # 2. Content Url Object
+        # 3. Content Url Object
         assert document.url_object not in self.__content_map[
             Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path
         self.__content_map[Key.CONTENTS_BY_CONTENT_URL][document.url_object] = document
 
-        # 5. Contents set
+        # 4. Contents set
         self.__content_map[Key.CONTENTS_SET].add(document)
 
-        if document.is_dynamic and not document.is_auxiliary:
+        if document.is_dynamic:
             self.__content_map[Key.DYNAMIC_CONTENTS].add(document)
+
+    def add_auxiliary_content(self, document):
+        assert document.is_auxiliary is True
+        # 3. Content Url Object
+        assert document.url_object not in self.__content_map[
+            Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path
+        self.__content_map[Key.CONTENTS_BY_CONTENT_URL][document.url_object] = document
+
+        # 4. Contents set
+        self.__content_map[Key.CONTENTS_SET].add(document)
 
     @property
     def dynamic_contents(self):
@@ -313,6 +329,29 @@ class SynamicConfig(object):
     # Build Things
     @loaded
     def build(self):
+        def prebuilt(event):
+            out_path = self.path_tree.get_full_path(self.site_settings.output_dir)
+            if os.path.exists(out_path):
+                for a_path in os.listdir(out_path):
+                    fp = os.path.join(out_path, a_path)
+                    # print("Removing: %s" % fp)
+                    if os.path.isdir(fp):
+                        shutil.rmtree(fp)
+                    else:
+                        os.remove(fp)
+
+        EventSystem.add_event_handler(
+            EventTypes.PRE_BUILD,
+            Handler(prebuilt)
+        )
+
+        self.__event_trigger(
+            EventTypes.PRE_BUILD,
+            Event(self)
+        )
+        # ^ event section
+
+        # real work begins
         self.initialize_site()
         for cont in self.__content_map[Key.CONTENTS_SET]:
             url = cont.url_object
@@ -342,7 +381,7 @@ class SynamicConfig(object):
 
     @loaded
     def filter_content(self, filter_txt):
-        return query(self, filter_txt)
+        return query_by_synamic(self, filter_txt)
 
 
 

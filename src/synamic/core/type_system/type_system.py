@@ -201,7 +201,7 @@ def _string_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
 @_decorator_default_converter('taxonomy.tags')
 def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
     """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
-    print("TAGS txt: %s" %txt)
+    # print("TAGS txt: %s" %txt)
     sy_tags = synamic_config_obj.tags
     res = []
     strings = _Pat.separator_comma_pat.split(txt)

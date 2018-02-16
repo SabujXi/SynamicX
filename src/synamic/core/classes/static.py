@@ -20,7 +20,7 @@ class StaticContent(ContentContract):
         self.__url = None
         self.__config = config
         self.__path = path
-        self.__content_id = None  # TODO: devise a mechanism for generating it - now set to null
+        self.__id = None  # TODO: devise a mechanism for generating it - now set to null
 
     @property
     def config(self):
@@ -35,8 +35,8 @@ class StaticContent(ContentContract):
         return self.path
 
     @property
-    def content_id(self):
-        return self.__content_id
+    def id(self):
+        return self.__id
 
     def get_stream(self):
         file = self.path.open('rb')
