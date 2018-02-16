@@ -1,17 +1,9 @@
 from synamic.core.event_system.event_types import EventTypes
 
 
-def _completed_decorator(method):
-    def method_wrapper(self, *args, **kwargs):
-        if self.completed:
-            raise Exception("An event object is unusable after it is completed")
-        return method(self, *args, **kwargs)
-    return method_wrapper
-
-
 def _not_completed_decorator(method):
     def method_wrapper(self, *args, **kwargs):
-        if not self.completed:
+        if self.completed:
             raise Exception("This method can only be used when the event was not completed")
         return method(self, *args, **kwargs)
     return method_wrapper

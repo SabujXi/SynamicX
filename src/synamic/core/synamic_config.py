@@ -8,7 +8,8 @@
     status: "Development"
 """
 import os
-import shutil
+
+from synamic.core.builtin_event_handlers.handlers import handler_pre_build
 from synamic.core.classes.path_tree import ContentPath2
 from synamic.core.classes.path_tree import PathTree
 from synamic.core.classes.static import StaticContent
@@ -16,6 +17,7 @@ from synamic.core.classes.url import ContentUrl
 from synamic.core.classes.utils import DictUtils
 from synamic.core.classes.virtual_file import VirtualFile
 from synamic.core.enums import Key
+from synamic.core.event_system.events import EventTypes, EventSystem, Event, Handler
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.functions.normalizers import normalize_key  # , normalize_relative_file_path
 from synamic.core.new_filter.filter_functions import query_by_synamic
@@ -29,7 +31,6 @@ from synamic.core.services.tags_service import TagsService
 from synamic.core.services.template_service import SynamicTemplateService
 from synamic.core.site_settings.site_settings import SiteSettings
 from synamic.core.type_system.type_system import TypeSystem
-from synamic.core.event_system.events import EventTypes, EventSystem, Event, Handler
 
 
 class SynamicConfig(object):
@@ -329,20 +330,10 @@ class SynamicConfig(object):
     # Build Things
     @loaded
     def build(self):
-        def prebuilt(event):
-            out_path = self.path_tree.get_full_path(self.site_settings.output_dir)
-            if os.path.exists(out_path):
-                for a_path in os.listdir(out_path):
-                    fp = os.path.join(out_path, a_path)
-                    # print("Removing: %s" % fp)
-                    if os.path.isdir(fp):
-                        shutil.rmtree(fp)
-                    else:
-                        os.remove(fp)
 
         EventSystem.add_event_handler(
             EventTypes.PRE_BUILD,
-            Handler(prebuilt)
+            Handler(handler_pre_build)
         )
 
         self.__event_trigger(
