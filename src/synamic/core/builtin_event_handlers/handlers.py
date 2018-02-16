@@ -3,6 +3,9 @@ import shutil
 
 
 def handler_pre_build(event):
+    """
+     This handler cleans up the output directory before building the project.
+    """
     out_path = event.subject.path_tree.get_full_path(event.subject.site_settings.output_dir)
     if os.path.exists(out_path):
         for a_path in os.listdir(out_path):

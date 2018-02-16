@@ -12,6 +12,7 @@ import re
 from collections import deque
 from collections import OrderedDict
 import pprint
+from synamic.core.exceptions.synamic_exceptions import *
 """Example DOC: #s are comments
 ========
 key: value x y z value - single line key value
@@ -150,8 +151,8 @@ class FieldParser:
                 char_count += 4
             else:
                 # print(line)
-                raise Exception('Syntax error or indentation issue. Multiline value must align with '
-                                'indentation')
+                raise ParsingError('Syntax error or indentation issue. Multiline value must align with '
+                                'indentation', line_no=line)
         return char_count
 
     @staticmethod

@@ -11,6 +11,7 @@
 import re
 from collections import namedtuple
 import pprint
+from synamic.core.exceptions.synamic_exceptions import *
 
 valid_logical_operator_fun_names = {
     'AND',
@@ -176,7 +177,7 @@ class _QueryProxy:
             self.__query_fun_name = key
             return self
         else:
-            raise Exception("Beyond first level function is not allowed")
+            raise LogicalError("Beyond first level function is not allowed")
 
     def __call__(self, *args):
         assert self.__query_fun_name is not None, "Cannot call an attr before accessing it"
@@ -264,7 +265,7 @@ def _produce_python_function_source(filter_src, filter_id=None):
     while cur_len > 0:
         pipe_match = _Patterns.pipe_pat.match(filter_src)
         if not pipe_match:
-            raise Exception("Expected a pipe for further query")
+            raise InvalidQueryString("Expected a pipe for further query")
         filter_src = filter_src[pipe_match.end():]
 
         producer_name_match = _Patterns.producer_name_pat.match(filter_src)
@@ -284,7 +285,7 @@ def _produce_python_function_source(filter_src, filter_id=None):
             filter_src = filter_src[limiter_name_match.end():]
             limiter_operands_str_match = _Patterns.limiter_operands_str_pat.match(filter_src)
             if not limiter_operands_str_match:
-                raise Exception("Expected limiter operand(s)")
+                raise InvalidQueryString("Expected limiter operand(s)")
 
             limiter_operands_str = limiter_operands_str_match.group()
 
@@ -305,12 +306,12 @@ def _produce_python_function_source(filter_src, filter_id=None):
             while True:
                 idnt_opnd_match = _Patterns.identifier_operand_pat.match(filter_src)
                 if not idnt_opnd_match:
-                    raise Exception("Expected an identity operand")
+                    raise InvalidQueryString("Expected an identity operand")
                 left_opnd = "Q.F." + idnt_opnd_match.group('dotted_operand')
                 filter_src = filter_src[idnt_opnd_match.end():]
                 operator_match = _Patterns.operator_pat.match(filter_src)
                 if not operator_match:
-                    raise Exception("Expected an operator")
+                    raise InvalidQueryString("Expected an operator")
                 operator = operator_match.group('operator')
                 filter_src = filter_src[operator_match.end():]
 
@@ -335,10 +336,10 @@ def _produce_python_function_source(filter_src, filter_id=None):
                     elif value_string_iterator:
                         right_opnd = value_string_iterator
                     else:
-                        raise Exception("Something went wrong during right operand match")
+                        raise LogicalError("Something went wrong during right operand match")
                     filter_src = filter_src[right_opnd_match.end():]
                 else:
-                    raise Exception("Expected right operand")
+                    raise InvalidQueryString("Expected right operand")
 
                 logical_operator_match = _Patterns.logical_operator_pat.match(filter_src)
 
@@ -385,7 +386,7 @@ def _produce_python_function_source(filter_src, filter_id=None):
                         elif logic_operator == '^' or logic_operator == '|' or logic_operator == 'AND':
                             _logic_operator = '^'
                         else:
-                            raise Exception("Did not expect so!!!")
+                            raise InvalidQueryString("Did not expect so!!!")
 
                         arg_join_str_list.append(
                             "Q.P." + __filter_funs.operators[operator].__name__ + "(%s)" % (

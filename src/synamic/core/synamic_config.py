@@ -31,6 +31,7 @@ from synamic.core.services.tags_service import TagsService
 from synamic.core.services.template_service import SynamicTemplateService
 from synamic.core.site_settings.site_settings import SiteSettings
 from synamic.core.type_system.type_system import TypeSystem
+from synamic.core.exceptions.synamic_exceptions import *
 
 
 class SynamicConfig(object):
@@ -106,13 +107,13 @@ class SynamicConfig(object):
         assert dir_path.is_dir
         # print(self.__registered_dir_paths)
         if dir_path in self.__registered_dir_paths:
-            raise Exception("The same path is already registered")
+            raise SynamicException("The same path (%s) is already registered" % self.path_tree.get_full_path(dir_path.path_components))
         self.__registered_dir_paths.add(dir_path)
 
     def register_virtual_file(self, virtual_file: VirtualFile):
         assert type(virtual_file) is VirtualFile
         if virtual_file in self.__registered_virtual_files:
-            raise Exception("Virtual file already exists")
+            raise SynamicException("Virtual file (%s) already exists" % virtual_file.file_path)
         self.__registered_virtual_files.add(virtual_file)
 
     @property
@@ -286,7 +287,7 @@ class SynamicConfig(object):
             res = parent_d[_search_what]
         else:
             # Should raise exception or just return None/False
-            raise Exception("Url could not be found by url_object name or content id")
+            raise GetUrlFailed("Url could not be found for: %s" % parameter)
 
         return res.url_object.path
 

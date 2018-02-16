@@ -1,10 +1,11 @@
 from synamic.core.event_system.event_types import EventTypes
+from synamic.core.exceptions.synamic_exceptions import LogicalError
 
 
 def _not_completed_decorator(method):
     def method_wrapper(self, *args, **kwargs):
         if self.completed:
-            raise Exception("This method can only be used when the event was not completed")
+            raise LogicalError("This method (%s) can only be used when the event was not completed" % method.__name__)
         return method(self, *args, **kwargs)
     return method_wrapper
 
@@ -152,7 +153,7 @@ class EventSystem:
     def _get_trigger(cls):
         if cls.__get_trigger_count == 0:
             return cls.__trigger_event
-        raise Exception("_get_trigger can only be used by synamic itself. Do not try to get it after synamic got it."
+        raise LogicalError("_get_trigger can only be used by synamic itself. Do not try to get it after synamic got it."
                         "We are protecting it.")
 
     @classmethod
