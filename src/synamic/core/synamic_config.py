@@ -137,6 +137,10 @@ class SynamicConfig(object):
         return self.__model_service
 
     @property
+    def content_service(self):
+        return self.__content_service
+
+    @property
     def site_settings(self):
         return self.__site_settings
 
@@ -331,6 +335,9 @@ class SynamicConfig(object):
     # Build Things
     @loaded
     def build(self):
+        out_path = self.path_tree.create_path(self.site_settings.output_dir)
+        if not out_path.exists():
+            self.path_tree.makedirs(out_path.path_components)
 
         EventSystem.add_event_handler(
             EventTypes.PRE_BUILD,
@@ -357,19 +364,19 @@ class SynamicConfig(object):
                 stream.close()
 
     def initialize_site(self):
-        dir_paths = [
-            self.path_tree.create_path(self.site_settings.output_dir),
-            *self.__registered_dir_paths
-        ]
+        if len(os.listdir(self.site_root)) == 0:
+            dir_paths = [
+                *self.__registered_dir_paths
+            ]
 
-        for dir_path in dir_paths:
-            if not dir_path.exists():
-                self.path_tree.makedirs(*dir_path.path_components)
+            for dir_path in dir_paths:
+                if not dir_path.exists():
+                    self.path_tree.makedirs(*dir_path.path_components)
 
-        for v in self.__registered_virtual_files:
-            if not v.file_path.exists():
-                with v.file_path.open('w') as f:
-                    f.write(v.file_content)
+            for v in self.__registered_virtual_files:
+                if not v.file_path.exists():
+                    with v.file_path.open('w') as f:
+                        f.write(v.file_content)
 
     @loaded
     def filter_content(self, filter_txt):

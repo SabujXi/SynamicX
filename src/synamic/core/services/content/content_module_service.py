@@ -174,7 +174,7 @@ class MarkedContentService(BaseContentModuleContract):
 
     def __create_marked_content(self, file_path, file_content):
         doc = DocumentParser(file_content).parse()
-        model = self.__config.model_service.get_model(file_path.merged_meta_info.get('model', 'text'))
+        model = self.__config.model_service.get_model(file_path.merged_meta_info.get('model', 'default'))
 
         ordinary_fields, field_converters = self.__convert_fields(model, doc)
 
