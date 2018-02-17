@@ -20,7 +20,7 @@ from synamic.core.enums import Key
 from synamic.core.event_system.events import EventTypes, EventSystem, Event, Handler
 from synamic.core.functions.decorators import loaded, not_loaded
 from synamic.core.functions.normalizers import normalize_key  # , normalize_relative_file_path
-from synamic.core.new_filter.filter_functions import query_by_synamic
+from synamic.core.new_filter.filter_functions import query_by_synamic_4_dynamic_contents
 from synamic.core.services.category_service import CategoryService
 from synamic.core.services.content.content_module_service import MarkedContentService
 from synamic.core.services.menu_service import MenuService
@@ -380,7 +380,7 @@ class SynamicConfig(object):
 
     @loaded
     def filter_content(self, filter_txt):
-        return query_by_synamic(self, filter_txt)
+        return query_by_synamic_4_dynamic_contents(self, filter_txt)
 
 
 

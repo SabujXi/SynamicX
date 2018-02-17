@@ -143,9 +143,9 @@ class CodeGenerator:
             " " * self.__space_count * self.__indentation_level + line
         )
 
-    def compile_and_get(self, query_id="query_src__.null"):
+    def compile_and_get(self, query_id="query_src__:null"):
         src = self.to_str().strip()
-        cod = compile(src, "query_id__." + str(query_id), 'exec')
+        cod = compile(src, "query_id__:" + str(query_id), 'exec')
         namespace = {}
         exec(cod, globals(), namespace)
         filter_fun = namespace['filter_fun']
@@ -261,13 +261,7 @@ def _produce_python_function_source(filter_src, filter_id=None):
     filter_code = CodeGenerator()
     filter_code.add_code_line("Q\\")
 
-    cur_len = len(filter_src)
-    while cur_len > 0:
-        pipe_match = _Patterns.pipe_pat.match(filter_src)
-        if not pipe_match:
-            raise InvalidQueryString("Expected a pipe for further query")
-        filter_src = filter_src[pipe_match.end():]
-
+    while len(filter_src) > 0:
         producer_name_match = _Patterns.producer_name_pat.match(filter_src)
         limiter_name_match = _Patterns.limiter_name_pat.match(filter_src)
         if producer_name_match:  # call producer
@@ -397,7 +391,14 @@ def _produce_python_function_source(filter_src, filter_id=None):
                     (".exp(%s)" % " ".join(arg_join_str_list)) + "\\"
                 )
 
-        cur_len = len(filter_src)
+        # matching a pipe if this is not the end of the string
+        filter_src = filter_src.strip()
+        if filter_src != '':
+            pipe_match = _Patterns.pipe_pat.match(filter_src)
+            if not pipe_match:
+                raise InvalidQueryString("Expected a pipe for further query")
+            filter_src = filter_src[pipe_match.end():]
+
     if len(_function_cache_by_filter_id):
         filter_id = max(_function_cache_by_filter_id.keys()) + 1
     else:
@@ -409,23 +410,37 @@ def _produce_python_function_source(filter_src, filter_id=None):
     return function, src, filter_id
 
 
+def getitem_getattr(o, key, default=None):
+    value = default
+    __getitem__ = getattr(o, '__getitem__', None)
+    if __getitem__ is not None:
+        try:
+            value = __getitem__(key)
+        except:
+            pass
+    else:
+        value = getattr(o, key, default)
+    return value
+
+
 class Query:
-    def __init__(self, filter_id, filter_what, filter_str, values):
+    def __init__(self, filter_id, filter_str, values, field_converters = None):
         self.__values = values.copy() if getattr(values, 'copy', False) else tuple([x for x in values])
         self.__original_values = tuple(self.__values)
-        self.__filter_what = filter_what
+        # self.__filter_what = filter_what
         self.__filter_id = filter_id
         self.__filter_str = filter_str
+        self.__field_converters = {} if field_converters is None else field_converters
 
-    @property
-    def filter_what(self):
-        """
-        Returns the module name (may also refer to other things in future) of the query.
-        e.g.:
-            query
-        """
-        assert self.__filter_what is not None, "Cannot access query_what property before it is set."
-        return self.__filter_what
+    # @property
+    # def filter_what(self):
+    #     """
+    #     Returns the module name (may also refer to other things in future) of the query.
+    #     e.g.:
+    #         query
+    #     """
+    #     assert self.__filter_what is not None, "Cannot access query_what property before it is set."
+    #     return self.__filter_what
 
     @property
     def filter_str(self):
@@ -471,47 +486,58 @@ class Query:
         is_r_operand_field = False
         if type(right_opnd) is self.F_TYPE():
             is_r_operand_field = True
-        if type(right_opnd) is self.F_TYPE():
-            is_r_operand_field = True
+        # if type(right_opnd) is self.F_TYPE():
+        #     is_r_operand_field = True
 
         ll = left_opnd.fields
+
         l_value = value
         for part1 in ll:
-            l_value = getattr(l_value, part1)
+            # TODO: synamic uses dot joined field now and it that case it will not be a good solution, change accordingly
+            l_value = getitem_getattr(l_value, part1)
 
         r_value = value
         if is_r_operand_field:
             rl = right_opnd.fields
             for part2 in rl:
-                r_value = getattr(r_value, part2)
+                # TODO: synamic uses dot joined field now and it that case it will not be a good solution, change accordingly
+                r_value = getitem_getattr(r_value, part2)
         else:
-            r_value = right_opnd
-
-        return l_value, r_value
-
-    def _get_lr_values_4_content_fields(self, value, left_opnd: _Field, right_opnd):
-        """get left and right values"""
-        is_r_operand_field = False
-        if type(right_opnd) is self.F_TYPE():
-            is_r_operand_field = True
-
-        ll = left_opnd.fields
-        l_dotted_field = ".".join(ll)
-
-        l_value = value.fields.get(l_dotted_field)
-
-        if is_r_operand_field:
-            rl = right_opnd.fields
-            dotted_field = ".".join(rl)
-            r_value = value.fields.get(dotted_field, None)
-        else:
-            conv = value.field_converters.get(l_dotted_field, None)
+            l_dotted_field = ".".join(ll)
+            # TODO: find a better way later as dotted joined field converter may not be ok as it is now
+            # Though for field converters (!=values) this is perfectly ok. So, much focus must be given to value
+            # extracting fields (two examples above)
+            conv = self.__field_converters.get(l_dotted_field, None)
             if conv is not None:
-                r_value = conv(right_opnd)
+                r_value = conv(right_opnd)  # synamic object field is unnecessary - at least we are not putting any markdown there that we need geturl of synamic dependent things
             else:
                 r_value = right_opnd
 
         return l_value, r_value
+
+    # def _get_lr_values_4_content_fields(self, value, left_opnd: _Field, right_opnd):
+    #     """get left and right values"""
+    #     is_r_operand_field = False
+    #     if type(right_opnd) is self.F_TYPE():
+    #         is_r_operand_field = True
+    #
+    #     ll = left_opnd.fields
+    #     l_dotted_field = ".".join(ll)
+    #
+    #     l_value = value.fields.get(l_dotted_field)
+    #
+    #     if is_r_operand_field:
+    #         rl = right_opnd.fields
+    #         dotted_field = ".".join(rl)
+    #         r_value = value.fields.get(dotted_field, None)
+    #     else:
+    #         conv = value.field_converters.get(l_dotted_field, None)
+    #         if conv is not None:
+    #             r_value = conv(right_opnd)
+    #         else:
+    #             r_value = right_opnd
+    #
+    #     return l_value, r_value
 
     def expr(self, query_proxy: _QueryProxy):
         values_set = set()
@@ -522,7 +548,8 @@ class Query:
         fun = getattr(self, one_fun_name)
 
         for value in ctx_values:
-            l_opnd, r_opnd = self._get_lr_values_4_content_fields(value, *one_opnds)
+            # l_opnd, r_opnd = self._get_lr_values_4_content_fields(value, *one_opnds)
+            l_opnd, r_opnd = self._get_lr_values(value, *one_opnds)
             if fun(l_opnd, r_opnd):
                 values_set.add(value)
 
@@ -537,7 +564,8 @@ class Query:
             another_values_set = set()
             res = set()
             for value in ctx_values:
-                l_opnd, r_opnd = self._get_lr_values_4_content_fields(value, *opnds)
+                # l_opnd, r_opnd = self._get_lr_values_4_content_fields(value, *opnds)
+                l_opnd, r_opnd = self._get_lr_values(value, *opnds)
                 if fun(l_opnd, r_opnd):
                     another_values_set.add(value)
 
@@ -723,9 +751,10 @@ class Query:
     def _get_limiter_opnd_value_4_sort(self, value, opnd):
         val = value
         if type(opnd) is self.F_TYPE():
-            dotted_field = ".".join(opnd.fields)
-            # for field in opnd.fields:
-            val = value.fields[dotted_field]#(val, field)
+            # dotted_field = ".".join(opnd.fields)
+            for field in opnd.fields:
+                # val = value.fields[dotted_field]#(val, field)
+                val = getattr(val, field, None)
         return val
 
     @limiter_decorator('sort_by')
@@ -756,25 +785,39 @@ class Query:
         return self.__values
 
 
-def query_by_synamic(synamic_obj, query_text, filter_id=None):
-    # get values from synamic object
-    values = synamic_obj.dynamic_contents
-    if query_text.strip() == '':
-        return values
+def extract_what_and_query(full_query):
+    full_query = full_query.strip()
+    filter_what = None
+    filter_text = None
 
-    filter_what = module_name = _Patterns.module_name_pat.match(query_text).group("module_name").strip()
-    # will ignore filter what in the new version
-    filter_str = query_text[len(module_name):].strip()
-    if filter_str.strip() == '':
-        return values
+    m_filter_what = _Patterns.module_name_pat.match(full_query)
+    if m_filter_what is not None:
+        filter_what = bk_filter_what = m_filter_what.group("module_name")
+        filter_what = filter_what.strip()
+        # skip pipe
+        filter_text_with_pipe = full_query[len(bk_filter_what):].strip()
+        m_pipe = _Patterns.pipe_pat.match(filter_text_with_pipe)
+        if m_pipe is not None:
+            pipe_str = m_pipe.group()
+            # populate filter text
+            filter_text = filter_text_with_pipe[len(pipe_str):].strip()
+
+    return filter_what, filter_text
+
+
+def filter_objects(objects, filter_text, filter_id=None):
+    if filter_text.strip() == '' or filter_text is None:
+        return tuple(objects)
+
+    filter_str = filter_text.strip()
+    if filter_str.strip() == '' or filter_str is None:
+        return tuple(objects)
 
     function_src = _produce_python_function_source(filter_str, filter_id)
     function, src, filter_id = function_src
 
-
-    # values = synamic_obj.get_contents_by_module_name(None)
     #
-    q = Query(filter_id, filter_what, filter_str, values)
+    q = Query(filter_id, filter_str, objects)
 
     # print(src)
     try:
@@ -783,34 +826,21 @@ def query_by_synamic(synamic_obj, query_text, filter_id=None):
         raise
     result = q.result()
     return result
+
+
+def query_by_synamic_4_dynamic_contents(synamic_obj, query_text, filter_id=None):
+    # get values from synamic object
+    values = synamic_obj.dynamic_contents
+
+    filter_what, filter_text = extract_what_and_query(query_text)
+    return filter_objects(values, filter_text, filter_id=filter_id)
 
 
 def query_by_objects(objects, query_text, filter_id=None):
     # get values from synamic object
     values = objects
-    if query_text.strip() == '':
-        return values
-
-    filter_what = module_name = _Patterns.module_name_pat.match(query_text).group("module_name").strip()
-    # will ignore filter what in the new version
-    filter_str = query_text[len(module_name):].strip()
-    if filter_str.strip() == '':
-        return values
-
-    function_src = _produce_python_function_source(filter_str, filter_id)
-    function, src, filter_id = function_src
-
-    # values = synamic_obj.get_contents_by_module_name(None)
-    #
-    q = Query(filter_id, filter_what, filter_str, values)
-
-    # print(src)
-    try:
-        function(q)
-    except:
-        raise
-    result = q.result()
-    return result
+    filter_what, filter_text = extract_what_and_query(query_text)
+    return filter_objects(values, filter_text, filter_id=filter_id)
 
 
 def query_in_template(query_text):
@@ -819,7 +849,7 @@ def query_in_template(query_text):
     synamic_object = MockSynamic(mock_values())
     # change it later for right implementation
 
-    return query_by_synamic(synamic_object, query_text, None)
+    return query_by_synamic_4_dynamic_contents(synamic_object, query_text, None)
 
 
 def mock_values():
@@ -853,13 +883,30 @@ class MockSynamic:
     def __init__(self, module_values):
         self.__values = module_values
 
+    @property
+    def dynamic_contents(self):
+        return self.__values
+
     def get_contents_by_module_name(self, whatever):
         return self.__values
 
 
 def test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1"):
     mock_synamic = MockSynamic(mock_values())
-    result = query_by_synamic(mock_synamic, q)
+    result = query_by_synamic_4_dynamic_contents(mock_synamic, q)
+    pprint.pprint(result)
+
+def test_will_fail_as_dicts_are_unhashable(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1"):
+    d = [
+        {'name': "Sabuj", 'age': 28},
+        {'name': "XSabuj", 'age': 20},
+        {'name': "YSabuj", 'age': 10},
+        {'name': "uabuj", 'age': 18},
+        {'name': "pabuj", 'age': 2},
+        {'name': "SSSSSabuj", 'age': 2},
+
+    ]
+    result = query_by_objects(d, q)
     pprint.pprint(result)
 
 """
@@ -876,5 +923,5 @@ texts | title.length > 1 OR title.length < 100 | title.length > 1 AND title.leng
 """
 
 if __name__ == '__main__':
-    test(q="xxx | name endswith_ic 'j' | age > 10 ^ name contains_ic 's' | :sort_by age 'des'| :first 1 | name contains 'S' | @one")
+    test(q="xxx | age > 1 ^ name contains_ic 's' | :sort_by age 'des'| :first 100")
 
