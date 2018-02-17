@@ -23,6 +23,7 @@ from synamic.core.event_system.event_types import EventTypes
 from synamic.core.event_system.events import EventSystem, Handler
 from synamic.core.services.content.pagination import Pagination
 from synamic.core.new_filter.filter_functions import query_by_objects
+from synamic.core.services.content.chapters import get_chapters
 
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
@@ -102,11 +103,11 @@ class MarkedContentImplementation(MarkedDocumentContract):
             raise Exception("Cannot set pagination once it is set")
 
     def __get(self, key):
-        value = self.fields.get(key, None)
+        value = self.__fields.get(key, None)
         return value
 
     def __getitem__(self, key):
-        return self.fields(key)
+        return self.__get(key)
 
     def __getattr__(self, key):
         return self.__get(key)
@@ -194,7 +195,11 @@ class MarkedContentService(BaseContentModuleContract):
         chapters_field = doc.root_field.get('chapters', None)
 
         ordinary_fields['__pagination'] = None if pagination_field is None else pagination_field.value
-        ordinary_fields['__chapters'] = None if chapters_field is None else chapters_field.value
+        # ordinary_fields['__chapters'] = None if chapters_field is None else chapters_field.value
+        if chapters_field is not None:
+            ordinary_fields['chapters'] = get_chapters(self.__config, chapters_field)
+        else:
+            ordinary_fields['chapters'] = None
 
         for key, value in file_path.merged_meta_info.items():
             if key not in {'slug', 'permalink', 'pagination', 'chapters', 'model'}:
