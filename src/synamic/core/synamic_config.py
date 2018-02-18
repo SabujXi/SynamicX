@@ -363,12 +363,12 @@ class SynamicConfig(object):
                 f.write(stream.read())
                 stream.close()
 
-    def initialize_site(self):
-        if len(os.listdir(self.site_root)) == 0:
-            dir_paths = [
-                *self.__registered_dir_paths
-            ]
+    def initialize_site(self, force=False):
+        dir_paths = [
+            *self.__registered_dir_paths
+        ]
 
+        if force:
             for dir_path in dir_paths:
                 if not dir_path.exists():
                     self.path_tree.makedirs(*dir_path.path_components)
@@ -377,6 +377,16 @@ class SynamicConfig(object):
                 if not v.file_path.exists():
                     with v.file_path.open('w') as f:
                         f.write(v.file_content)
+        else:
+            if len(os.listdir(self.site_root)) == 0:
+                for dir_path in dir_paths:
+                    if not dir_path.exists():
+                        self.path_tree.makedirs(*dir_path.path_components)
+
+                for v in self.__registered_virtual_files:
+                    if not v.file_path.exists():
+                        with v.file_path.open('w') as f:
+                            f.write(v.file_content)
 
     @loaded
     def filter_content(self, filter_txt):
