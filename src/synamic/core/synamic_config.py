@@ -39,11 +39,12 @@ class SynamicConfig(object):
                  '__site_root', '__services_list', '__content_map', '__path_tree', '__tags',
                  '__categories', '__menus', '__templates', '__type_system', '__model_service', '__taxonomy',
                  '__series', '__key_values', '__is_loaded', '__dependency_list', '__site_settings', '__content_service',
-                 '__static_service')
+                 '__static_service', '__event_system')
 
     def __init__(self, site_root):
+        self.__event_system = EventSystem(self)
         # acquire trigger function of event system
-        self.__event_trigger = EventSystem._get_trigger()
+        self.__event_trigger = self.event_system._get_trigger()
         # registered directories, path
         self.__registered_dir_paths = set()
         self.__registered_virtual_files = set()
@@ -93,9 +94,13 @@ class SynamicConfig(object):
         # null service for adding some virtual files
         NullService(self)
 
+    @property
+    def event_system(self):
+        return self.__event_system
+
     @loaded
     def _reload(self):
-        # TODO: don's forget to convert event system to be instance based.
+        # DONE: don's forget to convert event system to be instance based.
         self.__init__(self.site_root)
         self.load()
 
@@ -351,7 +356,7 @@ class SynamicConfig(object):
         if not out_path.exists():
             self.path_tree.makedirs(out_path.path_components)
 
-        EventSystem.add_event_handler(
+        self.event_system.add_event_handler(
             EventTypes.PRE_BUILD,
             Handler(handler_pre_build)
         )

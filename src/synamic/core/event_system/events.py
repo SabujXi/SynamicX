@@ -76,7 +76,7 @@ class Handler:
         return self.__handler_callable(event, **kwargs)
 
 
-# TODO: Event system must not be class based, instead an event system must be instantiated as we may have
+# DONE: Event system must not be class based, instead an event system must be instantiated as we may have
 # multiple copy of synamic in the same process.
 # also, it is needed for synamic.reload()
 
@@ -99,94 +99,96 @@ class EventSystem:
     and a map of other objects where strings are used as keys.
     
     """
-    #  event maps: key => event type, value => ordered dict of event handlers
-    __get_trigger_count = 0
-    __event_map = {}
-    __custom_event_map = {}
 
-    # will use the following when an int will be used to cancel a registered event
-    __last_event_id = 0
-    __last_custom_event_id = 0
-
-    for et in EventTypes:
-        __event_map[et] = []
+    # a synamic/config cannot possess or create more than one event system.
+    __instances_map = {}
 
     @classmethod
-    def add_event_handler(cls, etype: EventTypes, handler):
+    def get_event_system(cls, synamic):
+        return cls.__instances_map.get(synamic, None)
+
+    def __init__(self, synamic):
+        assert synamic not in self.__instances_map
+        self.__instances_map[synamic] = self
+        #  event maps: key => event type, value => ordered dict of event handlers
+        self.__get_trigger_count = 0
+        self.__event_map = {}
+        self.__custom_event_map = {}
+
+        # will use the following when an int will be used to cancel a registered event
+        self.__last_event_id = 0
+        self.__last_custom_event_id = 0
+
+        for et in EventTypes:
+            self.__event_map[et] = []
+
+    def add_event_handler(self, etype: EventTypes, handler):
         assert type(etype) is EventTypes
         assert type(handler) is Handler
-        earr = cls.__event_map[etype]
+        earr = self.__event_map[etype]
         earr.append(handler)
 
-    @classmethod
-    def add_custom_event_handler(cls, ename, handler):
+    def add_custom_event_handler(self, ename, handler):
         assert type(ename) is str
         assert type(handler) is Handler
         ename = ename.lower()
-        earr = cls.__event_map.get(ename, None)
+        earr = self.__event_map.get(ename, None)
         if earr is None:
-            earr = cls.__event_map[ename] = []
+            earr = self.__event_map[ename] = []
         earr.append(handler)
 
-    @classmethod
-    def remove_event_handler(cls, etype, handler):
+    def remove_event_handler(self, etype, handler):
         assert type(etype) is EventTypes
         assert type(handler) is Handler
-        earr = cls.__event_map[etype]
+        earr = self.__event_map[etype]
         earr.remove(handler)
 
-    @classmethod
-    def remove_custom_event_handler(cls, ename, handler):
+    def remove_custom_event_handler(self, ename, handler):
         assert type(ename) is str
         assert type(handler) is Handler
         ename = ename.lower()
-        earr = cls.__event_map.get(ename, None)
+        earr = self.__event_map.get(ename, None)
         if earr is None:
-            earr = cls.__event_map[ename] = []
+            earr = self.__event_map[ename] = []
         earr.remove(handler)
 
-    @classmethod
-    def __trigger_event(cls, etype, event):
+    def __trigger_event(self, etype, event):
         assert type(etype) is EventTypes
         assert type(event) is Event
-        earr = cls.__event_map[etype]
+        earr = self.__event_map[etype]
         for handler in earr:
             handler(event)
 
-    @classmethod
-    def _get_trigger(cls):
-        if cls.__get_trigger_count == 0:
-            return cls.__trigger_event
+    def _get_trigger(self):
+        if self.__get_trigger_count == 0:
+            return self.__trigger_event
         raise LogicalError("_get_trigger can only be used by synamic itself. Do not try to get it after synamic got it."
                         "We are protecting it.")
 
-    @classmethod
-    def trigger_custom_event(cls, ename, event):
+    def trigger_custom_event(self, ename, event):
         assert ename is None
         assert type(event) is Event
         ename = ename.lower()
-        earr = cls.__custom_event_map[ename]
+        earr = self.__custom_event_map[ename]
         if earr is None:
             return
         for handler in earr:
             handler(event)
         event.mark_complete()
 
-    @classmethod
-    def handler_exists(cls, etype, handler):
+    def handler_exists(self, etype, handler):
         assert type(etype) is EventTypes
         assert type(handler) is Handler
-        earr = cls.__event_map[etype]
+        earr = self.__event_map[etype]
         if handler in earr:
             return True
         else:
             return False
 
-    @classmethod
-    def custom_handler_exists(cls, ename, handler):
+    def custom_handler_exists(self, ename, handler):
         assert ename is str
         assert type(handler) is Handler
-        earr = cls.__custom_event_map.get(ename, None)
+        earr = self.__custom_event_map.get(ename, None)
         if earr is None:
             return False
         if handler in earr:

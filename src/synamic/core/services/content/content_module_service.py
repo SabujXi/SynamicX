@@ -128,7 +128,7 @@ class MarkedContentService(BaseContentModuleContract):
         self.__service_home_path = None
         self.__config.register_path(self.service_home_path)
 
-        EventSystem.add_event_handler(
+        _cfg.event_system.add_event_handler(
             EventTypes.CONTENT_POST_LOAD,
             Handler(self.__create_paginated_contents)
         )
