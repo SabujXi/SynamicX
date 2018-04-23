@@ -2,8 +2,8 @@ import os
 import re
 from collections import OrderedDict, deque
 
-from synamic.core.filesystem.path_tree import regex_type
 from synamic.core.parsing_systems.document_parser import FieldParser
+regex_type = type(re.compile(""))
 
 
 class ContentPath2:

@@ -13,9 +13,7 @@ import re
 from collections import deque
 from typing import Union
 
-from synamic.core.filesystem.content_path.content_path2 import ContentPath2
-
-regex_type = type(re.compile(""))
+from synamic.core.filesystem.content_path.content_path2 import ContentPath2, regex_type
 
 
 class PathTree(object):
