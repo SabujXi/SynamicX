@@ -12,7 +12,7 @@ import os
 
 from synamic.core.contracts.synamic_contract import SynamicContract
 from synamic.core.event_system.events import EventTypes, EventSystem, Event
-from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.filesystem.content_path.content_path2 import ContentPath2
 from synamic.core.filesystem.path_tree import PathTree
 from synamic.core.filesystem.virtual_file import VirtualFile
 from synamic.core.query_systems.filter_functions import query_by_synamic_4_dynamic_contents

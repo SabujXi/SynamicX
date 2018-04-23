@@ -12,7 +12,7 @@ import re
 import urllib.parse
 from typing import Union
 
-from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.filesystem.content_path.content_path2 import ContentPath2
 
 
 class ContentUrl:

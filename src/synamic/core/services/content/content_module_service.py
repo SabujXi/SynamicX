@@ -18,7 +18,7 @@ from synamic.core.contracts import BaseContentModuleContract, ContentContract
 from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.event_system.event_types import EventTypes
 from synamic.core.event_system.events import Handler
-from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.filesystem.content_path.content_path2 import ContentPath2
 from synamic.core.query_systems.filter_functions import query_by_objects
 from synamic.core.parsing_systems.document_parser import DocumentParser
 from synamic.core.services.content.chapters import get_chapters

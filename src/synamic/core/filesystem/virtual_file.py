@@ -8,8 +8,7 @@
     status: "Development"
 """
 
-
-from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.filesystem.content_path.content_path2 import ContentPath2
 
 
 class VirtualFile:
