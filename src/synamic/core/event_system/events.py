@@ -76,6 +76,10 @@ class Handler:
         return self.__handler_callable(event, **kwargs)
 
 
+# TODO: Event system must not be class based, instead an event system must be instantiated as we may have
+# multiple copy of synamic in the same process.
+# also, it is needed for synamic.reload()
+
 class EventSystem:
     """
     Handler config:

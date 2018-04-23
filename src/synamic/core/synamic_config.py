@@ -35,6 +35,12 @@ from synamic.core.exceptions.synamic_exceptions import *
 
 
 class SynamicConfig(object):
+    __slots__ = ('__event_trigger', '__registered_dir_paths', '__registered_virtual_files',
+                 '__site_root', '__services_list', '__content_map', '__path_tree', '__tags',
+                 '__categories', '__menus', '__templates', '__type_system', '__model_service', '__taxonomy',
+                 '__series', '__key_values', '__is_loaded', '__dependency_list', '__site_settings', '__content_service',
+                 '__static_service')
+
     def __init__(self, site_root):
         # acquire trigger function of event system
         self.__event_trigger = EventSystem._get_trigger()
@@ -86,6 +92,12 @@ class SynamicConfig(object):
 
         # null service for adding some virtual files
         NullService(self)
+
+    @loaded
+    def _reload(self):
+        # TODO: don's forget to convert event system to be instance based.
+        self.__init__(self.site_root)
+        self.load()
 
     @property
     def urls(self):

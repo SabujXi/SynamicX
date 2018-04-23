@@ -1,2 +1,2 @@
-python start_shell.py
+python start_shell.py %*
 cmd 

@@ -163,17 +163,29 @@ class BaseShell(object):
 
     def loop(self):
         self.pre_loop()
+        cmd_args = sys.argv[1:]
 
         self.__loop_running = True
         while self.__loop_running:
-            _inres = self.input(self.prompt_text)
-            inres = _inres.strip()
-            if not inres:
-                self.on_empty()
-                continue
-            first_command = command_split_pat.split(inres)[0]
-            _arg_str = inres[len(first_command):]
-            arg_str = _arg_str.strip()
+            if not cmd_args:
+                _inres = self.input(self.prompt_text)
+                inres = _inres.strip()
+                if not inres:
+                    self.on_empty()
+                    continue
+                first_command = command_split_pat.split(inres)[0]
+                _arg_str = inres[len(first_command):]
+                arg_str = _arg_str.strip()
+            else:
+                first_command = cmd_args[0]
+                cmd_args = cmd_args[1:]
+                _arg_str_l = []
+                for cs in cmd_args:
+                    if ' ' in cs:
+                        cs = '"%s"' % cs
+                    _arg_str_l.append(cs)
+                arg_str = " ".join(_arg_str_l)
+                cmd_args = []
 
             if not command_pat.match(first_command):
                 self.print_error("Invalid first command format")
