@@ -10,7 +10,7 @@
 
 import mistune
 from markupsafe import Markup
-from synamic.core.functions.md import SynamicRenderer
+from synamic.core.standalones.functions.md import SynamicRenderer
 
 
 class Html:

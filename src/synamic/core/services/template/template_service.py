@@ -10,8 +10,8 @@
 
 
 import jinja2
-from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.classes.template_tags import GetUrlExtension
+from synamic.core.services.template.template_tags import GetUrlExtension
+from synamic.core.standalones.functions.decorators import loaded, not_loaded
 
 
 class SynamicTemplateService:

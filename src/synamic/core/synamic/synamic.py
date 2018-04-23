@@ -10,36 +10,35 @@
 
 import os
 
-from synamic.core.synamic.functions.initialize_site import _synamic_initialize_site
-from synamic.core.synamic.functions.build import _synamic_build
-from synamic.core.synamic.functions.add_document import synamic_add_document
-from synamic.core.synamic.functions.add_auxiliary_content import synamic_add_auxiliary_content
-from synamic.core.synamic.functions.get_url import synamic_get_url
-from synamic.core.synamic.functions.get_content_by_url import synamic_get_content_by_url
-from synamic.core.synamic.functions.get_document_by_id import synamic_get_document_by_id
-from synamic.core.synamic.functions.add_static_content import synamic_add_static_content
-from synamic.core.synamic.functions.register_path import synamic_register_path
-from synamic.core.synamic.functions.register_virtual_file import synamic_register_virtual_file
-
-from synamic.core.classes.path_tree import ContentPath2
-from synamic.core.classes.path_tree import PathTree
-from synamic.core.classes.url import ContentUrl
-from synamic.core.classes.virtual_file import VirtualFile
 from synamic.core.contracts.synamic_contract import SynamicContract
 from synamic.core.event_system.events import EventTypes, EventSystem, Event
-from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.new_filter.filter_functions import query_by_synamic_4_dynamic_contents
-from synamic.core.services.category_service import CategoryService
+from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.filesystem.path_tree import PathTree
+from synamic.core.filesystem.virtual_file import VirtualFile
+from synamic.core.query_systems.filter_functions import query_by_synamic_4_dynamic_contents
+from synamic.core.services.category.category_service import CategoryService
 from synamic.core.services.content.content_module_service import MarkedContentService
-from synamic.core.services.menu_service import MenuService
-from synamic.core.services.model_service import ModelService
-from synamic.core.services.null_service import NullService
-from synamic.core.services.static_module_service import StaticModuleService
-from synamic.core.services.tags_service import TagsService
-from synamic.core.services.template_service import SynamicTemplateService
+from synamic.core.services.menu.menu_service import MenuService
+from synamic.core.services.model.model_service import ModelService
+from synamic.core.services.null.null_service import NullService
+from synamic.core.services.static.static_module_service import StaticModuleService
+from synamic.core.services.tags.tags_service import TagsService
+from synamic.core.services.template.template_service import SynamicTemplateService
 from synamic.core.site_settings.site_settings import SiteSettings
+from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.synamic._synamic_enums import Key
+from synamic.core.synamic.functions.add_auxiliary_content import synamic_add_auxiliary_content
+from synamic.core.synamic.functions.add_document import synamic_add_document
+from synamic.core.synamic.functions.add_static_content import synamic_add_static_content
+from synamic.core.synamic.functions.build import _synamic_build
+from synamic.core.synamic.functions.get_content_by_url import synamic_get_content_by_url
+from synamic.core.synamic.functions.get_document_by_id import synamic_get_document_by_id
+from synamic.core.synamic.functions.get_url import synamic_get_url
+from synamic.core.synamic.functions.initialize_site import _synamic_initialize_site
+from synamic.core.synamic.functions.register_path import synamic_register_path
+from synamic.core.synamic.functions.register_virtual_file import synamic_register_virtual_file
 from synamic.core.type_system.type_system import TypeSystem
+from synamic.core.urls.url import ContentUrl
 
 
 class Synamic(SynamicContract):

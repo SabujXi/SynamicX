@@ -1,5 +1,5 @@
+from synamic.core.standalones.utils import DictUtils
 from synamic.core.synamic._synamic_enums import Key
-from synamic.core.classes.utils import DictUtils
 
 
 def synamic_get_document_by_id(synamic, mod_name, doc_id):

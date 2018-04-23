@@ -9,7 +9,7 @@
 """
 
 
-from synamic.core.new_parsers.document_parser import FieldParser
+from synamic.core.parsing_systems.document_parser import FieldParser
 
 
 class SiteSettings:

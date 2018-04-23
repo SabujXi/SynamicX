@@ -1,7 +1,8 @@
 import os
-from synamic.core.functions.normalizers import normalize_key
-from synamic.core.synamic._synamic_enums import Key
+
 from synamic.core.exceptions.synamic_exceptions import GetUrlFailed
+from synamic.core.standalones.functions.normalizers import normalize_key
+from synamic.core.synamic._synamic_enums import Key
 
 
 def synamic_get_url(synamic, parameter, content_map):

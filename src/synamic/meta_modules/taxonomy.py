@@ -11,11 +11,12 @@
 
 import enum
 import re
-from synamic.core.functions.yaml_processor import load_yaml
-from synamic.core.functions.normalizers import normalize_key, normalize_keys
-from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.contracts.module import BaseMetaModuleContract
+
 from synamic.core.contracts.content import ContentContract
+from synamic.core.contracts.module import BaseMetaModuleContract
+from synamic.core.standalones.functions import load_yaml
+from synamic.core.standalones.functions import loaded, not_loaded
+from synamic.core.standalones.functions import normalize_key, normalize_keys
 
 
 class TaxonomyTerm:

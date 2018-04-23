@@ -1,5 +1,5 @@
-from synamic.core.classes.path_tree import ContentPath2
-from synamic.core.classes.virtual_file import VirtualFile
+from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.filesystem.virtual_file import VirtualFile
 
 
 class NullService:

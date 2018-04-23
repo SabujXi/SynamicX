@@ -9,7 +9,7 @@
 """
 
 
-from synamic.core.classes.path_tree import ContentPath2
+from synamic.core.filesystem.path_tree import ContentPath2
 
 
 class VirtualFile:

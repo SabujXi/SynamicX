@@ -8,14 +8,11 @@
     status: "Development"
 """
 
-
-import os
-import urllib.parse
-from synamic.core.contracts.url import ContentUrlContract
-from synamic.core.functions.normalizers import normalize_content_url_path, generalize_content_url_path, normalize_key, split_content_url_path_components
 import re
-from synamic.core.classes.path_tree import ContentPath2
+import urllib.parse
 from typing import Union
+
+from synamic.core.filesystem.path_tree import ContentPath2
 
 
 class ContentUrl:

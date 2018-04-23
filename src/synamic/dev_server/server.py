@@ -10,9 +10,10 @@
 
 
 import http.server
-from urllib.parse import unquote
-from synamic.core.classes.url import ContentUrl
 import re
+from urllib.parse import unquote
+
+from synamic.core.urls.url import ContentUrl
 
 
 class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):

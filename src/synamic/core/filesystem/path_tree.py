@@ -11,7 +11,7 @@
 import os
 import re
 from collections import deque
-from synamic.core.new_parsers.document_parser import FieldParser, Field
+from synamic.core.parsing_systems.document_parser import FieldParser, Field
 from collections import OrderedDict
 from typing import Union
 

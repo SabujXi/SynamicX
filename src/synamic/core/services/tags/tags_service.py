@@ -8,13 +8,13 @@
     status: "Development"
 """
 
-from synamic.core.new_parsers.document_parser import FieldParser, Field
-from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.classes.path_tree import ContentPath2
-
 #  id or
 #  slug ???
 import re
+
+from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.parsing_systems.document_parser import FieldParser
+from synamic.core.standalones.functions.decorators import not_loaded
 
 
 class Tag:

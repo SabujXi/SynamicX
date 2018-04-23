@@ -9,22 +9,22 @@
 """
 
 import io
-import re
 import mimetypes
-from synamic.core.contracts import BaseContentModuleContract, ContentContract
-from synamic.core.contracts.document import MarkedDocumentContract
-from synamic.core.functions.decorators import not_loaded, loaded
-from synamic.core.classes.url import ContentUrl
-from synamic.core.new_parsers.document_parser import DocumentParser
+import re
 from collections import OrderedDict
 from collections import deque
-from synamic.core.classes.path_tree import ContentPath2
-from synamic.core.event_system.event_types import EventTypes
-from synamic.core.event_system.events import EventSystem, Handler
-from synamic.core.services.content.pagination import Pagination
-from synamic.core.new_filter.filter_functions import query_by_objects
-from synamic.core.services.content.chapters import get_chapters
 
+from synamic.core.contracts import BaseContentModuleContract, ContentContract
+from synamic.core.contracts.document import MarkedDocumentContract
+from synamic.core.event_system.event_types import EventTypes
+from synamic.core.event_system.events import Handler
+from synamic.core.filesystem.path_tree import ContentPath2
+from synamic.core.query_systems.filter_functions import query_by_objects
+from synamic.core.parsing_systems.document_parser import DocumentParser
+from synamic.core.services.content.chapters import get_chapters
+from synamic.core.services.content.pagination import Pagination
+from synamic.core.standalones.functions.decorators import not_loaded, loaded
+from synamic.core.urls.url import ContentUrl
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 

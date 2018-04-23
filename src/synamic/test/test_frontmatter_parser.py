@@ -11,7 +11,7 @@
 
 import unittest
 
-from synamic.core.functions.front_matter import parse_front_matter
+from synamic.core.standalones.functions import parse_front_matter
 
 
 class TestFrontMatterParser(unittest.TestCase):

@@ -9,8 +9,9 @@
 """
 
 import mimetypes
+
 from synamic.core.contracts.content import ContentContract
-from synamic.core.classes.url import ContentUrl
+from synamic.core.urls.url import ContentUrl
 
 
 class StaticContent(ContentContract):

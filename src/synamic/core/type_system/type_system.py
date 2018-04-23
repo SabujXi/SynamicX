@@ -16,7 +16,9 @@
 4. Along with a default model per module's contents, a content file can specify a specific model with `_model` field.
 """
 import re
-from synamic.core.functions.date_time import parse_datetime, parse_date, parse_time
+
+from synamic.core.standalones.functions.date_time import parse_datetime, parse_date, parse_time
+
 from .types import Html, Markdown
 
 

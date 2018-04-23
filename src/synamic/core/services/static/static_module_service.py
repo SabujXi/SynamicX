@@ -10,7 +10,7 @@
 
 
 from synamic.core.contracts import BaseContentModuleContract
-from synamic.core.functions.decorators import not_loaded
+from synamic.core.standalones.functions.decorators import not_loaded
 
 
 class StaticModuleService(BaseContentModuleContract):

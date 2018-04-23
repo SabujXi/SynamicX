@@ -9,11 +9,11 @@
 """
 
 
-from synamic.core.functions.normalizers import normalize_key, normalize_keys
-from synamic.core.functions.decorators import loaded, not_loaded
-from synamic.core.contracts.module import BaseMetaModuleContract
 from synamic.core.contracts.content import MetaContentContract
-from synamic.core.new_parsers.document_parser import FieldParser
+from synamic.core.contracts.module import BaseMetaModuleContract
+from synamic.core.parsing_systems.document_parser import FieldParser
+from synamic.core.standalones.functions import normalize_key
+from synamic.core.standalones.functions import not_loaded
 
 
 class ModelContent(MetaContentContract):
