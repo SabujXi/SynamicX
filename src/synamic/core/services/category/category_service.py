@@ -11,19 +11,21 @@
 from synamic.core.filesystem.content_path.content_path2 import ContentPath2
 from synamic.core.parsing_systems.document_parser import FieldParser, Field
 from synamic.core.standalones.functions.decorators import not_loaded
+from synamic.core.services.category.functions.construct_category_id import construct_category_id
+from synamic.core.services.category.functions.construct_category_url import construct_category_url
+from synamic.core.services.category.functions.normalize_category_title import normalize_category_title
 
 
 class Category:
-    def __init__(self, children=None, title=None, id=None, description=None, other_fields=None):
+    def __init__(self, synamic, children=None, title=None, id=None, description=None, other_fields=None):
         assert title is not None
-        self.__title = title
-        self.__id = id
+        self.__title = normalize_category_title(title)
+        self.__title_lower = self.__title.lower()
+        self.__id = construct_category_id(id, self.__title_lower)
         self.__description = description if description is not None else ''
-        self.__children = children
+        self.__children = () if children is None else children
         self.__other_fields = {} if other_fields is None else other_fields
-
-    def __iter__(self):
-        return iter(self.__children)
+        self.__url_object = construct_category_url(synamic, self)
 
     @property
     def title(self):
@@ -41,8 +43,9 @@ class Category:
     def children(self):
         return self.__children
 
-    # def __getattr__(self, item):
-    #     return self.__other_fields.get(item, None)
+    @property
+    def url_object(self):
+        return self.__url_object
 
     def __getitem__(self, item):
         return self.__other_fields.get(item, None)
@@ -53,10 +56,13 @@ class Category:
     def __repr__(self):
         return repr(str(self))
 
+    def __iter__(self):
+        return iter(self.__children)
+
 
 class CategoryService:
-    def __init__(self, synamic_config):
-        self.__config = synamic_config
+    def __init__(self, synamic):
+        self.__synamic = synamic
         # self.__type_system = synamic_config.type_system
         self.__root_categories = []
         self.__category_map_by_id = {}
@@ -64,12 +70,12 @@ class CategoryService:
         self.__is_loaded = False
 
         self.__service_home_path = None
-        self.__config.register_path(self.service_home_path)
+        self.__synamic.register_path(self.service_home_path)
 
     @property
     def service_home_path(self) -> ContentPath2:
         if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path(('meta', 'categories'))
+            self.__service_home_path = self.__synamic.path_tree.create_path(('meta', 'categories'))
         return self.__service_home_path
 
     @property
@@ -92,10 +98,6 @@ class CategoryService:
                 self.__root_categories.append(cat)
         self.__is_loaded = True
 
-        # for rcat in self.all:
-        #     print("Cat: %s" % rcat)
-        #     print("Cat xt: %s" % rcat.ext)
-
     def _parse_category(self, root_category_field: Field) -> tuple:
         res_list = []
         category_fields = root_category_field.get_multi('category', None)
@@ -110,35 +112,41 @@ class CategoryService:
                     del dict_flat['title']
                 id = dict_flat.get('id', None)
                 if id is not None:
-                    # id = id.value
                     del dict_flat['id']
                 description = dict_flat.get('description', None)
                 if description is not None:
-                    # description = description.value
                     del dict_flat['description']
 
-                cat = Category(
-                    title=title,
-                    id=id,
-                    description=description,
-                    children=self._parse_category(category_field),
-                    other_fields=dict_flat
-                )
-
-                if id is not None:
-                    if id in self.__category_map_by_id:
-                        raise Exception("Duplicate category id: %s" % id)
-                    else:
-                        self.__category_map_by_id[id] = cat
-                self.__category_map_by_title_lower[title.lower()] = cat
-
-                res_list.append(cat)
+                res_list.append(self.__add_category(
+                    title, id=id, description=description, others=dict_flat, children=category_field
+                ))
         return tuple(res_list)
 
-    # def _parse(self, root_field):
-    #     if self.__children is None:
-    #         self.__children = self._parse_category(root_field)
-    #     return self.__children
+    def __add_category(self, title, id=None, description=None, others=None, children=None):
+        cat = Category(
+            self.__synamic,
+            title=title,
+            id=id,
+            description=description,
+            children=None if children is None else self._parse_category(children),
+            other_fields=others
+        )
+
+        assert cat.id not in self.__category_map_by_id, "Duplicate category id: %s" % id
+        self.__category_map_by_id[cat.id] = cat
+        self.__category_map_by_title_lower[cat.title.lower()] = cat
+        return cat
+
+    def add_category(self, title, id=None, description=None, others=None, children=None):
+        c = self.get_category_by_title(title)
+        if c:
+            return c
+        return self.__add_category(title, id=id, description=description, others=others, children=None)
+
+    def get_category_by_title(self, title):
+        title = normalize_category_title(title).lower()
+        c = self.__category_map_by_title_lower.get(title, None)
+        return c
 
     @property
     def all(self):
@@ -155,4 +163,10 @@ class CategoryService:
         return self.__category_map_by_id.get(key, None)
 
     def __iter__(self):
-        return iter(self.all)
+        return iter(self.get_sorted_categories())
+
+    def get_sorted_categories(self, reverse=False):
+        # sorts alphabetically
+        categories = self.all
+        sorted_categories = sorted(categories, key=lambda category: category.title, reverse=reverse)
+        return sorted_categories

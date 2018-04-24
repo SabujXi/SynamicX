@@ -26,9 +26,8 @@ class Tag:
     def __init__(self, synamic, title, id=None, description=None, others=None):
         assert title is not None
         # remove multiple consecutive spaces with one space
-        title = normalize_tag_title(title)
-        self.__title = title
-        self.__title_lower = title.lower()
+        self.__title = normalize_tag_title(title)
+        self.__title_lower = self.__title.lower()
         self.__description = description if description is not None else ''
         self.__other_fields = {} if others is None else others  # a flat dictionary
         self.__id = construct_tag_id(id, self.__title_lower)
@@ -120,7 +119,6 @@ class TagsService:
 
     @property
     def all(self):
-        # return tuple(self.__tags_by_title_lower.values())
         return tuple(self.__tags_by_title_lower.values())
 
     def add_tag(self, title, id=None, description=None, others=None):
@@ -137,7 +135,7 @@ class TagsService:
             others=others
         )
 
-        assert id not in self.__tags_by_id, "Duplicate tag id: %s" % id
+        assert tag.id not in self.__tags_by_id, "Duplicate tag id: %s" % id
         self.__tags_by_id[tag.id] = tag
         self.__tags_by_title_lower[tag.title.lower()] = tag
         return tag
@@ -150,7 +148,7 @@ class TagsService:
             return self.add_tag(title)
 
     def get_tag_by_title(self, title):
-        return self.__tags_by_title_lower.get(title.lower(), None)
+        return self.__tags_by_title_lower.get(normalize_tag_title(title).lower(), None)
     get_tag = get_tag_by_title
     get = get_tag_by_title
 

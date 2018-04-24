@@ -1,15 +1,14 @@
 import io
 from synamic.core.contracts.content import ContentContract
-from synamic.core.urls.url import ContentUrl
 
 
 class TemplateContent(ContentContract):
-    def __init__(self, synamic, template_name, value_pack, mime_type="text/html"):
+    def __init__(self, synamic, url_object, template_name, value_pack, mime_type="text/html"):
         self.__synamic = synamic
         self.__value_pack = value_pack
         self.__template_name = template_name
         self.__mime_type = mime_type
-        self.__url_object = None
+        self.__url_object = url_object
 
     @property
     def synamic(self):
@@ -22,9 +21,6 @@ class TemplateContent(ContentContract):
     @property
     def url_object(self):
         return self.__url_object
-
-    def _set_url_object(self, uo):
-        self.__url_object = uo
 
     @property
     def mime_type(self):

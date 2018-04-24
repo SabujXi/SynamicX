@@ -110,27 +110,24 @@ class MarkedContentService(BaseContentModuleContract):
                 if cont.tags:
                     if tag in cont.tags:
                         contents.append(cont)
-            template_content = TemplateContent(self.__synamic, tag_template, {
+            template_content = TemplateContent(self.__synamic, tag.url_object, tag_template, {
                 'tag': tag,
                 'contents': contents
             })
             print("tag: %s" % tag)
-            template_content._set_url_object(ContentUrl(self.__synamic, '_/tag/' + tag.id))
             self.__synamic.add_auxiliary_content(template_content)
 
-        # for category in self.__synamic.categories:
-        #     print(category)
-        #     contents = []
-        #     for cont in self.__synamic.dynamic_contents:
-        #         if cont.categories:
-        #             if category in cont.categories:
-        #                 contents.append(cont)
-        #     template_content = TemplateContent(self.__synamic, category_template, {
-        #         'category': category,
-        #         'contents': contents
-        #     })
-        #     template_content._set_url_object(ContentUrl(self.__synamic, '_/category/' + category.id))
-        #     self.__synamic.add_auxiliary_content(template_content)
+        for category in self.__synamic.categories:
+            contents = []
+            for cont in self.__synamic.dynamic_contents:
+                if cont.categories:
+                    if category in cont.categories:
+                        contents.append(cont)
+            template_content = TemplateContent(self.__synamic, category.url_object, category_template, {
+                'category': category,
+                'contents': contents
+            })
+            self.__synamic.add_auxiliary_content(template_content)
 
     @loaded
     def __paginate(self, contents, starting_content, filter_txt, contents_per_page=2):

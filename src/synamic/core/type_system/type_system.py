@@ -56,6 +56,7 @@ class TypeSystem:
         'html',
 
         'taxonomy.tags',
+        'taxonomy.categories',
 
         # TODO:
         # template
@@ -216,6 +217,21 @@ def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
             )
     return tuple(res)
 
+
+@_decorator_default_converter('taxonomy.categories')
+def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
+    """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
+    sy_categories = synamic_config_obj.categories
+    res = []
+    category_titles = _Pat.separator_comma_pat.split(txt)
+    for title in category_titles:
+        title = title.strip()
+        if title != '':
+            title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
+            res.append(
+                sy_categories.add_category(title)
+            )
+    return tuple(res)
 
 @_decorator_default_converter('date[]')
 def _date_list_converter(txt, synamic_config_obj=None, *args, **kwargs):
