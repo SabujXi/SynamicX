@@ -115,7 +115,7 @@ class TaxonomyPage(ContentContract):
         super().get_stream()
 
     @property
-    def config(self):
+    def synamic(self):
         return self.__config
 
     @property

@@ -25,7 +25,7 @@ class StaticDocumentContract(BaseDocumentContract):
     @abstractmethod
     def absolute_path(self):
         pass
-
+    
 
 class MarkedDocumentContract(BaseDocumentContract):
     @property

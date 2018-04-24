@@ -24,7 +24,7 @@ class StaticContent(ContentContract):
         self.__id = None  # TODO: devise a mechanism for generating it - now set to null
 
     @property
-    def config(self):
+    def synamic(self):
         return self.__config
 
     @property

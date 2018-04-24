@@ -273,13 +273,6 @@ class Synamic(SynamicContract):
 
         self.__is_loaded = True
 
-        # post processing
-        # for cnt in self.__content_map[Key.DYNAMIC_CONTENTS]:
-        #     cnt.trigger_post_processing()
-
-        # test
-        # fil_res = self.filter_content('txt | :sort_by created_on "des"|@one')
-        # print(fil_res)
 
     @loaded
     def _reload(self):

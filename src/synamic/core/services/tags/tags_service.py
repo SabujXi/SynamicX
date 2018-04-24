@@ -11,7 +11,9 @@
 #  id or
 #  slug ???
 import re
-
+from synamic.core.services.tags.functions.construct_tag_url import construct_tag_url
+from synamic.core.services.tags.functions.normalize_tag_title import normalize_tag_title
+from synamic.core.services.tags.functions.construct_tag_id import construct_tag_id
 from synamic.core.filesystem.content_path.content_path2 import ContentPath2
 from synamic.core.parsing_systems.document_parser import FieldParser
 from synamic.core.standalones.functions.decorators import not_loaded
@@ -21,67 +23,64 @@ class Tag:
     """
     Tags are flat, so remember that only the first part will be taken, others will be left untouched.
     """
-    def __init__(self, title=None, slug=None, description=None, others=None):
+    def __init__(self, synamic, title, id=None, description=None, others=None):
         assert title is not None
+        # remove multiple consecutive spaces with one space
+        title = normalize_tag_title(title)
         self.__title = title
         self.__title_lower = title.lower()
         self.__description = description if description is not None else ''
         self.__other_fields = {} if others is None else others  # a flat dictionary
-
-        self.__slug = slug
-
-        if slug is not None:
-            slug = re.sub(r'[^a-z0-9+._-]', '-', title, flags=re.I)
-            self.__slug = slug
-        # print(self)
-        # print(repr(self))
+        self.__id = construct_tag_id(id, self.__title_lower)
+        self.__synamic = synamic
+        self.__url_object = construct_tag_url(synamic, self)
 
     @property
     def title(self):
         return self.__title
 
     @property
-    def slug(self):
-        return self.__slug
+    def id(self):
+        return self.__id
 
     @property
     def description(self):
         return self.__description
 
+    @property
+    def url_object(self):
+        return self.__url_object
+
     def __getitem__(self, item):
         return self.__other_fields.get(item, None)
-
-    # def __getattr__(self, item):
-    #     return self.__other_fields.get(item, None)
 
     def __str__(self):
         return self.__title
 
     def __repr__(self):
-        # print("REPR: %s" % self.title)
         return repr(self.__str__())
 
     def __eq__(self, other):
-        return self.__title.lower() == other.title.lower()
+        return self.__id == other.id
 
     def __hash__(self):
-        return hash(self.__title)
+        return hash(self.__id)
 
 
 class TagsService:
-    def __init__(self, synamic_config):
-        self.__config = synamic_config
-        self.__tags_by_slug = {}
+    def __init__(self, synamic):
+        self.__synamic = synamic
+        self.__tags_by_id = {}
         self.__tags_by_title_lower = {}
         self.__is_loaded = False
 
         self.__service_home_path = None
-        self.__config.register_path(self.service_home_path)
+        self.__synamic.register_path(self.service_home_path)
 
     @property
     def service_home_path(self) -> ContentPath2:
         if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path(('meta', 'tags'))
+            self.__service_home_path = self.__synamic.path_tree.create_path(('meta', 'tags'))
         return self.__service_home_path
 
     @property
@@ -97,17 +96,15 @@ class TagsService:
                 with file_path.open('r', encoding='utf-8') as f:
                     model_txt = f.read()
                     root_tags = FieldParser(model_txt).parse()
-                    # print(root_tags)
 
                     for tag_field in root_tags.get_multi('tag'):
                         tag_dict = tag_field.to_dict_ordinary()
-                        # print(tag_dict)
 
                         title = tag_dict.get('title', None)
                         if title is not None:
                             del tag_dict['title']
 
-                        id = tag_field.get('id', None)
+                        id = tag_dict.get('id', None)
                         if id is not None:
                             del tag_dict['id']
 
@@ -118,35 +115,34 @@ class TagsService:
                             # skip this tag
                             continue
                         # assert id is not None and title is not None, "Tag id must exist"
-                        self.add_tag(title, slug=id, description=description, others=tag_dict)
-        # for x in self.all:
-        #     print(x)
+                        self.add_tag(title, id, description=description, others=tag_dict)
         self.__is_loaded = True
 
     @property
     def all(self):
+        # return tuple(self.__tags_by_title_lower.values())
         return tuple(self.__tags_by_title_lower.values())
 
-    def add_tag(self, title, slug=None, description=None, others=None):
+    def add_tag(self, title, id=None, description=None, others=None):
         t = self.get_tag_by_title(title)
         if t:
             return t
         if self.get_tag_by_title(title):
             return None
         tag = Tag(
-            title=title,
-            slug=slug,
+            self.__synamic,
+            title,
+            id,
             description=description,
             others=others
         )
 
-        if slug is not None:
-            assert slug not in self.__tags_by_slug, "Duplicate tag id: %s" % slug
-            self.__tags_by_slug[tag.slug] = tag
+        assert id not in self.__tags_by_id, "Duplicate tag id: %s" % id
+        self.__tags_by_id[tag.id] = tag
         self.__tags_by_title_lower[tag.title.lower()] = tag
         return tag
 
-    def get_or_add_tag(self, title):  #  by title
+    def get_or_add_tag(self, title):  # by title
         tag = self.get_tag_by_title(title)
         if tag is not None:
             return tag
@@ -159,7 +155,14 @@ class TagsService:
     get = get_tag_by_title
 
     def __getitem__(self, key):
-        return self.__tags_by_slug.get(key)
+        return self.__tags_by_id.get(key)
 
     def __iter__(self):
-        return iter(self.all)
+        return iter(self.get_sorted_tags())
+
+    def get_sorted_tags(self, reverse=False):
+        # sorts alphabetically
+        tags = self.all
+        sorted_tags = sorted(tags, key=lambda tag: tag.title, reverse=reverse)
+        return sorted_tags
+

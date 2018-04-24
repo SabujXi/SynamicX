@@ -153,3 +153,6 @@ class CategoryService:
 
     def __getitem__(self, key):
         return self.__category_map_by_id.get(key, None)
+
+    def __iter__(self):
+        return iter(self.all)

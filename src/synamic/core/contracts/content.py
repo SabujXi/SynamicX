@@ -24,7 +24,7 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def config(self):
+    def synamic(self):
         pass
 
     @property
@@ -34,6 +34,11 @@ class ContentContract(metaclass=abc.ABCMeta):
         This is a path object associated with the file (for static the path, for dynamic the path to things like .md
          and for auxiliary - i need to think about that :p )
         """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def url_object(self):
         pass
 
     @property

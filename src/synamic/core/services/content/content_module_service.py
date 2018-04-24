@@ -14,6 +14,9 @@ from synamic.core.services.content.functions.construct_url_object import content
 from synamic.core.services.content.functions.create_marked_content import content_create_marked_content
 from synamic.core.services.content.functions.paginate import content_paginate
 
+from synamic.core.services.content.template_content import TemplateContent
+from synamic.core.urls.url import ContentUrl
+
 from synamic.core.contracts import BaseContentModuleContract
 from synamic.core.event_system.event_types import EventTypes
 from synamic.core.event_system.events import Handler
@@ -35,6 +38,11 @@ class MarkedContentService(BaseContentModuleContract):
         synamic.event_system.add_event_handler(
             EventTypes.CONTENT_POST_LOAD,
             Handler(self.__create_paginated_contents)
+        )
+
+        synamic.event_system.add_event_handler(
+            EventTypes.CONTENT_POST_LOAD,
+            Handler(self.__create_content_4_tags_categories)
         )
 
         self.__default_field_values = {
@@ -88,6 +96,41 @@ class MarkedContentService(BaseContentModuleContract):
                 for aux_cnt in aux_cnts:
                     self.__synamic.add_auxiliary_content(aux_cnt)
         self.__pagination_complete = True
+
+    def __create_content_4_tags_categories(self, event):
+        # go over tags
+        #   find contents with all the tags
+        #   make list of contents
+        #   create content
+        tag_template = self.__synamic.site_settings.get('tag_template', 'tag.html')
+        category_template = self.__synamic.site_settings.get('category_template', 'category.html')
+        for tag in self.__synamic.tags:
+            contents = []
+            for cont in self.__synamic.dynamic_contents:
+                if cont.tags:
+                    if tag in cont.tags:
+                        contents.append(cont)
+            template_content = TemplateContent(self.__synamic, tag_template, {
+                'tag': tag,
+                'contents': contents
+            })
+            print("tag: %s" % tag)
+            template_content._set_url_object(ContentUrl(self.__synamic, '_/tag/' + tag.id))
+            self.__synamic.add_auxiliary_content(template_content)
+
+        # for category in self.__synamic.categories:
+        #     print(category)
+        #     contents = []
+        #     for cont in self.__synamic.dynamic_contents:
+        #         if cont.categories:
+        #             if category in cont.categories:
+        #                 contents.append(cont)
+        #     template_content = TemplateContent(self.__synamic, category_template, {
+        #         'category': category,
+        #         'contents': contents
+        #     })
+        #     template_content._set_url_object(ContentUrl(self.__synamic, '_/category/' + category.id))
+        #     self.__synamic.add_auxiliary_content(template_content)
 
     @loaded
     def __paginate(self, contents, starting_content, filter_txt, contents_per_page=2):

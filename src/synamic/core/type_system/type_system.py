@@ -206,15 +206,14 @@ def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
     # print("TAGS txt: %s" %txt)
     sy_tags = synamic_config_obj.tags
     res = []
-    strings = _Pat.separator_comma_pat.split(txt)
-    for string in strings:
-        string = string.strip()
-        if string != '':
-            string = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, string)
+    tag_titles = _Pat.separator_comma_pat.split(txt)
+    for title in tag_titles:
+        title = title.strip()
+        if title != '':
+            title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
             res.append(
-                sy_tags.add_tag(string)
+                sy_tags.add_tag(title)
             )
-    # print("Tags: %s" % str(res))
     return tuple(res)
 
 

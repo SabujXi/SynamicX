@@ -18,7 +18,7 @@ class MarkedContentImplementation(MarkedDocumentContract):
         self.__pagination = None
 
     @property
-    def config(self):
+    def synamic(self):
         return self.__synamic
 
     @property
