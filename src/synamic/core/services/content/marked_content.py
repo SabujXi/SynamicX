@@ -3,6 +3,8 @@ import mimetypes
 
 from synamic.core.contracts.document import MarkedDocumentContract
 from synamic.core.filesystem.content_path.content_path2 import ContentPath2
+from synamic.core.services.content.toc import Toc
+from synamic.core.standalones.functions.md import render_markdown
 
 
 class MarkedContentImplementation(MarkedDocumentContract):
@@ -16,6 +18,11 @@ class MarkedContentImplementation(MarkedDocumentContract):
         self.__field_converters = field_converters
         self.__content_type = content_type
         self.__pagination = None
+        self.__toc = Toc()
+
+        render_markdown(synamic, self.__body.as_str, value_pack={
+            'toc': self.__toc
+        })
 
     @property
     def synamic(self):
@@ -71,6 +78,11 @@ class MarkedContentImplementation(MarkedDocumentContract):
     @property
     def pagination(self):
         return self.__pagination
+
+    @property
+    def toc(self):
+        assert self.__toc is not None
+        return self.__toc
 
     def _set_pagination(self, pg):
         if self.__pagination is None:

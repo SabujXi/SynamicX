@@ -37,3 +37,9 @@ class MarkedDocumentContract(BaseDocumentContract):
     @abstractmethod
     def body(self):
         pass
+
+    @property
+    @abstractmethod
+    def toc(self):
+        pass
+

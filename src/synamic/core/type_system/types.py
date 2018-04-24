@@ -8,9 +8,8 @@
     status: "Development"
 """
 
-import mistune
 from markupsafe import Markup
-from synamic.core.standalones.functions.md import SynamicRenderer
+from synamic.core.standalones.functions.md import render_markdown
 
 
 class Html:
@@ -48,23 +47,17 @@ class Html:
 
 
 class Markdown:
-    def __init__(self, md_str, synamic_config_obj):
+    def __init__(self, md_str, synamic):
         self.__md_str = md_str
-        self.__synamic_config_obj = synamic_config_obj
+        self.__synamic = synamic
         self.__html_obj = None
         self.__plain_text = None
         self.__rendered_text = None
 
-    @staticmethod
-    def __render_markdown(config, text):
-        renderer = SynamicRenderer(config)
-        md = mistune.Markdown(renderer=renderer)
-        return md.render(text)
-
     @property
     def rendered_markdown(self):
         if self.__rendered_text is None:
-            self.__rendered_text = self.__render_markdown(self.__synamic_config_obj, self.__md_str)
+            self.__rendered_text = render_markdown(self.__synamic, self.__md_str)
         return self.__rendered_text
 
     @property

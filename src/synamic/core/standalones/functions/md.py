@@ -9,19 +9,21 @@
 """
 
 
+import re
 import mistune
 
 
 class SynamicRenderer(mistune.Renderer):
-    def __init__(self, config, **kwargs):
+    def __init__(self, synamic, value_pack=None, **kwargs):
         super().__init__(**kwargs)
-        self.__config = config
+        self.__synamic = synamic
+        self.__value_pack = value_pack if value_pack is not None else {}
 
     def image(self, src, title, alt_text):
         lsrc = src.lower()
         if lsrc.startswith('geturl://'):
             _url = src[len('geturl://'):]
-            url = self.__config.get_url(_url)
+            url = self.__synamic.get_url(_url)
         else:
             url = src
         return "<img src='%s' title='%s' alt='%s' class='img-responsive center-block'>" % (url, title, alt_text)
@@ -30,14 +32,26 @@ class SynamicRenderer(mistune.Renderer):
         ll = link.lower()
         if ll.startswith('geturl://'):
             _url = link[len('geturl://'):]
-            url = self.__config.get_url(_url)
+            url = self.__synamic.get_url(_url)
         else:
             url = link
         return "<a href='%s' title='%s'>%s</a>" % (url, title, content)
 
+    def header(self, text, level, raw=None):
+        html_id = self.__text_2_html5_id(text)
+        toc = self.__value_pack.get('toc', None)
+        if toc is not None:
+            toc.add(level, text, html_id)
+        # print(text)
+        return "<h%s id='%s'>%s</h%s>" % (level, html_id, text, level)
 
-def render_markdown(config, text):
-    renderer = SynamicRenderer(config)
+    def __text_2_html5_id(self, text):
+        rpl_spc = re.sub(r'\s', '_', text)
+        final = re.sub(r'"|\'', '-', rpl_spc)
+        return final
+
+
+def render_markdown(synamic, text, value_pack=None):
+    renderer = SynamicRenderer(synamic, value_pack)
     md = mistune.Markdown(renderer=renderer)
     return md.render(text)
-
