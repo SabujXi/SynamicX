@@ -50,10 +50,7 @@ class Synamic(SynamicContract):
 
     __site_root_paths = set()
 
-    @property
-    def event_system(self) -> EventSystem:
-        return self.__event_system
-
+    # > Object Stores
     @property
     def urls(self):
         return self.__content_map[Key.CONTENTS_BY_URL_PATH].copy()
@@ -70,6 +67,36 @@ class Synamic(SynamicContract):
     def menus(self):
         return self.__menus
 
+    @property
+    @loaded
+    def series(self):
+        return self.__series
+
+    @property
+    def site_settings(self):
+        return self.__site_settings
+
+    @property
+    @loaded
+    def taxonomy(self):
+        return self.__taxonomy
+
+    # < Object Stores
+
+    # > Non-Object Stores
+    @property
+    def path_tree(self):
+        return self.__path_tree
+
+    @property
+    def templates(self):
+        return self.__templates
+    # > Non-Object Stores
+
+    @property
+    def event_system(self) -> EventSystem:
+        return self.__event_system
+
     def register_path(self, dir_path: ContentPath2):
         return synamic_register_path(self, dir_path, self.__registered_dir_paths)
 
@@ -79,14 +106,6 @@ class Synamic(SynamicContract):
     @property
     def is_loaded(self):
         return self.__is_loaded
-
-    @property
-    def path_tree(self):
-        return self.__path_tree
-
-    @property
-    def templates(self):
-        return self.__templates
 
     @property
     def type_system(self):
@@ -99,20 +118,6 @@ class Synamic(SynamicContract):
     @property
     def content_service(self):
         return self.__content_service
-
-    @property
-    def site_settings(self):
-        return self.__site_settings
-
-    @property
-    @loaded
-    def taxonomy(self):
-        return self.__taxonomy
-
-    @property
-    @loaded
-    def series(self):
-        return self.__series
 
     # Content &| Document Things
     def add_content(self, content):
