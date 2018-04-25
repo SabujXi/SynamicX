@@ -31,3 +31,34 @@ class GetUrlExtension(Extension):
     def _get_url(self, parameter):
         url = self.environment.synamic_config.get_url(parameter)
         return url
+
+
+class ResizeImageExtension(Extension):
+    tags = {'resize'}
+
+    def __init__(self, environment):
+        super().__init__(environment)
+        environment.extend(
+            synamic_config=None
+        )
+
+    def parse(self, parser):
+        lineno = next(parser.stream).lineno
+        args = [parser.parse_expression()]
+        if parser.stream.skip_if('comma'):
+            args.append(parser.parse_expression())
+        else:
+            args.append(nodes.Const(None))
+
+        if parser.stream.skip_if('comma'):
+            args.append(parser.parse_expression())
+        else:
+            args.append(nodes.Const(None))
+
+        path, width, height = args
+        call = self.call_method('_resize', [path, width, height], lineno=lineno)
+        return nodes.Output([call], lineno=lineno)
+
+    def _resize(self, path, width, height):
+        cnt = self.environment.synamic_config.resize_image(path, width, height)
+        return cnt.url_object.path

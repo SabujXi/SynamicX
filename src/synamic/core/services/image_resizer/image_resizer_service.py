@@ -10,6 +10,7 @@
 
 from synamic.core.standalones.functions.decorators import not_loaded, loaded
 from PIL import Image
+from synamic.core.services.image_resizer.resized_image_content import ResizedImageContent
 
 
 class ImageResizerService:
@@ -22,7 +23,7 @@ class ImageResizerService:
 
     def __init__(self, synamic):
         self.__synamic = synamic
-        self.__image_path_map = {}
+        self.__image_paths = set()  # image content is key and p
         self.__is_loaded = False
 
     @property
@@ -45,9 +46,12 @@ class ImageResizerService:
     @loaded
     def resize(self, file_path, width, height, algorithm=''):
         # decide algorithm
-        algorithm_flag = self.__get_algorithm_flag(algorithm)
-        path = file_path.absolute_path
-        if path in self.__image_path_map:
-            pass
-
-        self.__synamic.path_tree.create_path()
+        # algorithm_flag = self.__get_algorithm_flag(algorithm)
+        # Algorithm is both unused here and in the img content class
+        if type(file_path) is str:
+            file_path = self.__synamic.path_tree.create_path(file_path, is_file=True)
+        imgcnt = ResizedImageContent(self.__synamic, file_path, width, height)
+        if imgcnt not in self.__image_paths:
+            self.__image_paths.add(imgcnt)
+            self.__synamic.add_auxiliary_content(imgcnt)
+        return imgcnt

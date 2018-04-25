@@ -16,16 +16,16 @@ from synamic.core.urls.url import ContentUrl
 
 class StaticContent(ContentContract):
 
-    def __init__(self, config, path, file_content=None):
+    def __init__(self, synamic, path, file_content=None):
         assert file_content is None
         self.__url = None
-        self.__config = config
+        self.__synamic = synamic
         self.__path = path
         self.__id = None  # TODO: devise a mechanism for generating it - now set to null
 
     @property
     def synamic(self):
-        return self.__config
+        return self.__synamic
 
     @property
     def path(self):
@@ -59,7 +59,7 @@ class StaticContent(ContentContract):
     @property
     def url_object(self):
         if self.__url is None:
-            self.__url = ContentUrl(self.__config, self.__path)
+            self.__url = ContentUrl(self.__synamic, self.__path)
         return self.__url
 
         # if file_path.meta_info:

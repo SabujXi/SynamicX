@@ -25,13 +25,20 @@ def _synamic_build(synamic, content_map, event_trigger):
 
     # real work begins
     self.initialize_site()
-    for cont in content_map[Key.CONTENTS_SET]:
-        url = cont.url_object
-        dir = os.path.join(self.site_root, self.site_settings.output_dir, *url.dir_components)
-        if not os.path.exists(dir):
-            os.makedirs(dir)
+    old_contents = content_map[Key.CONTENTS_SET].copy()
 
-        with url.to_content_path.open('wb') as f:
-            stream = cont.get_stream()
-            f.write(stream.read())
-            stream.close()
+    def build_content(process_content_map):
+        for cont in process_content_map:
+            url = cont.url_object
+            dir = os.path.join(self.site_root, self.site_settings.output_dir, *url.dir_components)
+            if not os.path.exists(dir):
+                os.makedirs(dir)
+
+            with url.to_content_path.open('wb') as f:
+                stream = cont.get_stream()
+                f.write(stream.read())
+                stream.close()
+    build_content(old_contents)
+    tertiary_contents = content_map[Key.CONTENTS_SET] - old_contents
+    build_content(tertiary_contents)
+

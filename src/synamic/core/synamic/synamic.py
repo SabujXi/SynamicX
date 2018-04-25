@@ -24,6 +24,7 @@ from synamic.core.services.null.null_service import NullService
 from synamic.core.services.static.static_module_service import StaticModuleService
 from synamic.core.services.tags.tags_service import TagsService
 from synamic.core.services.template.template_service import SynamicTemplateService
+from synamic.core.services.image_resizer.image_resizer_service import ImageResizerService
 from synamic.core.site_settings.site_settings import SiteSettings
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.synamic._synamic_enums import Key
@@ -241,8 +242,15 @@ class Synamic(SynamicContract):
         # static service
         self.__static_service = StaticModuleService(self)
 
+        self.__image_resizer = ImageResizerService(self)
+
         # null service for adding some virtual files
         NullService(self)
+
+    @loaded
+    def resize_image(self, path, width, height):
+        path = self.path_tree.create_path(path)
+        return self.__image_resizer.resize(path, width, height)
 
     @not_loaded
     def load(self):
@@ -263,6 +271,8 @@ class Synamic(SynamicContract):
 
         self.__static_service.load()
 
+        self.__image_resizer.load()
+
         # content load
         self.__content_service.load()
 
@@ -272,7 +282,6 @@ class Synamic(SynamicContract):
         )
 
         self.__is_loaded = True
-
 
     @loaded
     def _reload(self):

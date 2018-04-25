@@ -10,7 +10,7 @@
 
 
 import jinja2
-from synamic.core.services.template.template_tags import GetUrlExtension
+from synamic.core.services.template.template_tags import GetUrlExtension, ResizeImageExtension
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 
 
@@ -46,7 +46,7 @@ class SynamicTemplateService:
                 self.__config.path_tree.get_full_path(self.__config.template_dir),
                 encoding='utf-8', followlinks=False),
             autoescape=jinja2.select_autoescape(['html', 'xml']),
-            extensions=[GetUrlExtension]
+            extensions=[GetUrlExtension, ResizeImageExtension]
         )
         # setting config object to global of environment
         self.__template_env.synamic_config = self.__config

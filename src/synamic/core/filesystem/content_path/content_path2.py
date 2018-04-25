@@ -97,7 +97,7 @@ class ContentPath2:
         return self.__path_comps[-1]
 
     @property
-    def dirname(self):
+    def dirname_comps(self):
         """
         Relative dirname 
         """
