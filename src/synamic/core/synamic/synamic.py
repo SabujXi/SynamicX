@@ -284,9 +284,6 @@ class Synamic(SynamicContract):
         self.__is_loaded = True
 
     @loaded
-    def _reload(self):
-        # DONE: don's forget to convert event system to be instance based.
-        # TODO: Reload not working
-        self.__is_loaded = False
-        self.__init_instance_variables()
-        self.load()
+    def _die_cleanup(self):
+        normcase_normpath_root = os.path.normpath(os.path.normcase(self.site_root))
+        self.__site_root_paths.remove(normcase_normpath_root)

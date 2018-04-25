@@ -11,9 +11,13 @@
 
 import http.server
 import re
+import sys
 from urllib.parse import unquote
 
 from synamic.core.urls.url import ContentUrl
+from watchdog.observers import Observer
+from watchdog.events import FileSystemEventHandler
+import socket
 
 
 class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
@@ -92,7 +96,6 @@ class SynamicDevServerRequestHandler(http.server.BaseHTTPRequestHandler):
 
     def signal_reload(self):
         self.server.signaled_reload = True
-        self.server.synamic_config._reload()
 
 
 class SynamicServer(http.server.HTTPServer):
@@ -103,13 +106,71 @@ class SynamicServer(http.server.HTTPServer):
         super().__init__(*args, **kwargs)
 
 
-def serve(config, port):
-    server = SynamicServer(config, ('localhost', port), SynamicDevServerRequestHandler)
+def serve(synamic, port):
+    server = SynamicServer(synamic, ('localhost', port), SynamicDevServerRequestHandler)
     _addr = server.server_address[0] + ":" + str(server.server_address[1])
     print("SERVE(): Server starting on %s" % _addr)
-    while True:
-        # server.serve_forever()
-        server.handle_request()
 
-        if server.signaled_stop:
+    observer = Observer()
+    observer.schedule(MyHandler(server), path=synamic.site_root)
+    observer.start()
+
+    while server.signaled_stop is False and server.signaled_reload is False:
+        try:
+            server.handle_request()
+        except:
+            print("Shutdown exception?")
             break
+
+    print("Stopping observer")
+    observer.stop()
+    print("joining...")
+    observer.join()
+    print('join exit...')
+
+    # sys.stderr.flush()
+    # sys.stdout.flush()
+
+    if server.signaled_stop:
+        return False
+    elif server.signaled_reload:
+        return True
+    else:
+        return True
+
+
+class MyHandler(FileSystemEventHandler):
+    def __init__(self, server, *args, **kwargs):
+        self.__server = server
+        self.__shutdown_in_progress = False
+        super(*args, **kwargs)
+
+    def process(self, event):
+        """
+        event.event_type 
+            'modified' | 'created' | 'moved' | 'deleted'
+        event.is_directory
+            True | False
+        event.src_path
+            path/to/observed/file
+        """
+        if self.__shutdown_in_progress:
+            print("Don't disturb, shutdown in progress")
+            print("Event: %s for: %s" % (event.event_type, event.src_path))
+            raise Exception("It should not be here anymore")
+
+        self.__shutdown_in_progress = True
+        print("Event: %s for: %s" % (event.event_type, event.src_path))
+        print("Shutting down server...")
+        try:
+            self.__server.socket.shutdown(socket.SHUT_RDWR)
+        except:
+            pass
+        self.__server.socket.close()
+        # self.__server.server_close()
+        print("...was shutdown")
+        self.__server.signal_reload = True
+        sys.exit(0)
+
+    def on_any_event(self, event):
+        self.process(event)

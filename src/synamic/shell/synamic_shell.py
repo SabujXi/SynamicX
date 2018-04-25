@@ -31,6 +31,11 @@ class CommandProcessor(BaseShell):
             self.__synamic_object = self.__synamic_class(self.__site_root)
         return self.__synamic_object
 
+    def get_recreated_loaded_synamic(self):
+        self.__synamic_object = self.__synamic_class(self.__site_root)
+        self.__synamic_object.load()
+        return self.__synamic_object
+
     def get_loaded_or_load_synamic(self):
         s = self.get_or_create_synamic()
         if not s.is_loaded:
@@ -83,7 +88,21 @@ class CommandProcessor(BaseShell):
 
     def on_serve(self, arg):
         'Serve the current synamic project in localhost'
-        serve(self.get_loaded_or_load_synamic(), 8000)
+        first_time = True
+        restart = True
+        while restart:
+            # if first_time:
+            #     first_time = False
+            #     synamic = self.get_loaded_or_load_synamic()
+            # else:
+            synamic = self.get_recreated_loaded_synamic()
+            restart = serve(synamic, 8000)
+            synamic._die_cleanup()
+            del synamic
+            if restart:
+                print("Restarting...")
+
+    on_s = on_serve
 
     def on_filter(self, arg):
         'Work with filter for pagination'
@@ -91,7 +110,6 @@ class CommandProcessor(BaseShell):
         if not s.is_loaded:
             s.load()
         self.pprint(s.filter_content(arg))
-
 
     def on_clean(self, arg):
         'Clean the build folder'
