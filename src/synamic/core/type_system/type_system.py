@@ -57,6 +57,7 @@ class TypeSystem:
 
         'taxonomy.tags',
         'taxonomy.categories',
+        'user',
 
         # TODO:
         # template
@@ -218,8 +219,20 @@ def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
     return tuple(res)
 
 
+@_decorator_default_converter('user')
+def _user_converter(txt, synamic=None, *args, **kwargs):
+    content_obj = None
+    for cnt in synamic.content_service.users:
+        print(txt)
+        print(cnt.user_id)
+        if txt == cnt.user_id:
+            content_obj = cnt
+            break
+    return content_obj
+
+
 @_decorator_default_converter('taxonomy.categories')
-def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
+def _categories_converter(txt, synamic_config_obj=None, *args, **kwargs):
     """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
     sy_categories = synamic_config_obj.categories
     res = []
@@ -232,6 +245,7 @@ def _tags_converter(txt, synamic_config_obj=None, *args, **kwargs):
                 sy_categories.add_category(title)
             )
     return tuple(res)
+
 
 @_decorator_default_converter('date[]')
 def _date_list_converter(txt, synamic_config_obj=None, *args, **kwargs):

@@ -16,6 +16,7 @@ from synamic.core.services.content.functions.paginate import content_paginate
 
 from synamic.core.services.content.template_content import TemplateContent
 from synamic.core.urls.url import ContentUrl
+from synamic.core.contracts.content import ContentContract
 
 from synamic.core.contracts import BaseContentModuleContract
 from synamic.core.event_system.event_types import EventTypes
@@ -54,6 +55,8 @@ class MarkedContentService(BaseContentModuleContract):
 
         self.__pagination_complete = False
 
+        self.users = []
+
     @property
     def service_home_path(self):
         if self.__service_home_path is None:
@@ -74,6 +77,19 @@ class MarkedContentService(BaseContentModuleContract):
 
     @not_loaded
     def load(self):
+        # for meta/users
+        paths = self.__synamic.path_tree.list_file_paths(*('meta/users', ))
+        for file_path in paths:
+            if file_path.extension.lower() in {'md', 'markdown'}:
+                with file_path.open("r", encoding="utf-8") as f:
+                    text = f.read()
+                    content_obj = content_create_marked_content(self.__synamic, file_path, text, content_type=ContentContract.types.AUXILIARY)
+                    self.__synamic.add_auxiliary_content(content_obj)
+                    self.users.append(content_obj)
+            else:
+                self.__synamic.add_static_content(file_path)
+
+        # for content
         paths = self.__synamic.path_tree.list_file_paths(*('content',))
         for file_path in paths:
             if file_path.extension.lower() in {'md', 'markdown'}:
