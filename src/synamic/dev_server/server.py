@@ -112,7 +112,7 @@ def serve(synamic, port):
     print("SERVE(): Server starting on %s" % _addr)
 
     observer = Observer()
-    observer.schedule(MyHandler(server), path=synamic.site_root)
+    observer.schedule(MyHandler(server), path=synamic.site_root, recursive=True)
     observer.start()
 
     while server.signaled_stop is False and server.signaled_reload is False:

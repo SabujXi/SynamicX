@@ -41,10 +41,17 @@ def synamic_get_url(synamic, parameter, content_map):
         _search_what = search_what.lower().lstrip(r'\/')
         _search_what = mod_name + '/' + _search_what
         _search_what = os.path.join(*self.path_tree.to_components(_search_what))
-        parent_d = content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
-        assert _search_what in parent_d, "File not found with the module and name: %s:%s:%s:  " % (
-            mod_name, search_type, _search_what)
-        res = parent_d[_search_what]
+
+        if mod_name == normalize_key('sass'):
+            assert synamic.path_tree.exists('sass/' + search_what), "File not found with the module and name: %s:%s:%s:  " % (
+                mod_name, search_type, _search_what)
+            res = synamic.sass_service.get_css_content('sass/' + search_what)
+        else:
+            parent_d = content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
+            assert _search_what in parent_d, "File not found with the module and name: %s:%s:%s:  " % (
+                mod_name, search_type, _search_what)
+            res = parent_d[_search_what]
+
     else:
         # Should raise exception or just return None/False
         raise GetUrlFailed("Url could not be found for: %s" % parameter)

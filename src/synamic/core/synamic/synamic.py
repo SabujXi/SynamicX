@@ -40,6 +40,7 @@ from synamic.core.synamic.functions.register_path import synamic_register_path
 from synamic.core.synamic.functions.register_virtual_file import synamic_register_virtual_file
 from synamic.core.type_system.type_system import TypeSystem
 from synamic.core.urls.url import ContentUrl
+from synamic.core.services.sass.sass_service import SASSService
 
 
 class Synamic(SynamicContract):
@@ -88,6 +89,10 @@ class Synamic(SynamicContract):
     @property
     def path_tree(self):
         return self.__path_tree
+
+    @property
+    def sass_service(self):
+        return self.__sass_sservice
 
     @property
     def templates(self):
@@ -243,6 +248,7 @@ class Synamic(SynamicContract):
         self.__static_service = StaticModuleService(self)
 
         self.__image_resizer = ImageResizerService(self)
+        self.__sass_sservice = SASSService(self)
 
         # null service for adding some virtual files
         NullService(self)
@@ -272,6 +278,8 @@ class Synamic(SynamicContract):
         self.__static_service.load()
 
         self.__image_resizer.load()
+
+        self.__sass_sservice.load()
 
         # content load
         self.__content_service.load()
