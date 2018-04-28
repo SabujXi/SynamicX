@@ -84,6 +84,10 @@ class MarkedContentImplementation(MarkedDocumentContract):
     def query(self):
         return self.__query
 
+    def _set_query(self, qobj):
+        assert self.__query is None
+        self.__query = qobj
+
     @property
     def toc(self):
         assert self.__toc is not None

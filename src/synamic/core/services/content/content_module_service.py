@@ -23,6 +23,9 @@ from synamic.core.event_system.event_types import EventTypes
 from synamic.core.event_system.events import Handler
 
 from synamic.core.standalones.functions.decorators import not_loaded, loaded
+from synamic.core.services.content.classes.contentquery import Query
+from synamic.core.query_systems.filter_functions import query_by_synamic_4_dynamic_contents
+
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
@@ -35,6 +38,11 @@ class MarkedContentService(BaseContentModuleContract):
         self.__is_loaded = False
         self.__service_home_path = None
         self.__synamic.register_path(self.service_home_path)
+
+        synamic.event_system.add_event_handler(
+            EventTypes.CONTENT_POST_LOAD,
+            Handler(self.__content_query_setter)
+        )
 
         synamic.event_system.add_event_handler(
             EventTypes.CONTENT_POST_LOAD,
@@ -102,17 +110,19 @@ class MarkedContentService(BaseContentModuleContract):
         self.__is_loaded = True
 
     @loaded
-    def __content_query_setter(self):
+    def __content_query_setter(self, event):
         """
         Sets results according to the query field. 
         """
         dynamic_contents = self.__synamic.dynamic_contents
         for cnt in dynamic_contents:
-            query_str = cnt.fields.get('__pagination', None)
-            if query_str is not None:
-                aux_cnts = self.__paginate(dynamic_contents, cnt, query_str, contents_per_page=2)
-                for aux_cnt in aux_cnts:
-                    self.__synamic.add_auxiliary_content(aux_cnt)
+            query_str = cnt.fields.get('query', None)
+            # print("+++++++++++++++++ query str ++++++++++++++")
+            # print(query_str)
+            if query_str:
+                contents = query_by_synamic_4_dynamic_contents(self.__synamic, query_str)
+                q = Query(contents, query_str)
+                cnt._set_query(q)
 
     @loaded
     def __create_paginated_contents(self, event):
@@ -120,6 +130,8 @@ class MarkedContentService(BaseContentModuleContract):
         dynamic_contents = self.__synamic.dynamic_contents
         for cnt in dynamic_contents:
             query_str = cnt.fields.get('__pagination', None)
+            # print("----------- query str pagination ------")
+            # print(query_str)
             if query_str is not None:
                 aux_cnts = self.__paginate(dynamic_contents, cnt, query_str, contents_per_page=2)
                 for aux_cnt in aux_cnts:
