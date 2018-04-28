@@ -843,7 +843,11 @@ def query_by_objects(objects, query_text, filter_id=None):
     return filter_objects(values, filter_text, filter_id=filter_id)
 
 
-def query_in_template(query_text):
+def query_in_template(synamic_object, query_text):
+    return query_by_synamic_4_dynamic_contents(synamic_object, query_text, None)
+
+
+def query_in_template_draft(query_text):
     # get synamic object from the context
     # for now I am mocking it
     synamic_object = MockSynamic(mock_values())

@@ -34,6 +34,9 @@ class InvalidQueryString(SynamicException):
 class GetUrlFailed(SynamicException):
     pass
 
+class GetContentFailed(SynamicException):
+    pass
+
 class ParsingError(SynamicException):
     pass
 

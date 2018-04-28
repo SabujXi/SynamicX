@@ -10,6 +10,7 @@
 
 from jinja2 import nodes, lexer
 from jinja2.ext import Extension
+from synamic.core.query_systems.filter_functions import query_in_template
 
 
 class GetUrlExtension(Extension):

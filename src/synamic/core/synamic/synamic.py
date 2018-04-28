@@ -41,6 +41,7 @@ from synamic.core.synamic.functions.register_virtual_file import synamic_registe
 from synamic.core.type_system.type_system import TypeSystem
 from synamic.core.urls.url import ContentUrl
 from synamic.core.services.sass.sass_service import SASSService
+from synamic.core.synamic.functions.get_content import synamic_get_content
 
 
 class Synamic(SynamicContract):
@@ -144,6 +145,11 @@ class Synamic(SynamicContract):
 
     def get_document_by_id(self, mod_name, doc_id):
         return synamic_get_document_by_id(self, mod_name, doc_id)
+    get_content_by_id = get_document_by_id
+
+    def get_content(self, parameter):
+        res = synamic_get_content(self, parameter, self.__content_map)
+        return res
 
     # URL Things
     def get_url(self, parameter):
@@ -188,6 +194,10 @@ class Synamic(SynamicContract):
     @loaded
     def filter_content(self, filter_txt):
         return query_by_synamic_4_dynamic_contents(self, filter_txt)
+
+    @loaded
+    def filter(self, filter_txt):
+        return self.filter_content(filter_txt)
 
     def __init__(self, site_root):
         normcase_normpath_root = os.path.normpath(os.path.normcase(site_root))
