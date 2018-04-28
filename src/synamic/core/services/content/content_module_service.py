@@ -102,6 +102,19 @@ class MarkedContentService(BaseContentModuleContract):
         self.__is_loaded = True
 
     @loaded
+    def __content_query_setter(self):
+        """
+        Sets results according to the query field. 
+        """
+        dynamic_contents = self.__synamic.dynamic_contents
+        for cnt in dynamic_contents:
+            query_str = cnt.fields.get('__pagination', None)
+            if query_str is not None:
+                aux_cnts = self.__paginate(dynamic_contents, cnt, query_str, contents_per_page=2)
+                for aux_cnt in aux_cnts:
+                    self.__synamic.add_auxiliary_content(aux_cnt)
+
+    @loaded
     def __create_paginated_contents(self, event):
         assert self.__pagination_complete is False
         dynamic_contents = self.__synamic.dynamic_contents

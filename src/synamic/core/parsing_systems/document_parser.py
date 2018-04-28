@@ -448,6 +448,10 @@ class Field:
         return True if self.__value is None else False
 
     @property
+    def is_single(self):
+        return not self.has_children
+
+    @property
     def flat_fields(self):
         """
         This will take children,

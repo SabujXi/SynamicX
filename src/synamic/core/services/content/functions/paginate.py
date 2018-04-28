@@ -4,6 +4,9 @@ from synamic.core.services.content.functions.create_auxiliary_marked_content imp
 
 
 def content_paginate(synamic, contents, starting_content, filter_txt, contents_per_page=2):
+    settings_cpp = synamic.site_settings.contents_per_page
+    if settings_cpp:
+        contents_per_page = int(settings_cpp)
     rules_txt = filter_txt
     per_page = contents_per_page
     cnts = query_by_objects(contents, rules_txt)

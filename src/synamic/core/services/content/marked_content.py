@@ -18,6 +18,7 @@ class MarkedContentImplementation(MarkedDocumentContract):
         self.__field_converters = field_converters
         self.__content_type = content_type
         self.__pagination = None
+        self.__query = None
         self.__toc = Toc()
 
         render_markdown(synamic, self.__body.as_str, value_pack={
@@ -78,6 +79,10 @@ class MarkedContentImplementation(MarkedDocumentContract):
     @property
     def pagination(self):
         return self.__pagination
+
+    @property
+    def query(self):
+        return self.__query
 
     @property
     def toc(self):

@@ -27,11 +27,13 @@ class SiteSettings:
 
     def load(self):
         fn = self.__config.settings_file_name
-        if not self.__config.path_tree.exists(fn):
+        if self.__config.path_tree.exists(fn):
             with self.__config.path_tree.open(fn, 'r', encoding='utf-8') as f:
                 text = f.read()
+                print(text)
             _root_f = FieldParser(text).parse()
             self.__root_field = _root_f
+            # print(_root_f)
 
     @property
     def host_address(self):
