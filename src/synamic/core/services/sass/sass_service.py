@@ -32,19 +32,20 @@ class SASSService:
 
     @not_loaded
     def load(self):
-        paths = self.__synamic.path_tree.list_file_paths(*('sass', ))
-        for file_path in paths:
-            scss_basename = file_path.basename
-            if file_path.extension.lower() in {'scss'}:
-                if scss_basename.lower().startswith('_'):
-                    # partial file, ignore it.
-                    continue
-                css_path = self.get_static_css_path(file_path)
-                content_obj = CSSContent(self.__synamic, file_path, css_path)
-                self.__synamic.add_auxiliary_content(content_obj)
-            else:
-                static_path = self.__synamic.path_tree.create_path(('static', *file_path.path_components[1:]), is_file=True)
-                self.__synamic.add_static_content(static_path)
+        if self.__synamic.path_tree.exists('sass'):
+            paths = self.__synamic.path_tree.list_file_paths(*('sass', ))
+            for file_path in paths:
+                scss_basename = file_path.basename
+                if file_path.extension.lower() in {'scss'}:
+                    if scss_basename.lower().startswith('_'):
+                        # partial file, ignore it.
+                        continue
+                    css_path = self.get_static_css_path(file_path)
+                    content_obj = CSSContent(self.__synamic, file_path, css_path)
+                    self.__synamic.add_auxiliary_content(content_obj)
+                else:
+                    static_path = self.__synamic.path_tree.create_path(('static', *file_path.path_components[1:]), is_file=True)
+                    self.__synamic.add_static_content(static_path)
 
         self.__is_loaded = True
 

@@ -152,6 +152,8 @@ class Synamic(SynamicContract):
 
     def get_content(self, parameter):
         is_from_parent, parameter = parent_config_str_splitter(parameter)
+        print("is_from_parent: %s" % is_from_parent)
+        print(parameter)
         if is_from_parent:
             assert self.parent is not None, "Parent does not exist"
             res = self.parent.get_content(parameter)
