@@ -65,7 +65,9 @@ class ContentUrl:
             assert url_comps_or_path.is_file, "Cannot create content url of a directory"
             res_url_comps = list(url_comps_or_path.path_components)
         else:
-            raise Exception('Invalid argument for url component')
+            raise Exception('Invalid argument for url component: %s' % str(url_comps_or_path))
+        if len(res_url_comps) == 0:
+            res_url_comps.append('')
 
         if res_url_comps[-1] == 'index.html':
             res_url_comps[-1] = ''
@@ -102,7 +104,7 @@ class ContentUrl:
             _url_comps = ('', *_url_comps)
         return _url_comps
 
-    def __init__(self, config, url_comps, append_slash=False):
+    def __init__(self, synamic, url_comps, append_slash=False):
         """
         append_slash is only for dynamic contents and only when the url_comps is being passed as sting (not: list, tuple, content path) 
         So, we are not persisting that data
@@ -115,9 +117,11 @@ class ContentUrl:
                 self.__to_components(url_comps, append_slash)
             )
 
-        self.__config = config
+        self.__synamic = synamic
         self.__of_static_file = type(url_comps) is ContentPath2
         self.__url_str = None
+
+        self.__append_slash = append_slash
 
     def join(self, url_comps: Union[str, list, tuple], append_slash=False):
         assert type(url_comps) is not ContentPath2, "Static files components are all in one to construct an url, no need to include that here"
@@ -141,7 +145,7 @@ class ContentUrl:
         else:
             comps = this_comps + other_comps
         # comps = this_comps + other_comps
-        return self.__class__(self.__config, comps)  #, append_slash=append_slash)
+        return self.__class__(self.__synamic, comps)  #, append_slash=append_slash)
 
     @property
     def of_static_file(self):
@@ -170,15 +174,13 @@ class ContentUrl:
     def path(self):
         if self.__url_str is None:
             comps = self.__url_comps
-            # lcomp = list(self.__url_comps)
-            # if lcomp[0] != '':
-            #     # that is: start = '/'
-            #     lcomp.insert(0, '')
             if len(comps) == 1 and comps[0] == '':
-                self.__url_str = '/'
+                _url_str = self.__synamic.prefix_dir + '/'
             else:
-                self.__url_str = "/".join(self.__url_comps)
-            # print("    Comps: `%s`, url: `%s`" % (self.__url_comps, self.__url_str))
+                _url_str = self.__synamic.prefix_dir + "/".join(self.__url_comps)
+            if not _url_str.startswith('/'):
+                _url_str = '/' + _url_str
+            self.__url_str = _url_str
         return self.__url_str
 
     @property
@@ -232,10 +234,14 @@ class ContentUrl:
 
     @property
     def to_content_path(self):
-        return self.__config.path_tree.create_path(
-            (self.__config.site_settings.output_dir, *self.path_components),
+        return self.__synamic.path_tree.create_path(
+            (self.__synamic.site_settings.output_dir, *self.path_components),
             is_file=self.is_file
         )
+
+    @property
+    def append_slash(self):
+        return self.__append_slash
 
     def __str__(self):
         return self.path

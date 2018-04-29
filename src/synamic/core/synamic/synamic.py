@@ -34,7 +34,6 @@ from synamic.core.synamic.functions.add_static_content import synamic_add_static
 from synamic.core.synamic.functions.build import _synamic_build
 from synamic.core.synamic.functions.get_content_by_url import synamic_get_content_by_url
 from synamic.core.synamic.functions.get_document_by_id import synamic_get_document_by_id
-from synamic.core.synamic.functions.get_url import synamic_get_url
 from synamic.core.synamic.functions.initialize_site import _synamic_initialize_site
 from synamic.core.synamic.functions.register_path import synamic_register_path
 from synamic.core.synamic.functions.register_virtual_file import synamic_register_virtual_file
@@ -42,6 +41,9 @@ from synamic.core.type_system.type_system import TypeSystem
 from synamic.core.urls.url import ContentUrl
 from synamic.core.services.sass.sass_service import SASSService
 from synamic.core.synamic.functions.get_content import synamic_get_content
+from synamic.core.exceptions.synamic_exceptions import GetUrlFailed, GetContentFailed
+from synamic.core.standalones.functions.parent_config_splitter import parent_config_str_splitter
+from synamic.core.standalones.functions.sequence_ops import Sequence
 
 
 class Synamic(SynamicContract):
@@ -98,6 +100,7 @@ class Synamic(SynamicContract):
     @property
     def templates(self):
         return self.__templates
+    template_service = templates
     # > Non-Object Stores
 
     @property
@@ -148,17 +151,60 @@ class Synamic(SynamicContract):
     get_content_by_id = get_document_by_id
 
     def get_content(self, parameter):
-        res = synamic_get_content(self, parameter, self.__content_map)
+        is_from_parent, parameter = parent_config_str_splitter(parameter)
+        if is_from_parent:
+            assert self.parent is not None, "Parent does not exist"
+            res = self.parent.get_content(parameter)
+        else:
+            res = synamic_get_content(self, parameter, self.__content_map)
         return res
 
     # URL Things
     def get_url(self, parameter):
-        return synamic_get_url(self, parameter, self.__content_map)
+        try:
+            cnt = self.get_content(parameter)
+        except GetContentFailed:
+            # Should raise exception or just return None/False
+            raise GetUrlFailed("Url could not be found for: %s" % parameter)
+        return cnt.url_object.path
 
     def get_content_by_content_url(self, curl: ContentUrl):
-        return synamic_get_content_by_url(self, curl, self.__content_map)
+        prefix_components = self.prefix_dir.split('/')
+        has_prefix = False if prefix_components[0] == '' else True
+        url_comps = curl.path_components
+        print('\n\n')
+        print("First url components: %s" % str(url_comps))
+        if not has_prefix:
+            new_url_comps = curl.path_components
+            new_url = curl
+            cnt = synamic_get_content_by_url(self, new_url, self.__content_map)
+        else:
+            new_url_comps = Sequence.extract_4m_startswith(url_comps, prefix_components)
+            print("New First url components: %s" % str(new_url_comps))
+            if new_url_comps is None:
+                cnt = None
+                new_url = curl
+            else:
+                new_url = ContentUrl(self, new_url_comps, append_slash=curl.append_slash)
+                cnt = synamic_get_content_by_url(self, new_url, self.__content_map)
 
-    # Primary Configs
+        if cnt is None:
+            for dr, syn in self.__children_site_synamics.items():
+                cnt = syn.get_content_by_content_url(new_url)
+                print("Last new url path: %s" % str(new_url.path))
+                print("Last new url path comps: %s" % str(new_url.path_components))
+                if cnt is not None:
+                    print("Found: %s" % new_url.path)
+                    break
+                else:
+                    print("not Found: %s in %s" % (new_url.path, dr))
+        else:
+            print("Found: %s" % new_url.path)
+
+        print("New Content Url: %s" % new_url.path)
+        return cnt
+
+        # Primary Configs
     @property
     def site_root(self):
         return self.__site_root
@@ -186,7 +232,10 @@ class Synamic(SynamicContract):
     # Build Things
     @loaded
     def build(self):
-        return _synamic_build(self, self.__content_map, self.__event_trigger)
+        res = _synamic_build(self, self.__content_map, self.__event_trigger)
+        for dr in self.__children_site_dirs:
+            self.__children_site_synamics[dr].build()
+        return
 
     def initialize_site(self, force=False):
         return _synamic_initialize_site(self, force, self.__registered_dir_paths, self.__registered_virtual_files)
@@ -199,9 +248,41 @@ class Synamic(SynamicContract):
     def filter(self, filter_txt):
         return self.filter_content(filter_txt)
 
-    def __init__(self, site_root):
+    @property
+    def parent(self):
+        return self.__parent
+
+    @property
+    def has_parent(self):
+        return False if self.parent is None else True
+
+    @property
+    def prefix_dir(self):
+        settings_prefix_dir = self.site_settings.prefix_dir
+        if not settings_prefix_dir:
+            res = self.__prefix_dir
+        else:
+            res = settings_prefix_dir + '/' + self.__prefix_dir
+        return res
+
+    def __init__(self, site_root, parent=None, prefix_dir=""):
+        self.__parent = parent
+        if parent is not None:
+            assert type(self.__parent) is type(self)
+        _parent = self.__parent
+        while _parent:
+            if _parent.parent is not None:
+                _parent = _parent.parent
+            else:
+                _parent = None
+        assert _parent is None
+        self.__prefix_dir = prefix_dir
+        self.__children_site_dirs = []
+        self.__children_site_synamics = {}  # dir => synamic
+
         normcase_normpath_root = os.path.normpath(os.path.normcase(site_root))
         assert os.path.exists(site_root), "Base path must not be non existent"
+        print("normcase_normpath_root: %s" % normcase_normpath_root)
         assert normcase_normpath_root not in self.__site_root_paths
         self.__site_root_paths.add(normcase_normpath_root)
         self.__site_root = site_root
@@ -270,9 +351,10 @@ class Synamic(SynamicContract):
 
     @not_loaded
     def load(self):
-        assert os.path.exists(os.path.join(self.site_root, '.synamic')) and os.path.isfile(os.path.join(self.site_root,
-                                                                                                        '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(
-            self.site_root, '.synamic')
+        if not self.has_parent:
+            assert os.path.exists(os.path.join(self.site_root, '.synamic')) and os.path.isfile(os.path.join(self.site_root,
+                '.synamic')), "A file named `.synamic` must exist in the site root to explicitly declare that that is a legal synamic directory - this is to protect accidental modification other dirs: %s" % os.path.join(
+                self.site_root, '.synamic')
         self.__site_settings.load()
         # tags
         self.__tags.load()
@@ -300,6 +382,25 @@ class Synamic(SynamicContract):
         )
 
         self.__is_loaded = True
+
+        my_sub_sites_dir = os.path.join(self.site_root, 'sites')
+        if not os.path.exists(my_sub_sites_dir):
+            return
+        chdn_paths = os.listdir(my_sub_sites_dir)
+        print(chdn_paths)
+        self.__children_site_dirs = [dr for dr in chdn_paths if os.path.isdir(os.path.join(self.site_root, 'sites', dr))]
+        print(self.__children_site_dirs)
+        for dr in self.__children_site_dirs:
+            dr_full = os.path.join(self.site_root, 'sites', dr)
+            print(dr_full)
+            # input()
+            self.__children_site_synamics[dr] = self.__class__(
+                dr_full,
+                parent=self,
+                prefix_dir=dr
+            )
+            self.__children_site_synamics[dr].load()
+            print("Loaded:: " + dr)
 
     @loaded
     def _die_cleanup(self):
