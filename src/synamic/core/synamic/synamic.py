@@ -10,6 +10,8 @@
 
 import os
 import shutil
+from synamic.core.synamic.classes.sites import Sites
+
 from synamic.core.contracts.synamic_contract import SynamicContract
 from synamic.core.event_system.events import EventTypes, EventSystem, Event
 from synamic.core.filesystem.content_path.content_path2 import ContentPath2
@@ -319,6 +321,11 @@ class Synamic(SynamicContract):
             res = settings_prefix_dir + '/' + self.__prefix_dir
         return res
 
+    @loaded
+    @property
+    def sites(self):
+        self.__sites
+
     def __init__(self, site_root, parent=None, prefix_dir=""):
         self.__parent = parent
         if parent is not None:
@@ -333,6 +340,7 @@ class Synamic(SynamicContract):
         self.__prefix_dir = prefix_dir
         self.__children_site_dirs = []
         self.__children_site_synamics = {}  # dir => synamic
+        self.__sites = Sites(self, self.__children_site_synamics)
 
         normcase_normpath_root = os.path.normpath(os.path.normcase(site_root))
         assert os.path.exists(site_root), "Base path must not be non existent"
