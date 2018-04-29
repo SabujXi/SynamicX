@@ -9,7 +9,7 @@
 """
 
 import os
-
+import shutil
 from synamic.core.contracts.synamic_contract import SynamicContract
 from synamic.core.event_system.events import EventTypes, EventSystem, Event
 from synamic.core.filesystem.content_path.content_path2 import ContentPath2
@@ -229,12 +229,60 @@ class Synamic(SynamicContract):
     def settings_file_name(self):
         return "settings.txt"
 
+    @property
+    def output_dir(self):
+        return self.site_settings.output_dir
+
+    def _prebuild_clean_output(self):
+        def _remove_all(out_path):
+            if os.path.exists(out_path):
+                for a_path in os.listdir(out_path):
+                    fp = os.path.join(out_path, a_path)
+                    if os.path.isdir(fp):
+                        shutil.rmtree(fp)
+                    else:
+                        os.remove(fp)
+        if self.is_root:
+            out_path = self.path_tree.get_full_path(self.site_settings.output_dir)
+            _remove_all(out_path)
+        for syn in self.__children_site_synamics.values():
+            syn._prebuild_clean_output()
+
     # Build Things
     @loaded
     def build(self):
-        res = _synamic_build(self, self.__content_map, self.__event_trigger)
+        # return
+        self._prebuild_clean_output()
         for dr in self.__children_site_dirs:
             self.__children_site_synamics[dr].build()
+        res = _synamic_build(self, self.__content_map, self.__event_trigger)
+        # move all the child to parent
+        if self.has_parent:
+            output_dir_in_child = self.path_tree.get_full_path([self.output_dir])
+            print("output_dir_in_child: %s" % output_dir_in_child)
+            output_dir_in_parent = self.parent.path_tree.get_full_path([self.parent.output_dir, self.prefix_dir])
+            print("output_dir_in_parent: %s" % output_dir_in_parent)
+            for cpath in os.listdir(output_dir_in_child):
+                new_child_path = os.path.join(output_dir_in_child, cpath)
+                new_parent_path = os.path.join(output_dir_in_parent, cpath)
+                dir_new_parent_path = new_parent_path
+                if os.path.isdir(new_parent_path):
+                    if not os.path.exists(new_parent_path):
+                        os.makedirs(new_parent_path)
+                        print("Dir created: %s" % new_parent_path)
+                else:
+                    # shutil.copy(new_child_path, new_parent_path)
+                    if not os.path.exists(os.path.dirname(new_parent_path)):
+                        dir_new_parent_path = os.path.dirname(new_parent_path)
+                        os.makedirs(dir_new_parent_path)
+                        print("Dir created: %s" % dir_new_parent_path)
+                print(new_child_path + " -> " + new_parent_path)
+                # if self.is_root:
+                assert os.path.exists(new_child_path)
+                shutil.move(new_child_path, new_parent_path)
+                # input('Proceed?')
+            # os.rmdir(output_dir_in_child)
+
         return
 
     def initialize_site(self, force=False):
@@ -255,6 +303,10 @@ class Synamic(SynamicContract):
     @property
     def has_parent(self):
         return False if self.parent is None else True
+
+    @property
+    def is_root(self):
+        return not self.has_parent
 
     @property
     def prefix_dir(self):
@@ -391,6 +443,8 @@ class Synamic(SynamicContract):
         self.__children_site_dirs = [dr for dr in chdn_paths if os.path.isdir(os.path.join(self.site_root, 'sites', dr))]
         print(self.__children_site_dirs)
         for dr in self.__children_site_dirs:
+            if dr == self.site_settings.output_dir:
+                continue
             dr_full = os.path.join(self.site_root, 'sites', dr)
             print(dr_full)
             # input()
@@ -406,3 +460,5 @@ class Synamic(SynamicContract):
     def _die_cleanup(self):
         normcase_normpath_root = os.path.normpath(os.path.normcase(self.site_root))
         self.__site_root_paths.remove(normcase_normpath_root)
+        for syn in self.__children_site_synamics.values():
+            syn._die_cleanup()
