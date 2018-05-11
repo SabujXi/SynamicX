@@ -32,8 +32,8 @@ class SASSService:
 
     @not_loaded
     def load(self):
-        if self.__synamic.path_tree.exists('sass'):
-            paths = self.__synamic.path_tree.list_file_paths(*('sass', ))
+        if self.__synamic.path_tree.exists('assets/sass'):
+            paths = self.__synamic.path_tree.list_file_paths('assets/sass')
             for file_path in paths:
                 scss_basename = file_path.basename
                 if file_path.extension.lower() in {'scss'}:

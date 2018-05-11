@@ -1,4 +1,12 @@
+from collections import OrderedDict
 parent_indicator = 'parent:'
+
+_parent_indicators = OrderedDict((
+    ('p:', 'p'),
+    ('parent:', 'parent'),
+    ('r:', 'r'),
+    ('root:', 'root'),
+))
 
 
 def parent_config_str_splitter(text: str):

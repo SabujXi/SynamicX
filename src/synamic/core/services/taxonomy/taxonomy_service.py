@@ -16,7 +16,7 @@ from synamic.core.services.category.functions.construct_category_url import cons
 from synamic.core.services.category.functions.normalize_category_title import normalize_category_title
 
 
-class Category:
+class Taxonomy:
     def __init__(self, synamic, children=None, title=None, id=None, description=None, other_fields=None):
         assert title is not None
         self.__title = normalize_category_title(title)
@@ -60,7 +60,7 @@ class Category:
         return iter(self.__children)
 
 
-class CategoryService:
+class TaxonomyService:
     def __init__(self, synamic):
         self.__synamic = synamic
         # self.__type_system = synamic_config.type_system
@@ -75,7 +75,7 @@ class CategoryService:
     @property
     def service_home_path(self) -> ContentPath2:
         if self.__service_home_path is None:
-            self.__service_home_path = self.__synamic.path_tree.create_path(('meta', 'taxonomies', 'categories'))
+            self.__service_home_path = self.__synamic.path_tree.create_path(('meta', 'taxonomies'))
         return self.__service_home_path
 
     @property
@@ -84,7 +84,10 @@ class CategoryService:
 
     @not_loaded
     def load(self):
-        file_paths = self.service_home_path.list_files()
+        service_home_comps = self.service_home_path.path_components
+        taxonomy_dir_paths = self.__synamic.path_tree.list_dir_paths(service_home_comps, depth=1, exclude_compss=((*service_home_comps, 'tags'), (*service_home_comps, 'categories')))
+        # file_paths = self.__synamic.path_tree.list_file_paths(service_home_comps, depth=1, exclude_compss=((*service_home_comps, 'tags'), (*service_home_comps, 'categories')))
+        taxonomy_names = tuple(path.basename for path in taxonomy_dir_paths)
 
         root_cat_cats2d = []
         for file_path in file_paths:
@@ -123,7 +126,7 @@ class CategoryService:
         return tuple(res_list)
 
     def __add_category(self, title, id=None, description=None, others=None, children=None):
-        cat = Category(
+        cat = Taxonomy(
             self.__synamic,
             title=title,
             id=id,

@@ -79,7 +79,7 @@ class TagsService:
     @property
     def service_home_path(self) -> ContentPath2:
         if self.__service_home_path is None:
-            self.__service_home_path = self.__synamic.path_tree.create_path(('meta', 'tags'))
+            self.__service_home_path = self.__synamic.path_tree.create_path(('meta', 'taxonomies', 'tags'))
         return self.__service_home_path
 
     @property

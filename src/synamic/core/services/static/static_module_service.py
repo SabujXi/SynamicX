@@ -24,7 +24,7 @@ class StaticModuleService(BaseContentModuleContract):
     @property
     def service_home_path(self):
         if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path(('static',))
+            self.__service_home_path = self.__config.path_tree.create_path('assets/static')
         return self.__service_home_path
 
     @property
@@ -42,7 +42,7 @@ class StaticModuleService(BaseContentModuleContract):
     @not_loaded
     def load(self):
         # print("From static load: %s" % str(self.service_home_path.relative_path_components))
-        paths = self.__config.path_tree.list_file_paths(*self.service_home_path.path_components)
+        paths = self.__config.path_tree.list_file_paths(self.service_home_path.path_components)
         for file_path in paths:
             # print("File path relative is: ", file_path.relative_path)
             assert file_path.is_file  # Remove in prod

@@ -154,8 +154,8 @@ class Synamic(SynamicContract):
 
     def get_content(self, parameter):
         is_from_parent, parameter = parent_config_str_splitter(parameter)
-        print("is_from_parent: %s" % is_from_parent)
-        print(parameter)
+        # print("is_from_parent: %s" % is_from_parent)
+        # print(parameter)
         if is_from_parent:
             assert self.parent is not None, "Parent does not exist"
             res = self.parent.get_content(parameter)
@@ -176,15 +176,15 @@ class Synamic(SynamicContract):
         prefix_components = self.prefix_dir.split('/')
         has_prefix = False if prefix_components[0] == '' else True
         url_comps = curl.path_components
-        print('\n\n')
-        print("First url components: %s" % str(url_comps))
+        # print('\n\n')
+        # print("First url components: %s" % str(url_comps))
         if not has_prefix:
             new_url_comps = curl.path_components
             new_url = curl
             cnt = synamic_get_content_by_url(self, new_url, self.__content_map)
         else:
             new_url_comps = Sequence.extract_4m_startswith(url_comps, prefix_components)
-            print("New First url components: %s" % str(new_url_comps))
+            # print("New First url components: %s" % str(new_url_comps))
             if new_url_comps is None:
                 cnt = None
                 new_url = curl
@@ -195,17 +195,19 @@ class Synamic(SynamicContract):
         if cnt is None:
             for dr, syn in self.__children_site_synamics.items():
                 cnt = syn.get_content_by_content_url(new_url)
-                print("Last new url path: %s" % str(new_url.path))
-                print("Last new url path comps: %s" % str(new_url.path_components))
+                # print("Last new url path: %s" % str(new_url.path))
+                # print("Last new url path comps: %s" % str(new_url.path_components))
                 if cnt is not None:
-                    print("Found: %s" % new_url.path)
+                    # print("Found: %s" % new_url.path)
                     break
                 else:
-                    print("not Found: %s in %s" % (new_url.path, dr))
+                    # print("not Found: %s in %s" % (new_url.path, dr))
+                    pass
         else:
-            print("Found: %s" % new_url.path)
+            # print("Found: %s" % new_url.path)
+            pass
 
-        print("New Content Url: %s" % new_url.path)
+        # print("New Content Url: %s" % new_url.path)
         return cnt
 
         # Primary Configs

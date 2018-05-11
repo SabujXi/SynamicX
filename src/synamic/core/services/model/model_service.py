@@ -126,7 +126,7 @@ class ModelService:
 
     @not_loaded
     def load(self):
-        file_paths = self.__config.path_tree.list_file_paths('models')
+        file_paths = self.__config.path_tree.list_file_paths(('meta', 'models'))
         for file_path in file_paths:
             if file_path.basename.endswith('.model.txt') and len(file_path.basename) > len('.model.txt'):
                 model_name = file_path.basename[:-(len('.model.txt'))]

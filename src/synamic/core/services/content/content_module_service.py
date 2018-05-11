@@ -86,7 +86,7 @@ class MarkedContentService(BaseContentModuleContract):
     @not_loaded
     def load(self):
         # for meta/users
-        paths = self.__synamic.path_tree.list_file_paths(*('meta/users', ))
+        paths = self.__synamic.path_tree.list_file_paths('meta/users')
         for file_path in paths:
             if file_path.extension.lower() in {'md', 'markdown'}:
                 with file_path.open("r", encoding="utf-8") as f:

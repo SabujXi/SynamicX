@@ -24,14 +24,33 @@ class PathTree(object):
 
     @classmethod
     def to_components(cls, path_comp):
+        comps = []
         if type(path_comp) is str:
             path_str = path_comp
-            assert path_str.strip() != ''
-            comps = [x for x in re.split(r'[\\/]+', path_str) if x != '']
+            # assert path_str.strip() != ''  # by empty path we mean site root
+            path_str = os.path.normpath(path_str)
+            comps.extend(path_str.split(os.sep))
         else:
-            assert type(path_comp) in {tuple, list}
+            assert type(path_comp) in {tuple, list}, "Path comps must be list or tuple when it is not string"
+            # converting sting paths like ('x', 'a/b\\c') to ('x', 'a', 'b', 'c')
+            _i = 0
+            while _i < len(path_comp):
+                e = path_comp[_i]
+                e = os.path.normpath(e)
+                if e != '':
+                    _comps = e.split(os.sep)
+                else:
+                    _comps = []
+                comps.extend(_comps)
+                _i += 1
+        return tuple(comps)
 
-            comps = path_comp
+    @classmethod
+    def norm_components(cls, comps):
+        comps = list(comps)
+        _i = 0
+        while _i < len(comps):
+            comps[_i] = os.path.normcase(comps[_i])
         return tuple(comps)
 
     @classmethod
@@ -117,15 +136,20 @@ class PathTree(object):
         else:
             raise Exception("Invalid type provided")
 
-    def __list_paths_loop2(self, starting_components=(), files_only=None, directories_only=None, depth=None):
+    def __list_paths_loop2(self, starting_components=(), files_only=None, directories_only=None, depth=None, exclude_compss=()):
         """
         A function to get all paths recursively starting from abs_root but returns a list of paths relative to the 
         .root
         prefix_relative_root is fixed on every recursion
         BUT next_relative_root isn't
+        
+        exclude_compss: *components* list that are excluded from listing
         """
         for x in starting_components:
-            assert '/' not in x and '\\' not in x
+            assert type(x) is str, "Components must be of type string. %s found" % str(type(x))
+
+        for x in exclude_compss:
+            assert type(x) is tuple, "exclude_compss must contain tuple of strings as path. %s found" % str(type(x))
 
         # check that files only and directories only both are not set to the Truth value
         if files_only is True:
@@ -134,9 +158,15 @@ class PathTree(object):
             assert files_only is not True
 
         # depth
-        assert depth is None or type(depth) is int
+        assert depth is None or type(depth) is int, "Type of depth must be None or int, %s found with value %s" %(str(type(depth)), str(depth))
         if depth is None:
             depth = 2147483647
+
+        # old code p1
+        # for x in starting_components:
+        #     assert '/' not in x and '\\' not in x
+
+        # new code p1: converting sting paths like ('x', 'a/b\\c') to ('x', 'a', 'b', 'c')
 
         absolute_root = self.__full_path(starting_components)
         absolute_site_root = self.__config.site_root
@@ -164,6 +194,16 @@ class PathTree(object):
                 # "features"
                 continue
 
+            # skip paths of exclude dirs
+            do_continue = False
+            for exclude_comps in exclude_compss:
+                if path_depth == len(exclude_comps):
+                    if self.norm_components(path_comps) == self.norm_components(exclude_comps):
+                        do_continue = True
+                        break
+            if do_continue:
+                continue
+
             cached_path = self.get_path(path_comps)
             if cached_path:
                 if cached_path.is_dir:
@@ -187,18 +227,23 @@ class PathTree(object):
                     raise Exception("ContentPath is neither dir, nor file")
         return directories, files
 
-    def list_paths(self, initial_path_comps=(), files_only=None, directories_only=None, depth=None):
+    def list_paths(self, initial_path_comps=(), files_only=None, directories_only=None, depth=None, exclude_compss=()):
         if type(initial_path_comps) is ContentPath2:
             starting_comps = initial_path_comps.path_components
         else:
             starting_comps = self.to_components(initial_path_comps)
-        dirs, files = self.__list_paths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth)
+        _exclude_compss = []
+        for pc in exclude_compss:
+            _exclude_compss.append(self.to_components(pc))
+        exclude_compss = tuple(_exclude_compss)
+
+        dirs, files = self.__list_paths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth, exclude_compss=exclude_compss)
         return dirs, files
 
-    def list_file_paths(self, initial_path_comps=(), depth=None):
-        _, files = self.list_paths(initial_path_comps, files_only=True, depth=depth)
+    def list_file_paths(self, initial_path_comps=(), depth=None, exclude_compss=()):
+        _, files = self.list_paths(initial_path_comps, files_only=True, depth=depth, exclude_compss=exclude_compss)
         return files
 
-    def list_dir_paths(self, initial_path_comps='', depth=None):
-        dirs, _ = self.list_paths(initial_path_comps, directories_only=True, depth=depth)
+    def list_dir_paths(self, initial_path_comps='', depth=None, exclude_compss=()):
+        dirs, _ = self.list_paths(initial_path_comps, directories_only=True, depth=depth, exclude_compss=exclude_compss)
         return dirs
