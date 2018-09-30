@@ -1,0 +1,63 @@
+// any directory or CONTENT file starting with _ underscore in content directory will not result in URL - otherwise they will.
+// files and directories starting with . dots will be ignored
+
+dirs {
+    # contents
+    contents {
+        contents: /contents
+    }
+
+    # meta
+    metas: {
+        metas: /metas
+        models: ${ metas }/models
+        menus: ${ metas }/menus
+        taxonomies: ${ metas }/taxonomies
+        users: ${ metas }/users
+    }
+
+    # templates
+    templates: {
+        templates: /templates
+    }
+
+    # multi site
+    sites: {
+        sites: /sites
+    }
+
+    # assets that will be pre-processed or so
+    assets: {
+        assets: /assets
+        sass: ${assets}/sass
+    }
+
+    # statics
+    statics: {
+        statics: /statics
+    }
+
+    # upload
+    uploads: {
+        uploads: /uploads
+    }
+
+    # output
+    outputs: {
+        outputs: /_outputs
+    }
+
+    # cache
+    cache: {
+        cache: /_cache
+    }
+
+    # direct files/root files: no matter what their extensions are, they will be directly copied to the root
+    # so these are not static, neither dynamic files. They are just files that should be copied.
+    # so the file name directly maps to the url
+    # if another url collides with another one then an error will be reported.
+    # these files are not put in db if db backend is used.
+    root_files: {
+        root_files: /root_files
+    }
+}
