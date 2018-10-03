@@ -1,52 +1,23 @@
 import io
 import mimetypes
-
 from synamic.core.contracts.document import MarkedDocumentContract
-from synamic.core.filesystem.content_path.content_path2 import ContentPath2
-from synamic.core.services.content.toc import Toc
-from synamic.core.standalones.functions.md import render_markdown
 
 
 class MarkedContentImplementation(MarkedDocumentContract):
-
-    def __init__(self, synamic, path_object, url_object, body, fields, field_converters=None, content_type=None):
+    def __init__(self, synamic, body, content_fields, toc, content_id, content_type=None):
         self.__synamic = synamic
-        self.__path = path_object
-        self.__url_object = url_object
         self.__body = body
-        self.__fields = fields
-        self.__field_converters = field_converters
+        self.__content_fields = content_fields
+        self.__model = content_fields.get_model()
+        self.__content_id = content_id
         self.__content_type = content_type
-        self.__pagination = None
-        self.__query = None
-        self.__toc = Toc()
+        self.__toc = toc
 
-        render_markdown(synamic, self.__body.as_str, value_pack={
-            'toc': self.__toc
-        })
-
-    @property
-    def synamic(self):
-        return self.__synamic
-
-    @property
-    def path_object(self) -> ContentPath2:
-        return self.__path
-
-    @property
-    def url_object(self):
-        return self.__url_object
-
-    @property
-    def id(self):
-        return self.fields.get('id', None)
-
-    @property
-    def url_path(self):
-        return self.url_object.path
+        # Objects like: Url, Pagination, etc.
+        self.__objects = {}
 
     def get_stream(self):
-        template_name = self.fields.get('template', 'default.html')
+        template_name = self.__content_fields.get('template', 'default.html')
         res = self.__synamic.templates.render(template_name, content=self)
         f = io.BytesIO(res.encode('utf-8'))
         return f
@@ -70,37 +41,21 @@ class MarkedContentImplementation(MarkedDocumentContract):
 
     @property
     def fields(self):
-        return self.__fields
-
-    @property
-    def field_converters(self):
-        return self.__field_converters
+        return self.__content_fields
 
     @property
     def pagination(self):
         return self.__pagination
 
     @property
-    def query(self):
-        return self.__query
-
-    def _set_query(self, qobj):
-        assert self.__query is None
-        self.__query = qobj
-
-    @property
     def toc(self):
         assert self.__toc is not None
         return self.__toc
 
-    def _set_pagination(self, pg):
-        if self.__pagination is None:
-            self.__pagination = pg
-        else:
-            raise Exception("Cannot set pagination once it is set")
-
     def __get(self, key):
-        value = self.__fields.get(key, None)
+        value = self.__objects.get(key, None)
+        if value is None:
+            value = self.__content_fields.get(key, None)
         return value
 
     def __getitem__(self, key):

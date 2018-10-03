@@ -14,7 +14,7 @@ import re
 import sys
 from urllib.parse import unquote
 
-from synamic.core.urls.url import ContentUrl
+from synamic.core.services.urls.url import ContentUrl
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 import socket

@@ -12,8 +12,9 @@ dirs {
         metas: /metas
         models: ${ metas }/models
         menus: ${ metas }/menus
-        taxonomies: ${ metas }/taxonomies
+        markers: ${ metas }/markers
         users: ${ metas }/users
+        data: ${ metas }/data
     }
 
     # templates

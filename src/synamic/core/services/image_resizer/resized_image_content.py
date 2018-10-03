@@ -2,7 +2,7 @@ import mimetypes
 import re
 from PIL import Image
 from synamic.core.contracts.content import ContentContract
-from synamic.core.urls.url import ContentUrl
+from synamic.core.services.urls.url import _ContentUrl
 from io import BytesIO
 
 
@@ -99,5 +99,5 @@ class ResizedImageContent(ContentContract):
     @property
     def url_object(self):
         if self.__url is None:
-            self.__url = ContentUrl(self.__synamic, self.__new_file_path)
+            self.__url = _ContentUrl(self.__synamic, self.__new_file_path)
         return self.__url

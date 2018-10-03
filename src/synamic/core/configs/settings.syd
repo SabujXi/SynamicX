@@ -1,5 +1,10 @@
 # pagination separator for both dir & url
 # putting this after an url it will be determined whether the requested url is a pagination url
 # One more thing, by default it is _ and it can be changed. BUT, urls cannot start with _ to protect this convention
-pagination_sep: _
 
+pagination_sep: _
+output_dir: _html,
+host_scheme: http,
+hostname: localhost,
+host_port:
+host_base_path: /

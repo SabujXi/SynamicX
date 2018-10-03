@@ -8,9 +8,9 @@
     status: "Development"
 """
 
-import re, configparser, json, toml
+import configparser, json, toml
 from synamic.core.standalones.functions.yaml_processor import load_yaml
-from synamic.core.filesystem.content_path.content_path2 import ContentPath2
+from synamic.core.services.filesystem.content_path import ContentPath2
 from synamic.core.parsing_systems.document_parser import FieldParser
 from synamic.core.standalones.functions.decorators import not_loaded
 

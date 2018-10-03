@@ -7,16 +7,13 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-
-from synamic.core.filesystem.content_path.content_path2 import ContentPath2
-from synamic.core.parsing_systems.document_parser import FieldParser, Field
 from synamic.core.standalones.functions.decorators import not_loaded
 
 
-class Menu:
-    def __init__(self, config, title=None, link=None, id=None, children=None, other_fields=None):
+class _Menu:
+    def __init__(self, synamic, title=None, link=None, id=None, children=None, other_fields=None):
         assert title is not None
-        self.__config = config
+        self.__synamic = synamic
         self.__title = title
         self.__link = link
         self.__id = id
@@ -32,19 +29,8 @@ class Menu:
 
     @property
     def link(self):
-        # if self.__link is None:
-        lsrc = self.__link.lower()
-        if lsrc.startswith('geturl://'):
-            _url = self.__link[len('geturl://'):]
-            url = self.__config.get_url(_url)
-        else:
-            url = self.__link
-        # self.__link = url
-
-        # print("link : %s" % url)
-        # return self.__link
-        return url
-
+        router = self.__synamic.get_service('router')
+        return router.get_url(self.__link)
 
     @property
     def children(self):
@@ -64,19 +50,10 @@ class Menu:
 
 
 class MenuService:
-    def __init__(self, synamic_config):
-        self.__config = synamic_config
-        self.__menu_map = {}
+    def __init__(self, synamic):
+        self.__synamic = synamic
         self.__is_loaded = False
-
-        self.__service_home_path = None
-        self.__config.register_path(self.service_home_path)
-
-    @property
-    def service_home_path(self) -> ContentPath2:
-        if self.__service_home_path is None:
-            self.__service_home_path = self.__config.path_tree.create_path(('meta', 'menus'))
-        return self.__service_home_path
+        self.__menu_dir = self.__synamic.default_configs.get('dirs').get('metas.menus')
 
     @property
     def is_loaded(self):
@@ -84,31 +61,29 @@ class MenuService:
 
     @not_loaded
     def load(self):
-        menu_map = self.__menu_map
-        file_paths = self.service_home_path.list_files()
-
-        for file_path in file_paths:
-            if file_path.basename.endswith('.menu.txt') and len(file_path.basename) > len('.menu.txt'):
-                with file_path.open('r', encoding='utf-8') as f:
-                    model_txt = f.read()
-                    menu_id = file_path.basename[:-len('.menu.txt')]
-                    menu_map[menu_id] = Menu(
-                        config=self.__config,
-                        title='__root__',
-                        link='__root_link__',
-                        children=self._parse_menu(FieldParser(model_txt).parse())
-                    )
-
+        # for file_path in file_paths:
         self.__is_loaded = True
 
-    def _parse_menu(self, starting_menu: Field) -> tuple:
-        # print(starting_menu)
-        # res_list = res_list if res_list is not None else []
+    def make_menu(self, name):
+        path_tree = self.__synamic.get_service('path_tree')
+        fn = name + '.syd'
+        path = path_tree.create_file_path(self.__menu_dir, fn)
+        syd = self.__synamic.object_manager.get_syd(path)
+
+        menu_obj = _Menu(
+            self.__synamic,
+            title=name,
+            link='__root_link__',
+            children=self._process_menu(syd)
+        )
+        return menu_obj
+
+    def _process_menu(self, starting_menu_syd) -> tuple:
         res_list = []
-        menus = starting_menu.get_multi('menu', None)
+        menus = starting_menu_syd.get('menus', None)
         if menus is not None:
-            for menu in menus:
-                dict_flat = menu.to_dict_flat()
+            for menu in menus.values():
+                dict_flat = menu
                 title = dict_flat.get('title', None)
                 assert title is not None
                 del dict_flat['title']
@@ -116,22 +91,13 @@ class MenuService:
                 if link is not None:
                     del dict_flat['link']
                 res_list.append(
-                    Menu(
-                        config=self.__config,
+                    _Menu(
+                        self.__synamic,
                         title=title,
                         link=link,
-                        children=self._parse_menu(menu),
+                        children=self._process_menu(menu),
                         other_fields=dict_flat
                     )
                 )
         return tuple(res_list)
 
-    @property
-    def all_root(self):
-        return tuple(self.__root_menus)
-    #
-    # def __getattr__(self, key):
-    #     return self.__menu_map.get(key, None)
-
-    def __getitem__(self, key):
-        return self.__menu_map.get(key, None)

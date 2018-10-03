@@ -1,8 +1,6 @@
 import os
 
 # from synamic.core.builtin_event_handlers.handlers import handler_pre_build
-from synamic.core.event_system.event_types import EventTypes
-from synamic.core.event_system.events import Handler, Event
 from synamic.core.synamic._synamic_enums import Key
 
 

@@ -21,30 +21,15 @@ class SynamicTemplateService:
         self.__synamic = synamic
         self.__template_env = None
 
-        self.__service_home_path = None
-
-        self.__synamic.register_path(self.service_home_path)
-
-    @property
-    def service_home_path(self):
-        if self.__service_home_path is None:
-            self.__service_home_path = self.__synamic.path_tree.create_path('templates')
-        return self.__service_home_path
-
-    @property
-    def name(self):
-        return "templates"
-
-    @property
-    def config(self):
-        return self.__synamic
-
     @not_loaded
     def load(self):
         assert not self.__is_loaded, "Module cannot be loaded twice"
+        path_tree = self.__synamic.get_service('path_tree')
+        templates_dir = self.__synamic.default_configs.get('dirs')['dirs.templates.templates']
+        templates_dir_path = path_tree.create_dir_path(templates_dir)
         self.__template_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(
-                self.__synamic.path_tree.get_full_path(self.__synamic.template_dir),
+                templates_dir_path.absolute_path,
                 encoding='utf-8', followlinks=False),
             autoescape=jinja2.select_autoescape(['html', 'xml']),
             extensions=[GetUrlExtension, ResizeImageExtension]

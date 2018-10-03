@@ -13,13 +13,13 @@ import shutil
 from synamic.core.synamic.classes.sites import Sites
 
 from synamic.core.contracts.synamic_contract import SynamicContract
-from synamic.core.event_system.events import EventTypes, EventSystem, Event
-from synamic.core.filesystem.content_path.content_path2 import ContentPath2
-from synamic.core.filesystem.path_tree import PathTree
-from synamic.core.filesystem.virtual_file import VirtualFile
+from synamic.core.services.event_system.events import EventTypes, EventSystem, Event
+from synamic.core.services.filesystem.content_path import ContentPath2
+from synamic.core.services.filesystem.path_tree import PathTree
+from synamic.core.services.filesystem.virtual_file import VirtualFile
 from synamic.core.query_systems.filter_functions import query_by_synamic_4_dynamic_contents
 from synamic.core.services.category.category_service import CategoryService
-from synamic.core.services.content.content_module_service import MarkedContentService
+from synamic.core.services.content.content_service import ContentService
 from synamic.core.services.menu.menu_service import MenuService
 from synamic.core.services.model.model_service import ModelService
 from synamic.core.services.null.null_service import NullService
@@ -27,7 +27,7 @@ from synamic.core.services.static.static_module_service import StaticModuleServi
 from synamic.core.services.tags.tags_service import TagsService
 from synamic.core.services.template.template_service import SynamicTemplateService
 from synamic.core.services.image_resizer.image_resizer_service import ImageResizerService
-from synamic.core.site_settings.site_settings import SiteSettings
+from synamic.core.services.site_settings.site_settings import SiteSettings
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.synamic._synamic_enums import Key
 from synamic.core.synamic.functions.add_auxiliary_content import synamic_add_auxiliary_content
@@ -39,8 +39,8 @@ from synamic.core.synamic.functions.get_document_by_id import synamic_get_docume
 from synamic.core.synamic.functions.initialize_site import _synamic_initialize_site
 from synamic.core.synamic.functions.register_path import synamic_register_path
 from synamic.core.synamic.functions.register_virtual_file import synamic_register_virtual_file
-from synamic.core.type_system.type_system import TypeSystem
-from synamic.core.urls.url import ContentUrl
+from synamic.core.services.types.type_system import TypeSystem
+from synamic.core.services.urls.url import ContentUrl
 from synamic.core.services.sass.sass_service import SASSService
 from synamic.core.synamic.functions.get_content import synamic_get_content
 from synamic.core.exceptions.synamic_exceptions import GetUrlFailed, GetContentFailed
@@ -397,7 +397,7 @@ class Synamic(SynamicContract):
         self.__site_settings = SiteSettings(self)
 
         # content service
-        self.__content_service = MarkedContentService(self)
+        self.__content_service = ContentService(self)
 
         # static service
         self.__static_service = StaticModuleService(self)

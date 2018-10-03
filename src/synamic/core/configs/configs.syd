@@ -1,7 +1,11 @@
-# In any place: directories and files starting with the following string will be ignored from processing.
-ignore_dirs_starting_with: .
-ignore_files_starting_with: ${ ignore_dirs_starting_with }
+# ignore_dirs_starting_with: In any place: directories and files starting with the following string will be ignored from processing.
+ignore_dirs_sw: .
+ignore_files_sw: ${ ignore_dirs_sw }
 
 # if a directory inside the contents folder starts with the following char then it will not result in url for that dir
 # others directories will result in url path components
-nourl_content_dirs_starting_with: _
+nourl_content_dirs_sw: _
+
+
+# children sites dir name
+subsites_dir: sites

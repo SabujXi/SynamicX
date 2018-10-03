@@ -1,5 +1,5 @@
 from synamic.core.exceptions.synamic_exceptions import SynamicException
-from synamic.core.filesystem.virtual_file import VirtualFile
+from synamic.core.services.filesystem.virtual_file import VirtualFile
 
 
 def synamic_register_virtual_file(synamic, virtual_file, registered_virtual_files):

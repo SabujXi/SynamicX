@@ -298,6 +298,8 @@ class SydContainer(__SydData):
         self.__list = []
         self.__is_root = True if key == '__root__' or key is None else False
         self.__parent = None
+
+        self.__converters = {}
         self._set_parent(parent)
 
     def clone(self, parent=None):
@@ -330,19 +332,23 @@ class SydContainer(__SydData):
         return tuple(l)
 
     def values(self):
+        """Values are not converted!!!"""
         l = list()
         for e in self.__list:
-            l.append(e.value)
+            value = e.value
+            l.append(value)
         return tuple(l)
 
     def items(self):
+        """Values are not converted!!!"""
         l = []
         i = 0
         for e in self.__list:
+            value = e.value
             if self.is_list:
-                l.append((i, e.value))
+                l.append((i, value))
             else:
-                l.append((e.key, e.value))
+                l.append((e.key, value))
             i += 1
         return tuple(l)
 
@@ -388,13 +394,36 @@ class SydContainer(__SydData):
         return d
 
     def __getitem__(self, key):
-        return self._get_original(key, multi=False).value
+        value = self.get(key, default=None, multi=False)
+        if value is None:
+            raise KeyError('Key `%s` was not found' % key)
+        return value
+
+    def __converted_value(self, key, value):
+        converter = self.__converters.get(key, None)
+        if converter is not None:
+            value = converter(value)
+        return value
+
+    def set_converter(self, key, converter):
+        """
+        Converters are supposed to be used on parent containers - keys accessing through the
+        parent can provide converted value.
+        """
+        assert self.__parent is None, 'Converters can only be set to the parent containers'
+        self.__converters[key] = converter
 
     def get(self, key, default=None, multi=False):
         try:
             value = self._get_original(key, multi=multi)
             if not multi:
-                value = value.value
+                value = self.__converted_value(key, value.value)
+            else:
+                values = value
+                _values = []
+                for v in values:
+                    _values.append(self.__converted_value(key, v))
+                value = tuple(_values)
         except (KeyError, IndexError, AssertionError):
             value = default
         return value
@@ -533,9 +562,8 @@ class _ParseState(enum.Enum):
 
 
 class Syd:
-    def __init__(self, text, synamic, debug=False):
+    def __init__(self, text, debug=False):
         self.__text = text
-        self.__synamic = synamic
         self.__debug = debug
         self.__tree = SydContainer('__root__')
         self.__error = None

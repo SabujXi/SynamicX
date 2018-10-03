@@ -1,4 +1,4 @@
-from synamic.core.filesystem.content_path.content_path2 import ContentPath2
+from synamic.core.services.filesystem.content_path import ContentPath2
 from synamic.core.services.static.static import StaticContent
 
 
