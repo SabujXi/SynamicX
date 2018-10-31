@@ -15,7 +15,6 @@ from synamic.core.contracts.content import ContentContract
 from synamic.core.contracts import BaseContentModuleContract
 from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static import StaticContent
-from synamic.core.standalones.functions.md import render_markdown
 from synamic.core.services.content.toc import Toc
 from synamic.core.services.content.marked_content import MarkedContentImplementation
 
@@ -81,14 +80,14 @@ class ContentService(BaseContentModuleContract):
         return content_fields
 
     def make_md_content(self, file_path):
-        types = self.__site.get_service('types')
+        markdown_renderer = self.__site.get_service('types').get_converter('markdown')
         content_type = ContentContract.types.DYNAMIC
         fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
         content_fields = self.make_content_fields(fields_syd)
         toc = Toc()
-        body = render_markdown(self.__site, body_text, value_pack={
+        body = markdown_renderer(body_text, value_pack={
             'toc': toc
-        })
+        }).rendered_markdown
 
         # pagination & chapters will be evaluated later - Lazy Evaluation.
         # chapters -> _chapters; so that user can think that fields have direct one to one mapping with value

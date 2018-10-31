@@ -14,16 +14,16 @@ import mistune
 
 
 class SynamicRenderer(mistune.Renderer):
-    def __init__(self, synamic, value_pack=None, **kwargs):
+    def __init__(self, site, value_pack=None, **kwargs):
         super().__init__(**kwargs)
-        self.__synamic = synamic
+        self.__site = site
         self.__value_pack = value_pack if value_pack is not None else {}
 
     def image(self, src, title, alt_text):
         lsrc = src.lower()
         if lsrc.startswith('geturl://'):
             _url = src[len('geturl://'):]
-            url = self.__synamic.get_url(_url)
+            url = self.__site.get_url(_url)
         else:
             url = src
         return "<img src='%s' title='%s' alt='%s' class='img-responsive center-block'>" % (url, title, alt_text)
@@ -32,7 +32,7 @@ class SynamicRenderer(mistune.Renderer):
         ll = link.lower()
         if ll.startswith('geturl://'):
             _url = link[len('geturl://'):]
-            url = self.__synamic.get_url(_url)
+            url = self.__site.get_url(_url)
         else:
             url = link
         return "<a href='%s' title='%s'>%s</a>" % (url, title, content)
@@ -51,7 +51,7 @@ class SynamicRenderer(mistune.Renderer):
         return final
 
 
-def render_markdown(synamic, text, value_pack=None):
-    renderer = SynamicRenderer(synamic, value_pack)
+def render_markdown(site, text, value_pack=None):
+    renderer = SynamicRenderer(site, value_pack)
     md = mistune.Markdown(renderer=renderer)
     return md.render(text)

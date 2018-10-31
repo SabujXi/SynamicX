@@ -34,6 +34,7 @@ class ObjectManager(
     def reload(self):
         self.__is_loaded = False
         self.__content_metas_cachemap.clear()
+        self.__marker_by_id_cachemap.clear()
         self.load()
 
     #  @not_loaded

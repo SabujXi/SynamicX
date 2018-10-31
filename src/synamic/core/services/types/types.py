@@ -47,9 +47,10 @@ class Html:
 
 
 class Markdown:
-    def __init__(self, md_str, site):
-        self.__md_str = md_str
+    def __init__(self, site, md_str, value_pack=None):
         self.__site = site
+        self.__md_str = md_str
+        self.__value_pack = value_pack
         self.__html_obj = None
         self.__plain_text = None
         self.__rendered_text = None
@@ -57,7 +58,7 @@ class Markdown:
     @property
     def rendered_markdown(self):
         if self.__rendered_text is None:
-            self.__rendered_text = render_markdown(self.__site, self.__md_str)
+            self.__rendered_text = render_markdown(self.__site, self.__md_str, value_pack=self.__value_pack)
         return self.__rendered_text
 
     @property

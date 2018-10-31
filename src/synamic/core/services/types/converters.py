@@ -155,11 +155,11 @@ def text(txt, *args, **kwargs):
 
 @_add_converter_type('markdown')
 class Markdown(ConverterCallable):
-    def __call__(self, txt, *args, **kwargs):
+    def __call__(self, txt, value_pack=None, *args, **kwargs):
         """
         Return a markdown instance.
         """
-        return Markdown(txt, self.__type_system)
+        return Markdown(self.__type_system.site, txt, value_pack=value_pack)
 
 
 @_add_converter_type('html')
