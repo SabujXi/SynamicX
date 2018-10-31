@@ -1,1 +1,1 @@
-from . content_path2 import _ContentPath2
+from . content_path2 import _CPath

@@ -6,19 +6,19 @@ from synamic.core.services.content.marked_content import MarkedContentImplementa
 from synamic.core.contracts.content import ContentContract
 
 
-def content_create_marked_content(synamic, file_path, file_content, content_type=ContentContract.types.DYNAMIC):
+def content_create_marked_content(site, file_path, file_content, content_type=ContentContract.types.DYNAMIC):
     doc = DocumentParser(file_content).parse()
-    model = synamic.model_service.get_model(file_path.merged_meta_info.get('model', 'default'))
+    model = site.model_service.get_model(file_path.merged_meta_info.get('model', 'default'))
 
-    ordinary_fields, field_converters = content_convert_fields(synamic, model, doc)
+    ordinary_fields, field_converters = content_convert_fields(site, model, doc)
 
     # convert field
     field_config_4_body = model.get('__body__', None)
     if field_config_4_body is not None:
         body_converter = field_config_4_body.converter
     else:
-        body_converter = synamic.type_system.get_converter('markdown')
-    body = body_converter(doc.body, synamic)
+        body_converter = site.type_system.get_converter('markdown')
+    body = body_converter(doc.body, site)
     #
     # TODO: later make them system field: slug -> _slug, permalink -> _permalink, pagination -> _pagination,
     # chapters -> _chapters; so that user can think that fields have direct one to one mapping with value
@@ -30,7 +30,7 @@ def content_create_marked_content(synamic, file_path, file_content, content_type
     ordinary_fields['__pagination'] = None if pagination_field is None else pagination_field.value
     # ordinary_fields['__chapters'] = None if chapters_field is None else chapters_field.value
     if chapters_field is not None:
-        ordinary_fields['chapters'] = get_chapters(synamic, chapters_field)
+        ordinary_fields['chapters'] = get_chapters(site, chapters_field)
     else:
         ordinary_fields['chapters'] = None
 
@@ -44,9 +44,9 @@ def content_create_marked_content(synamic, file_path, file_content, content_type
         'permalink': None if permalink_field is None else permalink_field.value
     }
     #
-    url_object = content_construct_url_object(synamic, file_path, url_construction_dict)
+    url_object = content_construct_url_object(site, file_path, url_construction_dict)
 
-    content = MarkedContentImplementation(synamic, file_path, url_object,
+    content = MarkedContentImplementation(site, file_path, url_object,
                                           body, ordinary_fields,
                                           field_converters=field_converters,
                                           content_type=content_type)

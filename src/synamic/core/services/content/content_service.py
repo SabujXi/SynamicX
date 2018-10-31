@@ -24,14 +24,14 @@ _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
 
 class _ContentFields(dict):
-    def __init__(self, synamic, model, content_id, *a, **kwa):
-        self.__synamic = synamic
+    def __init__(self, site, model, content_id, *a, **kwa):
+        self.__site = site
         self.__model = model
         self.__content_id = content_id
         super().__init__(*a, *kwa)
 
     def clone(self):
-        c = self.__class__(self.__synamic, self.__model)
+        c = self.__class__(self.__site, self.__model)
         for key, value in self.items():
             c[key] = value
         return c
@@ -47,10 +47,10 @@ class _ContentFields(dict):
 
 
 class ContentService(BaseContentModuleContract):
-    __slots__ = ('__synamic', '__is_loaded', '__contents_by_id', '__dynamic_contents', '__auxiliary_contents')
+    __slots__ = ('__site', '__is_loaded', '__contents_by_id', '__dynamic_contents', '__auxiliary_contents')
 
-    def __init__(self, synamic):
-        self.__synamic = synamic
+    def __init__(self, site):
+        self.__site = site
         self.__is_loaded = False
 
     @property
@@ -62,13 +62,13 @@ class ContentService(BaseContentModuleContract):
         self.__is_loaded = True
 
     def make_content_fields(self, fields_syd):
-        types = self.__synamic.get_service('types')
+        types = self.__site.get_service('types')
 
         content_type = ContentContract.types.DYNAMIC
 
         model_name = fields_syd.get('model', 'content')  # TODO: default model is content not default
-        model = self.__synamic.object_manager.get_model(model_name)
-        content_fields = _ContentFields(self.__synamic, model)
+        model = self.__site.object_manager.get_model(model_name)
+        content_fields = _ContentFields(self.__site, model)
         for key in fields_syd.keys():
             if key in model:
                 model_field = model[key]
@@ -81,12 +81,12 @@ class ContentService(BaseContentModuleContract):
         return content_fields
 
     def make_md_content(self, file_path):
-        types = self.__synamic.get_service('types')
+        types = self.__site.get_service('types')
         content_type = ContentContract.types.DYNAMIC
-        fields_syd, body_text = self.__synamic.object_manager.get_content_parts(file_path)
+        fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
         content_fields = self.make_content_fields(fields_syd)
         toc = Toc()
-        body = render_markdown(self.__synamic, body_text, value_pack={
+        body = render_markdown(self.__site, body_text, value_pack={
             'toc': toc
         })
 
@@ -105,7 +105,7 @@ class ContentService(BaseContentModuleContract):
         # ordinary_fields['__pagination'] = None if pagination_field is None else pagination_field.value
         # # ordinary_fields['__chapters'] = None if chapters_field is None else chapters_field.value
         # if chapters_field is not None:
-        #     ordinary_fields['chapters'] = get_chapters(synamic, chapters_field)
+        #     ordinary_fields['chapters'] = get_chapters(site, chapters_field)
         # else:
         #     ordinary_fields['chapters'] = None
         #
@@ -119,9 +119,9 @@ class ContentService(BaseContentModuleContract):
         #     'permalink': None if permalink_field is None else permalink_field.value
         # }
         # #
-        # url_object = content_construct_url_object(synamic, file_path, url_construction_dict)
+        # url_object = content_construct_url_object(site, file_path, url_construction_dict)
 
-        content = MarkedContentImplementation(self.__synamic, body, content_fields, toc,
+        content = MarkedContentImplementation(self.__site, body, content_fields, toc,
                                               content_id=file_path.id(),
                                               content_type=content_type)
         return content
@@ -131,19 +131,19 @@ class ContentService(BaseContentModuleContract):
         pass
 
     def make_static_content(self, path):
-        path_tree = self.__synamic.get_service('path_tree')
-        path_obj = path_tree.create_file_path(path)
-        return StaticContent(self.__synamic, path_obj)
+        path_tree = self.__site.get_service('path_tree')
+        path_obj = path_tree.create_file_cpath(path)
+        return StaticContent(self.__site, path_obj)
 
     def all_static_paths(self):
         # TODO: move this method to object manager.
         paths = []
-        path_tree = self.__synamic.get_service('path_tree')
-        statics_dir = self.__synamic.default_configs.get('dirs')['statics.statics']
-        contents_dir = self.__synamic.default_configs.get('dirs')['contents.contents']
-        paths.extend(path_tree.list_file_paths(statics_dir))
+        path_tree = self.__site.get_service('path_tree')
+        statics_dir = self.__site.default_configs.get('dirs')['statics.statics']
+        contents_dir = self.__site.default_configs.get('dirs')['contents.contents']
+        paths.extend(path_tree.list_file_cpaths(statics_dir))
 
-        for path in path_tree.list_file_paths(contents_dir):
+        for path in path_tree.list_file_cpaths(contents_dir):
             if path.basename.lower().endswith(('.md', '.markdown')):
                 paths.append(path)
         return paths

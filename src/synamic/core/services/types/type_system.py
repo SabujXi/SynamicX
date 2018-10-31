@@ -84,8 +84,8 @@ class TypeSystem:
         'datetime[]'
     })
 
-    def __init__(self, synamic):
-        self.__synamic = synamic
+    def __init__(self, site):
+        self.__site = site
         self.__type_converters = {}
 
         for name, converter in _default_converters.items():
@@ -144,7 +144,7 @@ class TypeSystem:
         """
         Return a markdown instance.
         """
-        return Markdown(txt, self.__synamic)
+        return Markdown(txt, self.__site)
 
     @_decorate_converter('html')
     def _html_converter(self, txt, *args, **kwargs):
@@ -194,7 +194,7 @@ class TypeSystem:
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
         # print("TAGS txt: %s" %txt)
         # TODO: how to get tags in the new system
-        sy_tags = synamic_config_obj.tags
+        sy_tags = site_config_obj.tags
         res = []
         tag_titles = _Pat.separator_comma_pat.split(txt)
         for title in tag_titles:
@@ -209,7 +209,7 @@ class TypeSystem:
     @_decorate_converter('user')
     def _user_converter(self, txt, *args, **kwargs):
         content_obj = None
-        for cnt in synamic.content_service.users:
+        for cnt in site.content_service.users:
             print(txt)
             print(cnt.user_id)
             if txt == cnt.user_id:
@@ -220,7 +220,7 @@ class TypeSystem:
     @_decorate_converter('taxonomy.categories')
     def _categories_converter(self, txt, *args, **kwargs):
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
-        sy_categories = synamic_config_obj.categories
+        sy_categories = site_config_obj.categories
         res = []
         category_titles = _Pat.separator_comma_pat.split(txt)
         for title in category_titles:
@@ -270,9 +270,9 @@ class TypeSystem:
 
 
 class ConverterCallable:
-    def __init__(self, synamic, converter_fun):
-        self.__synamic = synamic
+    def __init__(self, site, converter_fun):
+        self.__site = site
         self.__converter_fun = converter_fun
 
     def __call__(self, value, *args, **kwargs):
-        return self.__converter_fun(value, self.__synamic, *args, **kwargs)
+        return self.__converter_fun(value, self.__site, *args, **kwargs)

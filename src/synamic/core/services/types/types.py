@@ -47,9 +47,9 @@ class Html:
 
 
 class Markdown:
-    def __init__(self, md_str, synamic):
+    def __init__(self, md_str, site):
         self.__md_str = md_str
-        self.__synamic = synamic
+        self.__site = site
         self.__html_obj = None
         self.__plain_text = None
         self.__rendered_text = None
@@ -57,7 +57,7 @@ class Markdown:
     @property
     def rendered_markdown(self):
         if self.__rendered_text is None:
-            self.__rendered_text = render_markdown(self.__synamic, self.__md_str)
+            self.__rendered_text = render_markdown(self.__site, self.__md_str)
         return self.__rendered_text
 
     @property

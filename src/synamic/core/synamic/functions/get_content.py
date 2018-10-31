@@ -43,7 +43,7 @@ def synamic_get_content(synamic, parameter, content_map):
             _search_what = 'assets/' + mod_name + '/' + _search_what
         else:
             _search_what = mod_name + '/' + _search_what
-        _search_what = os.path.join(*self.path_tree.to_components(_search_what))
+        _search_what = os.path.join(*self.path_tree.to_comps(_search_what))
 
         if mod_name == normalize_key('sass'):
             assert synamic.path_tree.exists('assets/sass/' + search_what), "File not found with the module and name: %s:%s:%s:  " % (

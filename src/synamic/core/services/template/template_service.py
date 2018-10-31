@@ -16,27 +16,27 @@ from synamic.core.standalones.functions.parent_config_splitter import parent_con
 
 
 class SynamicTemplateService:
-    def __init__(self, synamic):
+    def __init__(self, site):
         self.__is_loaded = False
-        self.__synamic = synamic
+        self.__site = site
         self.__template_env = None
 
     @not_loaded
     def load(self):
         assert not self.__is_loaded, "Module cannot be loaded twice"
-        path_tree = self.__synamic.get_service('path_tree')
-        templates_dir = self.__synamic.default_configs.get('dirs')['dirs.templates.templates']
-        templates_dir_path = path_tree.create_dir_path(templates_dir)
+        path_tree = self.__site.get_service('path_tree')
+        templates_dir = self.__site.default_configs.get('dirs')['dirs.templates.templates']
+        templates_dir_path = path_tree.create_dir_cpath(templates_dir)
         self.__template_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(
-                templates_dir_path.absolute_path,
+                templates_dir_path.abs_path,
                 encoding='utf-8', followlinks=False),
             autoescape=jinja2.select_autoescape(['html', 'xml']),
             extensions=[GetUrlExtension, ResizeImageExtension]
         )
         # setting config object to global of environment
-        self.__template_env.synamic_config = self.__synamic
-        self.__template_env.globals['synamic'] = self.__synamic
+        self.__template_env.site_config = self.__site
+        self.__template_env.globals['site'] = self.__site
 
         self.__is_loaded = True
 
@@ -45,7 +45,7 @@ class SynamicTemplateService:
         return self.__is_loaded
 
     def exists(self, template_name):
-        return True if os.path.exists(os.path.join(self.__synamic.template_dir, template_name)) else False
+        return True if os.path.exists(os.path.join(self.__site.template_dir, template_name)) else False
 
     @loaded
     def render(self, template_name, context=None, **kwargs):
@@ -56,7 +56,7 @@ class SynamicTemplateService:
         is_from_parent, template_name = parent_config_str_splitter(template_name)
 
         if is_from_parent:
-            result = self.__synamic.template_service.render(template_name, context=context)
+            result = self.__site.template_service.render(template_name, context=context)
         else:
             _template = self.__template_env.get_template(template_name)
             result = _template.render(context)

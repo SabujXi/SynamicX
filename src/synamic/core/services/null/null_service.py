@@ -22,7 +22,7 @@ class NullService:
             VirtualFile(
                 ContentPath2(cfg.path_tree, cfg.site_root,
                              (
-                                 *cfg.templates.service_home_path.path_components,
+                                 *cfg.templates.service_home_path.path_comps,
                                  'default.html'
                              ),
                              is_file=True),
@@ -55,7 +55,7 @@ class NullService:
             VirtualFile(
                 ContentPath2(cfg.path_tree, cfg.site_root,
                              (
-                                 *cfg.model_service.service_home_path.path_components,
+                                 *cfg.model_service.service_home_path.path_comps,
                                  'default.model.txt'
                              ),
                              is_file=True),
@@ -83,7 +83,7 @@ __body__:
             VirtualFile(
                 ContentPath2(cfg.path_tree, cfg.site_root,
                              (
-                                 *cfg.content_service.service_home_path.path_components,
+                                 *cfg.content_service.service_home_path.path_comps,
                                  '.meta.txt'
                              ),
                              is_file=True),
@@ -98,7 +98,7 @@ template: default.html
             VirtualFile(
                 ContentPath2(cfg.path_tree, cfg.site_root,
                              (
-                                 *cfg.content_service.service_home_path.path_components,
+                                 *cfg.content_service.service_home_path.path_comps,
                                  'home.md'
                              ),
                              is_file=True),

@@ -191,7 +191,7 @@ class TaxonomyModule(BaseMetaModuleContract):
                     raise Exception("Multiple taxonomy terms with the same name detected: %s" % term)
                 _dir_paths_, file_paths = self.__config.path_tree.get_module_paths(self, starting_comps=(dir_base, term), files_only=True)
                 for file_path in file_paths:
-                    with self.__config.path_tree.open(file_path.absolute_path, 'r', encoding='utf-8') as f:
+                    with self.__config.path_tree.open(file_path.abs_path, 'r', encoding='utf-8') as f:
                         text = f.read()
                         py_obj = load_yaml(text)
                         assert type(py_obj) is list

@@ -85,10 +85,10 @@ class EventSystem:
     Handler config:
     handler(what)
     e.g.:
-        what: synamic obj, content service/module object, etc. 
+        what: site obj, content service/module object, etc.
         
     Custom event handlers are primarily for external plugins. So, anyone is can trigger that.
-    BUT, system events (EventTypes) are only for synamic and only synamic can trigger that.
+    BUT, system events (EventTypes) are only for site and only site can trigger that.
     So, as a protection only the first time the trigger method can be achieved and any subsequent call will raise
     exception.
     
@@ -100,16 +100,16 @@ class EventSystem:
     
     """
 
-    # a synamic/config cannot possess or create more than one event system.
+    # a site/config cannot possess or create more than one event system.
     __instances_map = {}
 
     @classmethod
-    def get_event_system(cls, synamic):
-        return cls.__instances_map.get(synamic, None)
+    def get_event_system(cls, site):
+        return cls.__instances_map.get(site, None)
 
-    def __init__(self, synamic):
-        assert synamic not in self.__instances_map
-        self.__instances_map[synamic] = self
+    def __init__(self, site):
+        assert site not in self.__instances_map
+        self.__instances_map[site] = self
         #  event maps: key => event type, value => ordered dict of event handlers
         self.__get_trigger_count = 0
         self.__event_map = {}
@@ -121,6 +121,8 @@ class EventSystem:
 
         for et in EventTypes:
             self.__event_map[et] = []
+
+        self.__is_loaded = False
 
     def load(self):
         self.__is_loaded = True
@@ -165,7 +167,7 @@ class EventSystem:
     def _get_trigger(self):
         if self.__get_trigger_count == 0:
             return self.__trigger_event
-        raise LogicalError("_get_trigger can only be used by synamic itself. Do not try to get it after synamic got it."
+        raise LogicalError("_get_trigger can only be used by site itself. Do not try to get it after site got it."
                         "We are protecting it.")
 
     def trigger_custom_event(self, ename, event):

@@ -3,11 +3,11 @@ from collections import deque
 import re
 
 
-def content_construct_url_object(synamic, path_object, slug_permalink_dict):
+def content_construct_url_object(site, path_object, slug_permalink_dict):
     # if self.__url is None:
     # so, /404.html should not be /404.html/(index.html) - see below.
     # Let's start from the root to make url.
-    parent_paths = path_object.parent_paths
+    parent_paths = path_object.parent_cpaths
     url_comps = deque()
 
     if parent_paths:
@@ -56,7 +56,7 @@ def content_construct_url_object(synamic, path_object, slug_permalink_dict):
                 last_part = fn + '/'
 
     url_comps.append(last_part)
-    cnt_url = _ContentUrl(synamic, '')
+    cnt_url = _ContentUrl(site, '')
 
     for url_path_comp in url_comps:
         cnt_url = cnt_url.join(url_path_comp)  # append_slash=append_slash)

@@ -6,9 +6,9 @@ from synamic.core.synamic._synamic_enums import Key
 
 def _synamic_build(synamic, content_map, event_trigger):
     self = synamic
-    out_path = self.path_tree.create_path(self.site_settings.output_dir)
+    out_path = self.path_tree.create_cpath(self.site_settings.output_dir)
     if not out_path.exists():
-        self.path_tree.makedirs(out_path.path_components)
+        self.path_tree.makedirs(out_path.path_comps)
 
     # self.event_system.add_event_handler(
     #     EventTypes.PRE_BUILD,

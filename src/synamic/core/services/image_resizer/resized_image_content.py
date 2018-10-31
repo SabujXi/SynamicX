@@ -22,15 +22,15 @@ def construct_new_file_name_comps(path, width, height):
 
 
 class ResizedImageContent(ContentContract):
-    def __init__(self, synamic, original_image_path, width, height):
-        self.__synamic = synamic
+    def __init__(self, site, original_image_path, width, height):
+        self.__site = site
         self.__original_image_path = original_image_path
         self.__width = int(width)
         self.__height = int(height)
         self.__url = None
 
         self.__file_name_comps = construct_new_file_name_comps(self.__original_image_path, self.__width, self.__height)
-        self.__new_file_path = self.__synamic.path_tree.create_path(self.__file_name_comps, is_file=True)
+        self.__new_file_path = self.__site.path_tree.create_cpath(self.__file_name_comps, is_file=True)
 
     @property
     def original_image_path(self):
@@ -55,8 +55,8 @@ class ResizedImageContent(ContentContract):
         return hash(self.__file_name_comps)
 
     @property
-    def synamic(self):
-        return self.__synamic
+    def site(self):
+        return self.__site
 
     @property
     def path(self):
@@ -71,7 +71,7 @@ class ResizedImageContent(ContentContract):
         return None
 
     def get_stream(self):
-        img = Image.open(self.__original_image_path.absolute_path)
+        img = Image.open(self.__original_image_path.abs_path)
         new_img = img.resize((self.width, self.height), Image.BICUBIC)
         bio = BytesIO()
         format = img.format
@@ -99,5 +99,5 @@ class ResizedImageContent(ContentContract):
     @property
     def url_object(self):
         if self.__url is None:
-            self.__url = _ContentUrl(self.__synamic, self.__new_file_path)
+            self.__url = _ContentUrl(self.__site, self.__new_file_path)
         return self.__url

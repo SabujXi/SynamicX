@@ -10,7 +10,7 @@ def _synamic_initialize_site(synamic, force, registered_dir_paths, registered_vi
     if force:
         for dir_path in dir_paths:
             if not dir_path.exists():
-                self.path_tree.makedirs(*dir_path.path_components)
+                self.path_tree.makedirs(*dir_path.path_comps)
 
         for v in registered_virtual_files:
             if not v.file_path.exists():
@@ -20,7 +20,7 @@ def _synamic_initialize_site(synamic, force, registered_dir_paths, registered_vi
         if len(os.listdir(self.site_root)) == 0:
             for dir_path in dir_paths:
                 if not dir_path.exists():
-                    self.path_tree.makedirs(*dir_path.path_components)
+                    self.path_tree.makedirs(*dir_path.path_comps)
 
             for v in registered_virtual_files:
                 if not v.file_path.exists():

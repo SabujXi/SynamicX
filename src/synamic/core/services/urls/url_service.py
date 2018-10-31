@@ -2,8 +2,8 @@ from synamic.core.services.urls import _ContentUrl
 
 
 class UrlService:
-    def __init__(self, synamic):
-        self.__synamic = synamic
+    def __init__(self, site):
+        self.__site = site
 
     def load(self):
         pass

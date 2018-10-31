@@ -11,9 +11,9 @@ from synamic.core.standalones.functions.decorators import not_loaded
 
 
 class _Menu:
-    def __init__(self, synamic, title=None, link=None, id=None, children=None, other_fields=None):
+    def __init__(self, site, title=None, link=None, id=None, children=None, other_fields=None):
         assert title is not None
-        self.__synamic = synamic
+        self.__site = site
         self.__title = title
         self.__link = link
         self.__id = id
@@ -29,7 +29,7 @@ class _Menu:
 
     @property
     def link(self):
-        router = self.__synamic.get_service('router')
+        router = self.__site.get_service('router')
         return router.get_url(self.__link)
 
     @property
@@ -50,10 +50,10 @@ class _Menu:
 
 
 class MenuService:
-    def __init__(self, synamic):
-        self.__synamic = synamic
+    def __init__(self, site):
+        self.__site = site
         self.__is_loaded = False
-        self.__menu_dir = self.__synamic.default_configs.get('dirs').get('metas.menus')
+        self.__menu_dir = self.__site.default_configs.get('dirs').get('metas.menus')
 
     @property
     def is_loaded(self):
@@ -65,13 +65,13 @@ class MenuService:
         self.__is_loaded = True
 
     def make_menu(self, name):
-        path_tree = self.__synamic.get_service('path_tree')
+        path_tree = self.__site.get_service('path_tree')
         fn = name + '.syd'
-        path = path_tree.create_file_path(self.__menu_dir, fn)
-        syd = self.__synamic.object_manager.get_syd(path)
+        path = path_tree.create_file_cpath(self.__menu_dir, fn)
+        syd = self.__site.object_manager.get_syd(path)
 
         menu_obj = _Menu(
-            self.__synamic,
+            self.__site,
             title=name,
             link='__root_link__',
             children=self._process_menu(syd)
@@ -92,7 +92,7 @@ class MenuService:
                     del dict_flat['link']
                 res_list.append(
                     _Menu(
-                        self.__synamic,
+                        self.__site,
                         title=title,
                         link=link,
                         children=self._process_menu(menu),

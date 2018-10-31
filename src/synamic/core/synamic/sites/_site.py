@@ -1,12 +1,4 @@
-"""
-    author: "Md. Sabuj Sarker"
-    copyright: "Copyright 2017-2018, The Synamic Project"
-    credits: ["Md. Sabuj Sarker"]
-    license: "MIT"
-    maintainer: "Md. Sabuj Sarker"
-    email: "md.sabuj.sarker@gmail.com"
-    status: "Development"
-"""
+import os
 from synamic.core.services.event_system.events import EventSystem
 from synamic.core.services.filesystem.path_tree import PathTree
 from synamic.core.services.content.content_service import ContentService
@@ -18,14 +10,13 @@ from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.services.types.type_system import TypeSystem
 from synamic.core.services.sass.sass_service import SASSService
 from synamic.core.services.tasks import TasksService
-from synamic.core.configs import DefaultConfigManager
 from synamic.core.object_manager import ObjectManager
-from synamic.core.services.router import RouterService
 from synamic.core.services.marker import MarkerService
+from synamic.core.configs import DefaultConfigManager
 
 
-def _install_default_services(synamic):
-    self = synamic
+def _install_default_services(site):
+    self = site
     # Event Bus
     self.add_service('event_bus', EventSystem)
 
@@ -51,25 +42,29 @@ def _install_default_services(synamic):
 
     self.add_service('tasks', TasksService)
 
-    # Router Service
-    self.add_service('router', RouterService)
-
     # # null service for adding some virtual files
     # NullService(self)
 
 
-class Synamic:
-    def __init__(self, site_root, parent=None, prefix_dir=""):
-        self.__is_loaded = False
-        self.__site_root = site_root
-        self.__parent = parent
-        self.__prefix_dir = prefix_dir
+class _Site:
+    def __init__(self, synamic, site_virtual_id_comps, parent_site=None, root_site=None):
+        assert type(site_virtual_id_comps) is tuple
+        for id_comp in site_virtual_id_comps:
+            assert id_comp != ''
+            assert '/' not in id_comp
+            assert '\\' not in id_comp
+        self.__synamic = synamic
+        self.__virtual_id_comps = site_virtual_id_comps
+        self.__parent_site = parent_site
+        self.__root_site = root_site
+        assert type(parent_site) in (self.__class__, type(None))
+        assert type(root_site) in (self.__class__, type(None))
 
         # 1. >>> Check if the parent is the same type object.
-        if parent is not None:
-            assert type(self.__parent) is type(self)
+        if self.__parent_site is not None:
+            assert type(self.__parent_site) is type(self)
         # Root of all the synamic object must be None (Adam had no parent). Check it
-        _root_parent = self.__parent
+        _root_parent = self.__parent_site
         while _root_parent:
             if _root_parent.parent is not None:
                 _root_parent = _root_parent.parent
@@ -78,9 +73,6 @@ class Synamic:
         assert _root_parent is None
         # 1. <<<
 
-        # Default Config Manager
-        self.__default_configs = DefaultConfigManager(self)
-
         # Object Manager
         # self.add_service('object_manager', ObjectManager)
         self.__object_manager = ObjectManager(self)
@@ -88,6 +80,44 @@ class Synamic:
         # Service container
         self.__services_container = {}
         _install_default_services(self)
+
+        self.__is_loaded = False
+
+    @property
+    def synamic(self):
+        return self.__synamic
+
+    @property
+    def id(self):
+        return '/'.join(self.__virtual_id_comps)
+
+    @property
+    def virtual_id_comps(self):
+        return self.__virtual_id_comps
+
+    @property
+    def real_id_comps(self):
+        return self.synamic.sites.virtual2real_comps(self.__virtual_id_comps)
+
+    @property
+    def abs_site_path(self):
+        return os.path.join(self.__synamic.root_path, *self.real_id_comps)
+
+    @property
+    def parent(self):
+        return self.__parent_site
+
+    @property
+    def has_parent(self):
+        return False if self.__parent_site is None else True
+
+    @property
+    def root(self):
+        return self.__root_site
+
+    @property
+    def is_root(self):
+        return self.__root_site is None
 
     def get_service(self, service_name, default=None, error_out=True):
         service = self.__services_container.get(service_name, None)
@@ -121,7 +151,7 @@ class Synamic:
 
     @property
     def default_configs(self) -> DefaultConfigManager:
-        return self.__default_configs
+        return self.__synamic.default_configs
 
     @property
     def event_bus(self) -> EventSystem:
@@ -134,22 +164,6 @@ class Synamic:
     @property
     def is_loaded(self) -> bool:
         return self.__is_loaded
-
-    @property
-    def site_root(self):
-        return self.__site_root
-
-    @property
-    def parent(self):
-        return self.__parent
-
-    @property
-    def has_parent(self):
-        return False if self.parent is None else True
-
-    @property
-    def is_root(self):
-        return not self.has_parent
 
     @property
     def prefix_dir(self):
@@ -178,3 +192,38 @@ class Synamic:
     @property
     def builder(self):
         pass
+
+    @property
+    def site_wrapper(self):
+        return _SiteWrapper(self)
+
+    def __str__(self):
+        return 'Site: ' + str(self.__virtual_id_comps) + ' <- ' + (str(self.parent.virtual_id_comps) if self.has_parent else str(None)) \
+               + ' [parent]'
+
+    def __repr__(self):
+        return repr(self.__str__())
+
+    def __hash__(self):
+        return hash(self.id)
+
+    def __eq__(self, other):
+        return other.id == other.id
+
+
+class _SiteWrapper:
+    """Wrapper for passing to templates and other places."""
+    def __init__(self, site):
+        self.__site = site
+        self.__blacklisted_attrs = {'load', 'add_service', 'get_service', 'synamic', 'parent', 'root',
+                                    'default_configs', 'object_manager', 'parent', 'sites', 'router', 'builder',
+                                    'site_wrapper'}
+
+    def __getattr__(self, key):
+        if key in self.__blacklisted_attrs:
+            raise AttributeError('%s key is black listed' % key)
+        else:
+            try:
+                return getattr(self.__site, key)
+            except AttributeError:
+                raise AttributeError('%s key was not found on site' % key)

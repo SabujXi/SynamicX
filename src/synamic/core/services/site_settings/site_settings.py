@@ -10,8 +10,8 @@
 
 
 class _SiteSettings:
-    def __init__(self, synamic, syd):
-        self.__synamic = synamic
+    def __init__(self, site, syd):
+        self.__site = site
         self.__syd = syd
 
     @property
@@ -35,7 +35,7 @@ class _SiteSettings:
         value = self.__syd.get(dotted_key, default=default)
         if value == default:
             # try in system
-            value = self.__synamic.default_configs.get('settings').get(dotted_key, default)
+            value = self.__site.default_configs.get('settings').get(dotted_key, default)
         return value
 
     def __getitem__(self, item):
@@ -67,18 +67,18 @@ class _SiteSettings:
 
 
 class SiteSettingsService:
-    def __init__(self, synamic):
-        self.__synamic = synamic
+    def __init__(self, site):
+        self.__site = site
 
     def load(self):
         pass
 
     def make_site_settings(self):
-        system_settings_syd = self.__synamic.default_configs.get('settings')
-        dirs_syd = self.__synamic.default_configs.get('dirs')
-        configs_syd = self.__synamic.default_configs.get('configs')
+        system_settings_syd = self.__site.default_configs.get('settings')
+        dirs_syd = self.__site.default_configs.get('dirs')
+        configs_syd = self.__site.default_configs.get('configs')
 
-        om = self.__synamic.object_manager
+        om = self.__site.object_manager
         fn = 'settings.syd'
         user_syd = om.get_syd(fn)
         new_syd = system_settings_syd.new(dirs_syd, configs_syd, user_syd)

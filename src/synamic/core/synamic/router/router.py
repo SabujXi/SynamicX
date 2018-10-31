@@ -17,7 +17,7 @@ class RouterService:
         # Unused for now: url_fragment = parsed_url.fragment
 
         path_segments = url_path.split('/')
-        # Synamic must put / at the end of url unless the url ends with a file extension or it is a static file.
+        # synamic must put / at the end of url unless the url ends with a file extension or it is a static file.
         if len(path_segments) > 0:
             if path_segments[0] == '':
                 del path_segments[0]
@@ -25,7 +25,7 @@ class RouterService:
                     if path_segments[-1] == '':
                         del path_segments[-1]
 
-        # sites_service = self.__synamic.get_service('sites')
+        # synamics_service = self.__synamic.get_service('synamics')
         site_ids = self.__synamic.object_manager.get_site_ids()
         # the root site id will be '' - and yes, it will be listed in get_site_ids
         sites_id_segments = [site_id.split('/') for site_id in site_ids]

@@ -12,12 +12,12 @@ import re
 import urllib.parse
 from typing import Union
 
-from synamic.core.services.filesystem.content_path import _ContentPath2
+from synamic.core.services.filesystem.content_path import _CPath
 
 
 class _ContentUrl:
     @classmethod
-    def __to_components(cls, url_comps_or_path: Union[str, list, tuple, _ContentPath2], append_slash=False) -> tuple:
+    def __to_components(cls, url_comps_or_path: Union[str, list, tuple, _CPath], append_slash=False) -> tuple:
         # print("URl comps or path: %s" % url_comps_or_path)
         res_url_comps = []
         if type(url_comps_or_path) is str:
@@ -56,14 +56,14 @@ class _ContentUrl:
             #     # index.html (lower) is special
             #     res_url_comps.append('')
 
-        elif type(url_comps_or_path) is _ContentPath2:
+        elif type(url_comps_or_path) is _CPath:
             assert not append_slash, "Cannot do append slashing for static content (I hope you did not pass path of a dynamic content)"
             # for static file only - though no such checking is done
             # no append_slash things will happen here as it is for static content,
             # do not use this for dynamic content path
 
             assert url_comps_or_path.is_file, "Cannot create content url of a directory"
-            res_url_comps = list(url_comps_or_path.path_components)
+            res_url_comps = list(url_comps_or_path.path_comps)
         else:
             raise Exception('Invalid argument for url component: %s' % str(url_comps_or_path))
         if len(res_url_comps) == 0:
@@ -104,7 +104,7 @@ class _ContentUrl:
             _url_comps = ('', *_url_comps)
         return _url_comps
 
-    def __init__(self, synamic, url_comps, append_slash=False):
+    def __init__(self, site, url_comps, append_slash=False):
         """
         append_slash is only for dynamic contents and only when the url_comps is being passed as sting (not: list, tuple, content path) 
         So, we are not persisting that data
@@ -117,14 +117,14 @@ class _ContentUrl:
                 self.__to_components(url_comps, append_slash)
             )
 
-        self.__synamic = synamic
-        self.__of_static_file = type(url_comps) is _ContentPath2
+        self.__site = site
+        self.__of_static_file = type(url_comps) is _CPath
         self.__url_str = None
 
         self.__append_slash = append_slash
 
     def join(self, url_comps: Union[str, list, tuple], append_slash=False):
-        assert type(url_comps) is not _ContentPath2, "Static files components are all in one to construct an url, no need to include that here"
+        assert type(url_comps) is not _CPath, "Static files components are all in one to construct an url, no need to include that here"
         this_comps = self.__url_comps
         other_comps = self.__to_components(url_comps, append_slash=append_slash)
         this_end = this_comps[-1]
@@ -145,7 +145,7 @@ class _ContentUrl:
         else:
             comps = this_comps + other_comps
         # comps = this_comps + other_comps
-        return self.__class__(self.__synamic, comps)  #, append_slash=append_slash)
+        return self.__class__(self.__site, comps)  #, append_slash=append_slash)
 
     @property
     def of_static_file(self):
@@ -175,9 +175,9 @@ class _ContentUrl:
         if self.__url_str is None:
             comps = self.__url_comps
             if len(comps) == 1 and comps[0] == '':
-                _url_str = self.__synamic.prefix_dir + '/'
+                _url_str = self.__site.prefix_dir + '/'
             else:
-                _url_str = self.__synamic.prefix_dir + "/".join(self.__url_comps)
+                _url_str = self.__site.prefix_dir + "/".join(self.__url_comps)
             if not _url_str.startswith('/'):
                 _url_str = '/' + _url_str
             self.__url_str = _url_str
@@ -234,8 +234,8 @@ class _ContentUrl:
 
     @property
     def to_content_path(self):
-        return self.__synamic.path_tree.create_path(
-            (self.__synamic.site_settings.output_dir, *self.path_components),
+        return self.__site.path_tree.create_cpath(
+            (self.__site.site_settings.output_dir, *self.path_components),
             is_file=self.is_file
         )
 
@@ -250,7 +250,7 @@ class _ContentUrl:
         return repr(self.__str__())
 
     def __eq__(self, other):
-        if self.path_components == other.path_components:
+        if self.path_components == other.path_comps:
             return True
         return False
 

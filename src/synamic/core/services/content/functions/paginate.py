@@ -3,8 +3,8 @@ from synamic.core.services.content.pagination import Pagination
 from synamic.core.services.content.functions.create_auxiliary_marked_content import content_create_auxiliary_marked_content
 
 
-def content_paginate(synamic, contents, starting_content, filter_txt, contents_per_page=2):
-    settings_cpp = synamic.site_settings.contents_per_page
+def content_paginate(site, contents, starting_content, filter_txt, contents_per_page=2):
+    settings_cpp = site.site_settings.contents_per_page
     if settings_cpp:
         contents_per_page = int(settings_cpp)
     rules_txt = filter_txt
@@ -46,7 +46,7 @@ def content_paginate(synamic, contents, starting_content, filter_txt, contents_p
 
             else:
                 aux = content_create_auxiliary_marked_content(
-                    synamic,
+                    site,
                     starting_content, pagination.position
                 )
                 # setting pagination to an aux content

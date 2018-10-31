@@ -15,10 +15,10 @@ from synamic.core.services.urls.url import _ContentUrl
 
 
 class StaticContent(ContentContract):
-    def __init__(self, synamic, path, file_content=None):
+    def __init__(self, site, path, file_content=None):
         assert file_content is None
         self.__url = None
-        self.__synamic = synamic
+        self.__site = site
         self.__path = path
 
     @property
@@ -49,7 +49,7 @@ class StaticContent(ContentContract):
     @property
     def url_object(self):
         if self.__url is None:
-            self.__url = _ContentUrl(self.__synamic, self.__path)
+            self.__url = _ContentUrl(self.__site, self.__path)
         return self.__url
 
         # if file_path.meta_info:
@@ -58,14 +58,14 @@ class StaticContent(ContentContract):
         #         permalink = permalink.rstrip(r'\/')
         #         permalink_comps = [x for x in re.split(r'[\\/]+', permalink)]
         #     else:
-        #         permalink_comps = file_path.path_components
+        #         permalink_comps = file_path.path_comps
         #
         #     id = file_path.meta_info.get('id', None)
         #     cnt_url = _ContentUrl(self, permalink_comps, append_slash=False)
         # else:
-        #     cnt_url = _ContentUrl(self, file_path.path_components, append_slash=False)
+        #     cnt_url = _ContentUrl(self, file_path.path_comps, append_slash=False)
         #     id = None
         #
         # if id is None:
-        #     id = "/".join(file_path.path_components)
+        #     id = "/".join(file_path.path_comps)
 

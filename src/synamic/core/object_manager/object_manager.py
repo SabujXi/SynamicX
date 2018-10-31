@@ -4,8 +4,8 @@ from synamic.core.parsing_systems.curlybrace_parser import Syd
 
 
 class ObjectManager:
-    def __init__(self, synamic):
-        self.__synamic = synamic
+    def __init__(self, site):
+        self.__site = site
 
         self.__is_loaded = False
         self.__content_metas = {}
@@ -27,21 +27,21 @@ class ObjectManager:
         self.__is_loaded = True
 
     def __cache_content_metas(self):
-        if self.__synamic.env['backend'] == 'file':  # TODO: fix it.
+        if self.__site.synamic.env['backend'] == 'file':  # TODO: fix it.
             path_tree = self.get_path_tree()
-            content_dir = self.__synamic.default_configs.get('dirs')['contents.contents']
+            content_dir = self.__site.synamic.default_configs.get('dirs')['contents.contents']
 
             # for content
-            file_paths = path_tree.list_file_paths(content_dir)
+            file_paths = path_tree.list_file_cpaths(content_dir)
             for file_path in file_paths:
                 if file_path.extension.lower() in {'md', 'markdown'}:
                     text = self.get_raw_data(file_path)
                     front_matter, body = content_splitter(file_path, text)
                     del body
                     content_meta = Syd(front_matter)
-                    self.__content_metas[file_path.path_components] = content_meta
+                    self.__content_metas[file_path.path_comps] = content_meta
                 else:
-                    self.__synamic.add_static_content(file_path)
+                    self.__site.synamic.add_static_content(file_path)  # TODO
         else:
             raise NotImplemented
             # database backend is not implemented yet. AND there is nothing to do here for db, skip it when implemented
@@ -49,13 +49,13 @@ class ObjectManager:
 
     #  @loaded
     def get_content_meta(self, path):
-        path_tree = self.__synamic.get_service('path_tree')
-        path = path_tree.create_path(path)
-        if self.__synamic.env['backend'] == 'database':
+        path_tree = self.__site.get_service('path_tree')
+        path = path_tree.create_cpath(path)
+        if self.__site.synamic.env['backend'] == 'database':
             raise NotImplemented
         else:
             # file backend
-            return self.__content_metas[path.path_components]
+            return self.__content_metas[path.path_comps]
 
     #  @loaded
     def get_content(self, path):
@@ -70,7 +70,7 @@ class ObjectManager:
         return Syd('')
 
     def get_raw_data(self, path) -> str:
-        path = self.get_path_tree().create_file_path(path)
+        path = self.get_path_tree().create_file_cpath(path)
         with path.open('r', encoding='utf-8') as f:
             text = f.read()
         return text
@@ -80,9 +80,9 @@ class ObjectManager:
         return syd
 
     def get_model(self, model_name):
-        model_dir = self.__synamic.default_configs.get('metas.models')
-        path_tree = self.__synamic.get_service('path_tree')
-        path = path_tree.create_file_path(model_dir, model_name + '.model')
+        model_dir = self.__site.synamic.default_configs.get('metas.models')
+        path_tree = self.__site.get_service('path_tree')
+        path = path_tree.create_file_cpath(model_dir, model_name + '.model')
         model_text = self.get_raw_data(path)
         return ModelParser.parse(model_name, model_text)
 
@@ -92,9 +92,8 @@ class ObjectManager:
         front_matter_syd = Syd(front_matter)  # Or take it from cache.
         return front_matter_syd, body
 
-
     def get_path_tree(self):
-        path_tree = self.__synamic.get_service('path_tree')
+        path_tree = self.__site.get_service('path_tree')
         return path_tree
 
     def get_url(self, url_str):
@@ -108,7 +107,7 @@ class ObjectManager:
             new_url = url_str
 
     def get_site_settings(self):
-        return self.__synamic.get_service('site_settings').make_site_settings()
+        return self.__site.get_service('site_settings').make_site_settings()
 
     def get_content_by_segments(self, site_id, path_segments, pagination_segments):
         """Method primarily for router.get()"""

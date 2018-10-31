@@ -4,8 +4,8 @@ from synamic.core.contracts.document import MarkedDocumentContract
 
 
 class MarkedContentImplementation(MarkedDocumentContract):
-    def __init__(self, synamic, body, content_fields, toc, content_id, content_type=None):
-        self.__synamic = synamic
+    def __init__(self, site, body, content_fields, toc, content_id, content_type=None):
+        self.__site = site
         self.__body = body
         self.__content_fields = content_fields
         self.__model = content_fields.get_model()
@@ -18,7 +18,8 @@ class MarkedContentImplementation(MarkedDocumentContract):
 
     def get_stream(self):
         template_name = self.__content_fields.get('template', 'default.html')
-        res = self.__synamic.templates.render(template_name, content=self)
+        templates = self.__site.get_service('templates')
+        res = templates.render(template_name, content=self)
         f = io.BytesIO(res.encode('utf-8'))
         return f
 

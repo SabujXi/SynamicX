@@ -17,16 +17,16 @@ from synamic.core.services.urls.url import _ContentUrl
 
 class CSSContent(ContentContract):
 
-    def __init__(self, synamic, scss_path, css_path):
+    def __init__(self, site, scss_path, css_path):
         self.__url = None
-        self.__synamic = synamic
+        self.__site = site
         self.__scss_path = scss_path
         self.__path = css_path
-        self.__url = self.__url = _ContentUrl(self.__synamic, css_path)
+        self.__url = self.__url = _ContentUrl(self.__site, css_path)
 
     @property
-    def synamic(self):
-        return self.__synamic
+    def site(self):
+        return self.__site
 
     @property
     def path(self):
@@ -41,7 +41,7 @@ class CSSContent(ContentContract):
     #     return None
 
     def get_stream(self):
-        scss_fn = self.__scss_path.absolute_path
+        scss_fn = self.__scss_path.abs_path
         css_str = sass.compile(filename=scss_fn)
         css_io = io.BytesIO(css_str.encode('utf-8'))
         del css_str

@@ -1,7 +1,7 @@
 from collections import OrderedDict
 
 
-def content_convert_fields(synamic, model, doc):
+def content_convert_fields(site, model, doc):
     _fields = OrderedDict()
     _field_converters = OrderedDict()
 
@@ -23,11 +23,11 @@ def content_convert_fields(synamic, model, doc):
             # deliver the raw sting to the field
             # assert model_field is not None, "field `%s` is not defined in the model" % dotted_field
             type_name = 'text'
-            converter = synamic.type_system.get_converter(type_name)
-            converted_value = converter(a_field.value, synamic)
+            converter = site.type_system.get_converter(type_name)
+            converted_value = converter(a_field.value, site)
         else:
             converter = field_config.converter
-            converted_value = converter(a_field.value, synamic)
+            converted_value = converter(a_field.value, site)
 
         _res_map_[dotted_field] = converted_value
         _field_converters[dotted_field] = converter

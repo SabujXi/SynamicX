@@ -10,7 +10,7 @@
 
 import configparser, json, toml
 from synamic.core.standalones.functions.yaml_processor import load_yaml
-from synamic.core.services.filesystem.content_path import ContentPath2
+from synamic.core.services.filesystem.content_path import _CPath
 from synamic.core.parsing_systems.document_parser import FieldParser
 from synamic.core.standalones.functions.decorators import not_loaded
 
@@ -139,23 +139,23 @@ class YamlData(Data):
 class DataService:
     """
     Currently supports: 
-    - synamic field parser data (xxx.data.txt)
+    - site field parser data (xxx.data.txt)
     - json (xxx.json)
     - yaml (xxx.yaml, xxx.yml)
     - ini (xxx.ini)
     - toml (xxx.toml)
     """
-    def __init__(self, synamic):
-        self.__synamic = synamic
+    def __init__(self, site):
+        self.__site = site
         self.__data_name_map = {}
         self.__is_loaded = False
         self.__service_home_path = None
-        self.__synamic.register_path(self.service_home_path)
+        self.__site.register_path(self.service_home_path)
 
     @property
     def service_home_path(self) -> ContentPath2:
         if self.__service_home_path is None:
-            self.__service_home_path = self.__synamic.path_tree.create_path(('meta', 'data'))
+            self.__service_home_path = self.__site.path_tree.create_cpath(('meta', 'data'))
         return self.__service_home_path
 
     @property
