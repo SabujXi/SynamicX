@@ -42,19 +42,13 @@ def _install_default_services(site):
 
     self.add_service('tasks', TasksService)
 
-    # # null service for adding some virtual files
-    # NullService(self)
-
 
 class _Site:
-    def __init__(self, synamic, site_virtual_id_comps, parent_site=None, root_site=None):
-        assert type(site_virtual_id_comps) is tuple
-        for id_comp in site_virtual_id_comps:
-            assert id_comp != ''
-            assert '/' not in id_comp
-            assert '\\' not in id_comp
+    def __init__(self, synamic, site_id, abs_path_to_site, parent_site=None, root_site=None):
+        assert os.path.exists(abs_path_to_site)
         self.__synamic = synamic
-        self.__virtual_id_comps = site_virtual_id_comps
+        self.__site_id = site_id
+        self.__abs_path_to_site = abs_path_to_site
         self.__parent_site = parent_site
         self.__root_site = root_site
         assert type(parent_site) in (self.__class__, type(None))
@@ -89,19 +83,12 @@ class _Site:
 
     @property
     def id(self):
-        return '/'.join(self.__virtual_id_comps)
+        return self.__site_id
 
     @property
-    def virtual_id_comps(self):
-        return self.__virtual_id_comps
-
-    @property
-    def real_id_comps(self):
-        return self.synamic.sites.virtual2real_comps(self.__virtual_id_comps)
-
-    @property
-    def abs_site_path(self):
-        return os.path.join(self.__synamic.root_path, *self.real_id_comps)
+    def abs_path(self):
+        return self.__abs_path_to_site
+    abs_site_path = abs_path
 
     @property
     def parent(self):
@@ -198,7 +185,7 @@ class _Site:
         return _SiteWrapper(self)
 
     def __str__(self):
-        return 'Site: ' + str(self.__virtual_id_comps) + ' <- ' + (str(self.parent.virtual_id_comps) if self.has_parent else str(None)) \
+        return 'Site: ' + str(self.id) + ' <- ' + (str(self.parent.id.components) if self.has_parent else str(None)) \
                + ' [parent]'
 
     def __repr__(self):
