@@ -20,7 +20,7 @@ class Sites:
         self.__default_configs = None
         self.__sites_map = OrderedDict({
             #  site_id: site
-        })
+        })  # must be ordered dict to keep serial of adding intact.
         self.__root_site = None
         self.__is_loaded = False
 
@@ -209,7 +209,7 @@ class _SiteId:
 
     @property
     def as_string(self):
-        return '::'.join(self.components)
+        return self.__ids_sep.join(self.components)
 
     @property
     def is_root(self):
