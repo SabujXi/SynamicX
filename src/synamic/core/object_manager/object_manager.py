@@ -1,29 +1,45 @@
+from collections import defaultdict
 from synamic.core.services.content.functions.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import Syd
+from ._content_manager import ContentObjectManager
+from . _marker_manager import MarkerObjectManager
+from ._model_manager import ModelObjectManager
 
 
-class ObjectManager:
+class ObjectManager(
+        ContentObjectManager,
+        MarkerObjectManager,
+        ModelObjectManager):
     def __init__(self, site):
         self.__site = site
 
-        self.__is_loaded = False
-        self.__content_metas = {}
+        # content
+        self.__content_metas_cachemap = {}
 
-    #  @loaded
-    def reload(self):
+        # marker
+        self.__marker_by_id_cachemap = {}
+
         self.__is_loaded = False
-        self.__content_metas.clear()
-        self.load()
 
     @property
     def is_loaded(self):
         return self.__is_loaded
 
+    @property
+    def site(self):
+        return self.__site
+
+    #  @loaded
+    def reload(self):
+        self.__is_loaded = False
+        self.__content_metas_cachemap.clear()
+        self.load()
+
     #  @not_loaded
     def load(self):
+        self.__cache_markers()
         self.__cache_content_metas()
-
         self.__is_loaded = True
 
     def __cache_content_metas(self):
@@ -39,13 +55,21 @@ class ObjectManager:
                     front_matter, body = content_splitter(file_path, text)
                     del body
                     content_meta = Syd(front_matter)
-                    self.__content_metas[file_path.path_comps] = content_meta
+                    self.__content_metas_cachemap[file_path.path_comps] = content_meta
                 else:
                     self.__site.synamic.add_static_content(file_path)  # TODO
         else:
             raise NotImplemented
             # database backend is not implemented yet. AND there is nothing to do here for db, skip it when implemented
         self.__is_loaded = True
+
+    def __cache_markers(self):
+        if len(self.__marker_by_id_cachemap) == 0:
+            marker_service = self.__site.get_service('markers')
+            marker_ids = marker_service.get_marker_ids()
+            for marker_id in marker_ids:
+                marker = marker_service.make_marker(marker_id)
+                self.__marker_by_id_cachemap[marker_id] = marker
 
     #  @loaded
     def get_content_meta(self, path):
@@ -55,7 +79,7 @@ class ObjectManager:
             raise NotImplemented
         else:
             # file backend
-            return self.__content_metas[path.path_comps]
+            return self.__content_metas_cachemap[path.path_comps]
 
     #  @loaded
     def get_content(self, path):
@@ -113,3 +137,16 @@ class ObjectManager:
         """Method primarily for router.get()"""
         pass
 
+    def get_marker(self, marker_id):
+        if marker_id in self.__marker_by_id_cachemap:
+            return self.__marker_by_id_cachemap[marker_id]
+        else:
+            raise Exception('Marker does not exist: %s' % marker_id)
+
+    def get_markers(self, marker_type):
+        assert marker_type in {'single', 'multiple', 'hierarchical'}
+        _ = []
+        for marker in self.__marker_by_id_cachemap.values():
+            if marker.type == marker_type:
+                _.append(marker)
+        return _

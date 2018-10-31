@@ -57,6 +57,7 @@ class _Mark:
 
 class Marker:
     def __init__(self, site, marker_id, marker_type, marker_title, marker_mark_maps):
+        assert marker_type in {'single', 'multiple', 'hierarchical'}
         self.__site = site
         self.__id = marker_id
         self.__title = marker_title

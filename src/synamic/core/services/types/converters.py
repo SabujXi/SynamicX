@@ -33,8 +33,6 @@ class _Pat:
         return start + commas + end
 
 
-_class_map = {}
-
 _default_types = frozenset({
         'number',
         'string',
@@ -45,11 +43,12 @@ _default_types = frozenset({
         'markdown',
         'html',
 
-        'taxonomy.tags',
-        'taxonomy.categories',
+        'mark#type',
+        'mark#tags',
+        'mark#categories',
         'user',
 
-        # TODO:
+        # TODO: add the following types
         # template
         # image
         # attachment
@@ -61,6 +60,8 @@ _default_types = frozenset({
         'time[]',
         'datetime[]'
 })
+
+_class_map = {}
 
 
 def _add_converter_type(name):
@@ -245,40 +246,55 @@ class DateTimeList(ConverterCallable):
         return tuple(res)
 
 
-# TODO: fix this
-@_add_converter_type('taxonomy.tags')
-class MarkerTags(ConverterCallable):
+@_add_converter_type('mark#type')
+class MarkType(ConverterCallable):
+    def __call__(self, txt, *args, **kwargs):
+        object_manager = self.type_system.site.object_manager
+        type_marker = object_manager.get_marker('type')
+        title = txt.strip()
+        mark = type_marker.get_mark_by_title(title, None)
+        if mark is None:
+            raise Exception('Mark does not exist: %s' % title)
+        return mark
+
+
+@_add_converter_type('mark#tags')
+class MarkTags(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
-        # print("TAGS txt: %s" %txt)
-        # TODO: how to get tags in the new system
-        sy_tags = site_config_obj.tags
+        object_manager = self.type_system.site.object_manager
+        tag_marker = object_manager.get_marker('tags')
         res = []
         tag_titles = _Pat.separator_comma_pat.split(txt)
         for title in tag_titles:
             title = title.strip()
             if title != '':
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
+                mark = tag_marker.get_mark_by_title(title, None)
+                if mark is None:
+                    raise Exception('Mark does not exist: %s' % title)
                 res.append(
-                    sy_tags.add_tag(title)
+                    mark
                 )
         return tuple(res)
 
 
-# TODO: fix this
-@_add_converter_type('taxonomy.categories')
-class MarkerCategories(ConverterCallable):
+@_add_converter_type('mark#categories')
+class MarkCategories(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
-        """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
-        sy_categories = site_config_obj.categories
+        object_manager = self.type_system.site.object_manager
+        categories_marker = object_manager.get_marker('categories')
         res = []
-        category_titles = _Pat.separator_comma_pat.split(txt)
-        for title in category_titles:
+        tag_titles = _Pat.separator_comma_pat.split(txt)
+        for title in tag_titles:
             title = title.strip()
             if title != '':
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
+                mark = categories_marker.get_mark_by_title(title, None)
+                if mark is None:
+                    raise Exception('Mark does not exist: %s' % title)
                 res.append(
-                    sy_categories.add_category(title)
+                    mark
                 )
         return tuple(res)
 
@@ -287,6 +303,7 @@ class MarkerCategories(ConverterCallable):
 @_add_converter_type('user')
 class User(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
+        raise NotImplemented
         content_obj = None
         for cnt in site.content_service.users:
             print(txt)

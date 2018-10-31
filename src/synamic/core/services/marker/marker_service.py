@@ -18,3 +18,14 @@ class MarkerService:
         marker_mark_maps = syd['marks']
         marker = Marker(self.__site, marker_id, marker_type, marker_title, marker_mark_maps)
         return marker
+
+    def get_marker_ids(self):
+        path_tree = self.__site.get_service('path_tree')
+        markers_path = self.__site.default_configs.get('dirs').get('metas.markers')
+        marker_cpaths = path_tree.list_file_cpaths(markers_path, checker=lambda cp: cp.basename.endswith('.syd'))
+        _ = []
+        for cp in marker_cpaths:
+            _.append(cp.basename[:-len('.syd')])
+        ids = tuple(_)
+        return ids
+
