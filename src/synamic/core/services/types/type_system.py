@@ -29,7 +29,7 @@ class TypeSystem:
         return self.__site
 
     def load(self):
-        for name, converter_class in _class_map:
+        for name, converter_class in _class_map.items():
             self.add_converter(name, converter_class)
         self.__loaded = True
 
@@ -47,8 +47,12 @@ class TypeSystem:
 
     def add_converter(self, type_name, converter):
         assert type_name not in self.__type_converters, "A converter with the type name already exists: `%s`" % type_name
-        if isinstance(converter, ConverterCallable):
-            converter = converter(self, type_name)
+        if type(converter) is type:  # converter is a class
+            if issubclass(converter, ConverterCallable):
+                converter = converter(self, type_name)
+            else:
+                converter = converter(self, type_name)  # they are the same for now as class must accept the type system
+                #  and type name as the arguments
         else:
             assert callable(converter), "Type converter is not callable: `%s`" % str(converter)
         self.__type_converters[type_name] = converter

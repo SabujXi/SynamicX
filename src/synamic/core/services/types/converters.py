@@ -68,7 +68,7 @@ def _add_converter_type(name):
     assert name in _default_types
 
     def class_or_fun_decorator(cls_or_fun):
-        _class_map[cls_or_fun] = name
+        _class_map[name] = cls_or_fun
         return cls_or_fun
     return class_or_fun_decorator
 
