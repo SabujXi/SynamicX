@@ -4,7 +4,7 @@ _mark_title2id_sub_pat = re.compile(r'[^a-zA-Z0-9_-]')
 
 
 class _Mark:
-    def __init__(self, parent, site, mark_map):
+    def __init__(self, parent, site, mark_map, marker):
         if mark_map.get('title', None) is None:
             root, path = self._root_path
             raise Exception('title was not found in path %s of marker %s'
@@ -12,6 +12,7 @@ class _Mark:
         self.__parent = parent
         self.__site = site
         self.__mark_map = mark_map
+        self.__marker = marker
 
     @property
     def _parent(self):
@@ -30,6 +31,10 @@ class _Mark:
         root = parent
         paths.reverse()
         return root, tuple(paths)
+
+    @property
+    def marker(self):
+        return self.__marker
 
     @property
     def title(self):
@@ -111,7 +116,7 @@ class Marker:
     def __process_marks_list(self, mark_maps, res_mark_objs, parent):
         _marks = []
         for mark_map in mark_maps:
-            _marks.append(_Mark(parent, self.__site, mark_map))
+            _marks.append(_Mark(parent, self.__site, mark_map, self))
 
         if res_mark_objs is not None:
             res_mark_objs.extend(_marks)

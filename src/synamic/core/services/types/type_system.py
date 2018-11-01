@@ -49,10 +49,12 @@ class TypeSystem:
         assert type_name not in self.__type_converters, "A converter with the type name already exists: `%s`" % type_name
         if type(converter) is type:  # converter is a class
             if issubclass(converter, ConverterCallable):
-                converter = converter(self, type_name)
+                _ = converter(self, type_name)
             else:
-                converter = converter(self, type_name)  # they are the same for now as class must accept the type system
+                _ = converter(self, type_name)  # they are the same for now as class must accept the type system
                 #  and type name as the arguments
+                assert callable(_), 'Provided class instance is not callable or __call__ is not defined on it: %s' % str(converter)
+            converter = _
         else:
             assert callable(converter), "Type converter is not callable: `%s`" % str(converter)
         self.__type_converters[type_name] = converter
