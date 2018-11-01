@@ -10,7 +10,6 @@ from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.services.types.type_system import TypeSystem
 from synamic.core.services.sass.sass_service import SASSService
 from synamic.core.services.tasks import TasksService
-from synamic.core.object_manager import ObjectManager
 from synamic.core.services.marker import MarkerService
 from synamic.core.configs import DefaultConfigManager
 
@@ -67,9 +66,8 @@ class _Site:
         assert _root_parent is None
         # 1. <<<
 
-        # Object Manager
-        # self.add_service('object_manager', ObjectManager)
-        self.__object_manager = ObjectManager(self)
+        # Object Manager for site
+        self.__object_manager_4_site = self.__synamic.object_manager.get_manager_for_site(self)
 
         # Service container
         self.__services_container = {}
@@ -133,7 +131,7 @@ class _Site:
     def load(self):
         for service in self.__services_container.values():
             service.load()
-        self.__object_manager.load()
+        self.__object_manager_4_site.load()
         self.__is_loaded = True
         return self
 
@@ -146,8 +144,8 @@ class _Site:
         return self.__services_container['event_bus']
 
     @property
-    def object_manager(self) -> ObjectManager:
-        return self.__object_manager
+    def object_manager(self):
+        return self.__object_manager_4_site
 
     @property
     def is_loaded(self) -> bool:

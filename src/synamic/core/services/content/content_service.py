@@ -23,8 +23,9 @@ _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
 
 class _ContentFields(dict):
-    def __init__(self, site, model, content_id, *a, **kwa):
+    def __init__(self, site, content_file_path, model, content_id, *a, **kwa):
         self.__site = site
+        self.__content_file_path = content_file_path
         self.__model = model
         self.__content_id = content_id
         super().__init__(*a, *kwa)
@@ -37,6 +38,10 @@ class _ContentFields(dict):
 
     def __getattr__(self, key):
         return self.get(key, None)
+
+    def get_content_path(self):
+        """Content file path"""
+        return self.__content_file_path
 
     def get_model(self):
         return self.__model
@@ -67,7 +72,7 @@ class ContentService(BaseContentModuleContract):
 
         model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
         model = self.__site.object_manager.get_model(model_name)
-        content_fields = _ContentFields(self.__site, model, file_path.id)
+        content_fields = _ContentFields(self.__site, file_path, model, file_path.id)
         for key in fields_syd.keys():
             if key in model:
                 model_field = model[key]

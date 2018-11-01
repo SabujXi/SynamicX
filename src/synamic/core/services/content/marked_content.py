@@ -16,6 +16,10 @@ class MarkedContentImplementation:  # (MarkedDocumentContract):  TODO: fix the a
         # Objects like: Url, Pagination, etc.
         self.__objects = {}
 
+    @property
+    def path_object(self):
+        return self.__content_fields.get_content_path()
+
     def get_stream(self):
         template_name = self.__content_fields.get('template', 'default.html')
         templates = self.__site.get_service('templates')

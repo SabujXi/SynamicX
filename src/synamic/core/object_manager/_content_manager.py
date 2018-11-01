@@ -1,2 +1,0 @@
-class ContentObjectManager:
-    pass

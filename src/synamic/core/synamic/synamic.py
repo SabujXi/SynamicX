@@ -12,6 +12,7 @@ from synamic.core.synamic.sites.sites import Sites
 from synamic.core.synamic.router import RouterService
 from synamic.core.configs import DefaultConfigManager
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
+from synamic.core.object_manager import ObjectManager
 
 
 class Synamic:
@@ -22,6 +23,9 @@ class Synamic:
 
         # Default Config Manager
         self.__default_configs = DefaultConfigManager()
+
+        # Object Manager
+        self.__object_manager = ObjectManager(self)
 
         self.__sites = Sites(self, self.__root_site_root)
         self.__router = RouterService(self)
@@ -40,6 +44,10 @@ class Synamic:
     @property
     def default_configs(self):
         return self.__default_configs
+
+    @property
+    def object_manager(self):
+        return self.__object_manager
 
     @property
     # @loaded
