@@ -272,7 +272,8 @@ class MarkTagsConverter(ConverterCallable):
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
                 mark = tag_marker.get_mark_by_title(title, None)
                 if mark is None:
-                    raise Exception('Mark does not exist: %s' % title)
+                    mark = tag_marker.add_mark_by_title(title)
+                    # raise Exception('Mark does not exist: %s' % title)
                 res.append(
                     mark
                 )
@@ -285,14 +286,15 @@ class MarkCategoriesConverter(ConverterCallable):
         object_manager = self.type_system.site.object_manager
         categories_marker = object_manager.get_marker('categories')
         res = []
-        tag_titles = _Pat.separator_comma_pat.split(txt)
-        for title in tag_titles:
+        categories_titles = _Pat.separator_comma_pat.split(txt)
+        for title in categories_titles:
             title = title.strip()
             if title != '':
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
                 mark = categories_marker.get_mark_by_title(title, None)
                 if mark is None:
-                    raise Exception('Mark does not exist: %s' % title)
+                    mark = categories_marker.add_mark_by_title(title)
+                    # raise Exception('Mark does not exist: %s' % title)
                 res.append(
                     mark
                 )

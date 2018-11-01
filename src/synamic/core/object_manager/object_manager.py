@@ -45,6 +45,7 @@ class ObjectManager(
 
     def __cache_content_metas(self):
         if self.__site.synamic.env['backend'] == 'file':  # TODO: fix it.
+            content_service = self.__site.get_service('contents')
             path_tree = self.get_path_tree()
             content_dir = self.__site.synamic.default_configs.get('dirs')['contents.contents']
 
@@ -55,8 +56,9 @@ class ObjectManager(
                     text = self.get_raw_data(file_path)
                     front_matter, body = content_splitter(file_path, text)
                     del body
-                    content_meta = Syd(front_matter)
-                    self.__content_metas_cachemap[file_path.path_comps] = content_meta
+                    fields_syd = self.make_syd(front_matter)
+                    content_meta = content_service.make_content_fields(fields_syd, file_path)
+                    self.__content_metas_cachemap[file_path.id] = content_meta
                 else:
                     self.__site.synamic.add_static_content(file_path)  # TODO
         else:
@@ -174,3 +176,8 @@ class ObjectManager(
             if marker.type == marker_type:
                 _.append(marker)
         return _
+
+    @property
+    def cached_content_metas(self):  # TODO: logic for cached content metas - when to use it when not (when not cached)
+        return self.__content_metas_cachemap.copy()
+

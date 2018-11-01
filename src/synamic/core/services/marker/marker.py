@@ -83,11 +83,30 @@ class Marker:
         self.__marks_by_id = {}
 
         self.__marks = []
-        self.__process_marks_list(marker_mark_maps, self.__marks, parent=self)
+        __marks = []
+        self.__process_marks_list(marker_mark_maps, __marks, parent=None)
 
-        for mark in self.__marks:
-            self.__marks_by_title[mark.title] = mark
-            self.__marks_by_id[mark.id] = mark
+        for mark in __marks:
+            self.add_mark(mark)
+
+    def make_mark(self, mark_map, parent=None):
+        return _Mark(parent, self.__site, mark_map, self)
+
+    def add_mark(self, mark):
+        assert type(mark) is _Mark
+        self.__marks.append(mark)
+        self.__marks_by_title[mark.title] = mark
+        self.__marks_by_id[mark.id] = mark
+
+    def add_mark_by_title(self, title):
+        mark = self.get_mark_by_title(title, None)
+        if mark is None:
+            mark_map = {
+                'title': title
+            }
+            mark = self.make_mark(mark_map, parent=None)
+        self.add_mark(mark)
+        return mark
 
     @property
     def id(self):
@@ -126,7 +145,7 @@ class Marker:
     def __process_marks_list(self, mark_maps, res_mark_objs, parent):
         _marks = []
         for mark_map in mark_maps:
-            _marks.append(_Mark(parent, self.__site, mark_map, self))
+            _marks.append(self.make_mark(mark_map, parent))
 
         if res_mark_objs is not None:
             res_mark_objs.extend(_marks)
