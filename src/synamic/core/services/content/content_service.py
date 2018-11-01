@@ -121,7 +121,7 @@ class ContentService(BaseContentModuleContract):
         # url_object = content_construct_url_object(site, file_path, url_construction_dict)
 
         content = MarkedContentImplementation(self.__site, body, content_fields, toc,
-                                              content_id=file_path.id(),
+                                              content_id=file_path.id,
                                               content_type=content_type)
         return content
 

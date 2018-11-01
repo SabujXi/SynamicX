@@ -3,7 +3,7 @@ import mimetypes
 from synamic.core.contracts.document import MarkedDocumentContract
 
 
-class MarkedContentImplementation(MarkedDocumentContract):
+class MarkedContentImplementation:  # (MarkedDocumentContract):  TODO: fix the abc class
     def __init__(self, site, body, content_fields, toc, content_id, content_type=None):
         self.__site = site
         self.__body = body
@@ -66,7 +66,7 @@ class MarkedContentImplementation(MarkedDocumentContract):
         return self.__get(key)
 
     def __str__(self):
-        return self.path_object.relative_path
+        return self.body  # TODO: fix this long repr... file path and summary?
 
     def __repr__(self):
         return str(self)

@@ -133,6 +133,7 @@ class _Site:
     def load(self):
         for service in self.__services_container.values():
             service.load()
+        self.__object_manager.load()
         self.__is_loaded = True
         return self
 

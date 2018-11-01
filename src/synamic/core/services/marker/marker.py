@@ -42,10 +42,14 @@ class _Mark:
 
     @property
     def id(self):
-        # TODO: create id from title
+        # TODO: create id from title in a better way
         _id = self.__mark_map.get('id', None)
         if _id is None:
-            _id = _mark_title2id_sub_pat.sub(self.title, '_')
+            title = self.title.lower()
+            # replace consecutive space chars with single one
+            title = ' '.join(title.split())
+            # replace no alpha-numeric-dash-underscore chars with a single underscore.
+            _id = _mark_title2id_sub_pat.sub('_', title)
         return _id
 
     @property
@@ -58,6 +62,12 @@ class _Mark:
 
     def __getattr__(self, key):
         return self.__mark_map.get(key, '')
+
+    def __str__(self):
+        return "Mark: %s" % self.title
+
+    def __repr__(self):
+        return repr(self.__str__())
 
 
 class Marker:
@@ -123,6 +133,7 @@ class Marker:
 
         if self.is_hierarchical:
             for _mark in _marks:
-                _mark_maps = _mark.get('marks', None)
+                print(_mark)
+                _mark_maps = _mark.marks
                 if _mark_maps is not None:
                     self.__process_marks_list(_mark_maps, res_mark_objs, _mark)

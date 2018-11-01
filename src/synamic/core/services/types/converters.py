@@ -91,7 +91,7 @@ class ConverterCallable:
 
 
 @_add_converter_type('number')
-def number(txt, *args, **kwargs):
+def number_converter(txt, *args, **kwargs):
         if isinstance(txt, (int, float)):
             return txt
         m_number = _Pat.number_pat.match(txt)
@@ -114,7 +114,7 @@ def number(txt, *args, **kwargs):
 
 
 @_add_converter_type('date')
-class Date(ConverterCallable):
+class DateConverter(ConverterCallable):
     """May include locale in future"""
     def __call__(self, txt, *args, **kwargs):
         if isinstance(txt, datetime.date):
@@ -123,7 +123,7 @@ class Date(ConverterCallable):
 
 
 @_add_converter_type('time')
-class Time(ConverterCallable):
+class TimeConverter(ConverterCallable):
     """May include locale in future"""
     def __call__(self, txt, *args, **kwargs):
         if isinstance(txt, datetime.time):
@@ -132,7 +132,7 @@ class Time(ConverterCallable):
 
 
 @_add_converter_type('datetime')
-class DateTime(ConverterCallable):
+class DateTimeConverter(ConverterCallable):
     """May include locale in future"""
     def __call__(self, txt, *args, **kwargs):
         if isinstance(txt, datetime.datetime):
@@ -141,29 +141,29 @@ class DateTime(ConverterCallable):
 
 
 @_add_converter_type('string')
-def _string(txt, *args, **kwargs):
+def _string_converter(txt, *args, **kwargs):
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
         txts = _Pat.newline_pat.split(txt)
         return txts[0]
 
 
 @_add_converter_type('text')
-def text(txt, *args, **kwargs):
+def text_converter(txt, *args, **kwargs):
         """return as is"""
         return txt
 
 
 @_add_converter_type('markdown')
-class Markdown(ConverterCallable):
+class MarkdownConverter(ConverterCallable):
     def __call__(self, txt, value_pack=None, *args, **kwargs):
         """
         Return a markdown instance.
         """
-        return Markdown(self.__type_system.site, txt, value_pack=value_pack)
+        return Markdown(self.type_system.site, txt, value_pack=value_pack)
 
 
 @_add_converter_type('html')
-class Html(ConverterCallable):
+class HtmlConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         """
         Probably should return a Html instance.
@@ -172,7 +172,7 @@ class Html(ConverterCallable):
 
 
 @_add_converter_type('number[]')
-class NumberList(ConverterCallable):
+class NumberListConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         number_converter = self.type_system.get_converter('number')
         txts = txt.split(',')
@@ -185,7 +185,7 @@ class NumberList(ConverterCallable):
 
 
 @_add_converter_type('string[]')
-class StringList(ConverterCallable):
+class StringListConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         """
         Separator for string is comma (,) - so what if someone want to put a comma inside their string?
@@ -202,7 +202,7 @@ class StringList(ConverterCallable):
 
 
 @_add_converter_type('date[]')
-class DateList(ConverterCallable):
+class DateListConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         date_converter = self.type_system.get_converter('date')
         res = []
@@ -217,7 +217,7 @@ class DateList(ConverterCallable):
 
 
 @_add_converter_type('time[]')
-class TimeList(ConverterCallable):
+class TimeListConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         time_converter = self.type_system.get_converter('time')
         res = []
@@ -232,7 +232,7 @@ class TimeList(ConverterCallable):
 
 
 @_add_converter_type('datetime[]')
-class DateTimeList(ConverterCallable):
+class DateTimeListConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         datetime_converter = self.type_system.get_converter('datetime')
         res = []
@@ -247,7 +247,7 @@ class DateTimeList(ConverterCallable):
 
 
 @_add_converter_type('mark#type')
-class MarkType(ConverterCallable):
+class MarkTypeConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         object_manager = self.type_system.site.object_manager
         type_marker = object_manager.get_marker('type')
@@ -259,7 +259,7 @@ class MarkType(ConverterCallable):
 
 
 @_add_converter_type('mark#tags')
-class MarkTags(ConverterCallable):
+class MarkTagsConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
         object_manager = self.type_system.site.object_manager
@@ -280,7 +280,7 @@ class MarkTags(ConverterCallable):
 
 
 @_add_converter_type('mark#categories')
-class MarkCategories(ConverterCallable):
+class MarkCategoriesConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         object_manager = self.type_system.site.object_manager
         categories_marker = object_manager.get_marker('categories')
@@ -301,7 +301,7 @@ class MarkCategories(ConverterCallable):
 
 # TODO: fix this
 @_add_converter_type('user')
-class User(ConverterCallable):
+class UserConverter(ConverterCallable):
     def __call__(self, txt, *args, **kwargs):
         raise NotImplemented
         content_obj = None

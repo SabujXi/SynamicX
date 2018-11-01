@@ -68,6 +68,7 @@ class ObjectManager(
         if len(self.__marker_by_id_cachemap) == 0:
             marker_service = self.__site.get_service('markers')
             marker_ids = marker_service.get_marker_ids()
+            print("marker_ids: %s" % str(marker_ids))
             for marker_id in marker_ids:
                 marker = marker_service.make_marker(marker_id)
                 self.__marker_by_id_cachemap[marker_id] = marker
@@ -127,7 +128,7 @@ class ObjectManager(
         return syd
 
     def get_model(self, model_name):
-        model_dir = self.__site.synamic.default_configs.get('metas.models')
+        model_dir = self.__site.synamic.default_configs.get('dirs')['metas.models']
         path_tree = self.__site.get_service('path_tree')
         path = path_tree.create_file_cpath(model_dir, model_name + '.model')
         model_text = self.get_raw_data(path)
@@ -136,7 +137,6 @@ class ObjectManager(
     def get_content_parts(self, content_path):
         text = self.get_raw_data(content_path)
         front_matter, body = content_splitter(content_path, text)
-        print(front_matter)
         front_matter_syd = self.make_syd(front_matter)  # Or take it from cache.
         return front_matter_syd, body
 
