@@ -60,14 +60,14 @@ class ContentService(BaseContentModuleContract):
     def load(self):
         self.__is_loaded = True
 
-    def make_content_fields(self, fields_syd):
+    def make_content_fields(self, fields_syd, file_path):
         types = self.__site.get_service('types')
 
         content_type = ContentContract.types.DYNAMIC
 
-        model_name = fields_syd.get('model', 'content')  # TODO: default model is content not default
+        model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
         model = self.__site.object_manager.get_model(model_name)
-        content_fields = _ContentFields(self.__site, model)
+        content_fields = _ContentFields(self.__site, model, file_path.id)
         for key in fields_syd.keys():
             if key in model:
                 model_field = model[key]
@@ -83,7 +83,7 @@ class ContentService(BaseContentModuleContract):
         markdown_renderer = self.__site.get_service('types').get_converter('markdown')
         content_type = ContentContract.types.DYNAMIC
         fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
-        content_fields = self.make_content_fields(fields_syd)
+        content_fields = self.make_content_fields(fields_syd, file_path)
         toc = Toc()
         body = markdown_renderer(body_text, value_pack={
             'toc': toc
@@ -134,15 +134,3 @@ class ContentService(BaseContentModuleContract):
         path_obj = path_tree.create_file_cpath(path)
         return StaticContent(self.__site, path_obj)
 
-    def all_static_paths(self):
-        # TODO: move this method to object manager.
-        paths = []
-        path_tree = self.__site.get_service('path_tree')
-        statics_dir = self.__site.default_configs.get('dirs')['statics.statics']
-        contents_dir = self.__site.default_configs.get('dirs')['contents.contents']
-        paths.extend(path_tree.list_file_cpaths(statics_dir))
-
-        for path in path_tree.list_file_cpaths(contents_dir):
-            if path.basename.lower().endswith(('.md', '.markdown')):
-                paths.append(path)
-        return paths

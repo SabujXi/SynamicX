@@ -85,10 +85,28 @@ class ObjectManager(
     #  @loaded
     def get_content(self, path):
         # create content, meta, set meta with converters. Setting it from here will help caching.
-        pass
+        # TODO: other type of contents except md contents.
+        content_service = self.__site.get_service('contents')
+        path_tree = self.get_path_tree()
+        contents_dir = self.__site.default_configs.get('dirs')['contents.contents']
+        file_cpath = path_tree.create_file_cpath(contents_dir + '/' + path)
+        md_content = content_service.make_md_content(file_cpath)
+        return md_content
 
     def get_static_file_paths(self):
         pass
+
+    def all_static_paths(self):
+        paths = []
+        path_tree = self.__site.get_service('path_tree')
+        statics_dir = self.__site.default_configs.get('dirs')['statics.statics']
+        contents_dir = self.__site.default_configs.get('dirs')['contents.contents']
+        paths.extend(path_tree.list_file_cpaths(statics_dir))
+
+        for path in path_tree.list_file_cpaths(contents_dir):
+            if path.basename.lower().endswith(('.md', '.markdown')):
+                paths.append(path)
+        return paths
 
     @staticmethod
     def empty_syd():
@@ -101,7 +119,11 @@ class ObjectManager(
         return text
 
     def get_syd(self, path) -> Syd:
-        syd = Syd(self.get_raw_data(path))
+        syd = Syd(self.get_raw_data(path)).parse()
+        return syd
+
+    def make_syd(self, raw_data):
+        syd = Syd(raw_data).parse()
         return syd
 
     def get_model(self, model_name):
@@ -114,7 +136,8 @@ class ObjectManager(
     def get_content_parts(self, content_path):
         text = self.get_raw_data(content_path)
         front_matter, body = content_splitter(content_path, text)
-        front_matter_syd = Syd(front_matter)  # Or take it from cache.
+        print(front_matter)
+        front_matter_syd = self.make_syd(front_matter)  # Or take it from cache.
         return front_matter_syd, body
 
     def get_path_tree(self):

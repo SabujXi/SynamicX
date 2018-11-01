@@ -162,15 +162,17 @@ import collections
 class _Patterns:
     key_pattern = re.compile(r'''^[ \t]*
             (?P<key>[a-zA-Z_]+[a-zA-Z0-9_]*) # key
-            (?:~{1,3})?[ \t]* # is multi line
+            [ \t]*
+            (?P<is_multiline>~{1,3})? # is multi line
+            [ \t]*
             # data type specification cancelled (?P<type>![a-zA-Z0-9_]+)?[ \t]*    # enforced format. If it is specified in multiline code and no model is specified
                                    # then that format is ignored.
             :? # colon is optional
             (?={|\[|\s)
             ''', re.X)
-    is_multiline = re.compile(r'''^
-            [ \t]*(?P<is_multiline>~{1,3})[ \t]* # is multi line
-    ''', re.X)
+    # is_multiline = re.compile(r'''^
+    #         [ \t]*(?P<is_multiline>~{1,3})[ \t]* # is multi line
+    # ''', re.X)
 
     number = re.compile(r'^[ \t]*(?P<number>[0-9]?[1-9]+(\.[0-9]+)?)[ \t]*$')
     date = re.compile(r'''
@@ -614,7 +616,7 @@ class Syd:
 
     def __process_block(self, key, block_type=None):  # (0)
         """This loop is used at the root and at any nested level (root from that perspective)"""
-        assert self.__current_state == _ParseState.processing_block or self.__current_state == _ParseState.processing_list
+        assert self.__current_state in (_ParseState.processing_block, _ParseState.processing_list)
         if key != '__root__':
             if self.__current_state == _ParseState.processing_list:
                 is_list = True
@@ -665,29 +667,34 @@ class Syd:
         if self.__current_state in (_ParseState.processing_list, _ParseState.processing_block_string):
             key = None
             end_pos = 0
+            is_multiline = False
+            multiline_token = None
         else:
             key_match = _Patterns.key_pattern.match(line)
             if key_match:
                 key = key_match.group('key')
                 end_pos = key_match.end()
+                multiline_token = key_match.group('is_multiline')
+                if multiline_token:
+                    is_multiline = True
+                else:
+                    is_multiline = False
             else:
                 self.__dprint("error in line: %s" % line)
                 raise Exception('Expected key match.\n%s' % self.__fmt_error_msg)
-
+        # self.__dprint("\nKEY: %s" % str(key))
+        # self.__dprint("\nLINE END: %s" % line[end_pos:])
         # process multi line block
         # multi line string processing
-        multiline_match = _Patterns.is_multiline.match(line[end_pos:])
+
         line_end = line[end_pos:].lstrip()
         next_line = self.__next_line
         is_block_start, block_type = self.__block_start(line_end, next_line)
         inline_list_match = _Patterns.inline_list.match(line_end)
-        if multiline_match:
-            end_pos += multiline_match.end()
+        if is_multiline:
+            # end_pos += multiline_match.end()
             self.__enter_state(_ParseState.processing_block_string)
-
-            multiline_token = multiline_match.group('is_multiline')
             self.__process_datum_ml_string(end_pos, key, multiline_token)
-
             self.__leave_state(_ParseState.processing_block_string)
         # so it is not a multi line stuff
         # is it nested stuff?

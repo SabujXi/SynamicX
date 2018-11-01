@@ -25,7 +25,7 @@ class SynamicTemplateService:
     def load(self):
         assert not self.__is_loaded, "Module cannot be loaded twice"
         path_tree = self.__site.get_service('path_tree')
-        templates_dir = self.__site.default_configs.get('dirs')['dirs.templates.templates']
+        templates_dir = self.__site.default_configs.get('dirs')['templates.templates']
         templates_dir_path = path_tree.create_dir_cpath(templates_dir)
         self.__template_env = jinja2.Environment(
             loader=jinja2.FileSystemLoader(
