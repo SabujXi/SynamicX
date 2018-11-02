@@ -8,6 +8,7 @@
     status: "Development"
 """
 import os
+from synamic.core.contracts import SynamicContract
 from synamic.core.synamic.sites.sites import Sites
 from synamic.core.synamic.router import RouterService
 from synamic.core.configs import DefaultConfigManager
@@ -15,7 +16,7 @@ from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.object_manager import ObjectManager
 
 
-class Synamic:
+class Synamic(SynamicContract):
     def __init__(self, root_site_root):
         assert os.path.exists(root_site_root)
         assert os.path.isdir(root_site_root)
@@ -31,15 +32,24 @@ class Synamic:
         self.__router = RouterService(self)
 
         # env
-        self.env = {
+        self.__env = {
             'backend': 'file'
         }
 
         self.__is_loaded = False
 
     @property
+    def env(self):
+        return self.__env
+
+    @property
     def is_loaded(self):
         return self.__is_loaded
+
+    @not_loaded
+    def load(self):
+        self.__sites.load()  # TODO: sites should be loaded individually.
+        self.__is_loaded = True
 
     @property
     def default_configs(self):
@@ -58,14 +68,14 @@ class Synamic:
     def root_path(self) -> str:
         return self.__root_site_root
 
-    @not_loaded
-    def load(self):
-        self.__sites.load()  # TODO: sites should be loaded individually.
-        self.__is_loaded = True
-
     @loaded
     @property
     def router(self):
         return self.__router
+
+    @property
+    def event_system(self):
+        raise NotImplemented
+
 
 

@@ -10,7 +10,7 @@ class RouterService:
     def load(self):
         self.__is_loaded = True
 
-    def get_content(self, url_str):
+    def get_content(self, url_str: str):
         parsed_url = urlparse(url_str)
         url_path = parsed_url.path
         # Unused for now: url_query = parsed_url.query
@@ -60,3 +60,9 @@ class RouterService:
 
         return self.__synamic.object_manager.get_content_by_segments(site_id, path_segments, pagination_segments)
 
+    def make_url(self, content_or_fields):
+        """
+        Give it a content or a content fields and it will give you
+        an url object in return.
+        """
+        raise NotImplemented

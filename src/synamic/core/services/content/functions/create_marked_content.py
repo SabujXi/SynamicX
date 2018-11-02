@@ -6,7 +6,7 @@ from synamic.core.services.content.marked_content import MarkedContentImplementa
 from synamic.core.contracts.content import ContentContract
 
 
-def content_create_marked_content(site, file_path, file_content, content_type=ContentContract.types.DYNAMIC):
+def content_create_marked_content(site, file_path, file_content, content_type=ContentContract.__document_types.DYNAMIC):
     doc = DocumentParser(file_content).parse()
     model = site.model_service.get_model(file_path.merged_meta_info.get('model', 'default'))
 
@@ -49,5 +49,5 @@ def content_create_marked_content(site, file_path, file_content, content_type=Co
     content = MarkedContentImplementation(site, file_path, url_object,
                                           body, ordinary_fields,
                                           field_converters=field_converters,
-                                          content_type=content_type)
+                                          document_type=content_type)
     return content

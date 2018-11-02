@@ -29,7 +29,7 @@ the rest is document content
 """
 
 """ForMenu like nested systems:
-# field types:
+# field __document_types:
 # 1. Single line field
 # 2. Multiline field
 

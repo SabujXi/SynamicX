@@ -119,20 +119,20 @@ class TaxonomyPage(ContentContract):
         return self.__config
 
     @property
-    def is_dynamic(self):
+    def is_text_document(self):
         return True
 
     @property
-    def is_static(self):
+    def is_binary_document(self):
         return False
 
     @property
-    def is_auxiliary(self):
+    def is_generated_binary_document(self):
         return False
 
     @property
-    def content_type(self):
-        return self.types.DYNAMIC
+    def document_type(self):
+        return self.__document_types.DYNAMIC
 
     @property
     def mime_type(self):

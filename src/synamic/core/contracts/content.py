@@ -7,24 +7,44 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-
-
 import abc
 import enum
 
 
+@enum.unique
+class DocumentType(enum.Enum):
+    # later, intending the use of auto() - currently this project in 3.5 and auto() is available in 3.6
+    BINARY_DOCUMENT = "BINARY_DOCUMENT"
+    GENERATED_BINARY_DOCUMENT = "GENERATED_BINARY_DOCUMENT"
+    TEXT_DOCUMENT = "TEXT_DOCUMENT"
+    GENERATED_TEXT_DOCUMENT = "GENERATED_TEXT_DOCUMENT"
+    NOURL_DOCUMENT = "NOURL_DOCUMENT"
+    META_DOCUMENT = "META_DOCUMENT"
+
+    @classmethod
+    def is_static(cls, other):
+        return other in (cls.BINARY_DOCUMENT, cls.GENERATED_BINARY_DOCUMENT)
+
+    @classmethod
+    def is_text(cls, other):
+        return other in (cls.TEXT_DOCUMENT, cls.GENERATED_TEXT_DOCUMENT)
+
+
 class ContentContract(metaclass=abc.ABCMeta):
-    @enum.unique
-    class types(enum.Enum):
-        # later, intending the use of auto() - currently this project in 3.5 and auto() is available in 3.6
-        STATIC = 1
-        DYNAMIC = 2
-        AUXILIARY = 3
-        NO_RENDER = 4
+
+    __document_types = DocumentType
+
+    @property
+    def document_types(self) -> DocumentType:
+        return self.__document_types
 
     @property
     @abc.abstractmethod
-    def synamic(self):
+    def id(self):
+        """
+            Content id will not be of type int, it will be kept as string because there may be string id many time in our program.
+            Warning: Unlike other things in Synamic, content ids are case sensitive.
+        """
         pass
 
     @property
@@ -33,21 +53,6 @@ class ContentContract(metaclass=abc.ABCMeta):
         """
         This is a path object associated with the file (for static the path, for dynamic the path to things like .md
          and for auxiliary - i need to think about that :p )
-        """
-        pass
-
-    @property
-    @abc.abstractmethod
-    def url_object(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def id(self):
-        """
-            Content id will not be of type int, it will be kept as string because there may be string id many time in our program.
-             
-             Warning: Unlike other things in Synamic, content ids are case sensitive.
         """
         pass
 
@@ -68,45 +73,32 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def content_type(self):
+    def document_type(self):
         """
-        Instance of types enum
-        """
-        pass
-
-    @property
-    def is_dynamic(self):
-        return self.content_type is self.types.DYNAMIC
-
-    @property
-    def is_static(self):
-        return self.content_type is self.types.STATIC
-
-    @property
-    def is_auxiliary(self):
-        return self.content_type is self.types.AUXILIARY
-
-    @property
-    def is_no_render(self):
-        return self.content_type is self.types.NO_RENDER
-
-
-class MetaContentContract(metaclass=abc.ABCMeta):
-    @property
-    @abc.abstractmethod
-    def module_object(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def config(self):
-        pass
-
-    @property
-    @abc.abstractmethod
-    def path_object(self):
-        """
-        This is a path object associated with the file (for static the path, for dynamic the path to things like .md
-         and for auxiliary - i need to think about that :p )
+        Instance of document __document_types enum
         """
         pass
+
+    @property
+    def is_text_document(self):
+        return self.document_type is self.__document_types.TEXT_DOCUMENT
+
+    @property
+    def is_binary_document(self):
+        return self.document_type is self.__document_types.BINARY_DOCUMENT
+
+    @property
+    def is_generated_binary_document(self):
+        return self.document_type is self.__document_types.GENERATED_BINARY_DOCUMENT
+
+    @property
+    def is_generated_text_document(self):
+        return self.document_type is self.__document_types.GENERATED_TEXT_DOCUMENT
+
+    @property
+    def is_nourl_document(self):
+        return self.document_type is self.__document_types.NOURL_DOCUMENT
+
+    @property
+    def is_meta_document(self):
+        return self.document_type is self.__document_types.META_DOCUMENT

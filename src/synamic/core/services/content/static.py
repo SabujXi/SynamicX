@@ -11,7 +11,7 @@
 import mimetypes
 
 from synamic.core.contracts.content import ContentContract
-from synamic.core.services.urls.url import _ContentUrl
+from synamic.core.synamic.router.url import _ContentUrl
 
 
 class StaticContent(ContentContract):
@@ -43,8 +43,8 @@ class StaticContent(ContentContract):
         return mime_type
 
     @property
-    def content_type(self):
-        return ContentContract.types.STATIC
+    def document_type(self):
+        return ContentContract.__document_types.STATIC
 
     @property
     def url_object(self):

@@ -48,7 +48,7 @@ _default_types = frozenset({
         'mark#categories',
         'user',
 
-        # TODO: add the following types
+        # TODO: add the following __document_types
         # template
         # image
         # attachment

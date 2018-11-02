@@ -1,5 +1,5 @@
 from synamic.core.synamic._synamic_enums import Key
-from synamic.core.services.urls.url import ContentUrl
+from synamic.core.synamic.router.url import ContentUrl
 
 
 def synamic_get_content_by_url(synamic, curl: ContentUrl, content_map):

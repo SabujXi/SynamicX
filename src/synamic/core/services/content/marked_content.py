@@ -1,20 +1,32 @@
 import io
-import mimetypes
-from synamic.core.contracts.document import MarkedDocumentContract
+from synamic.core.contracts import ContentContract, DocumentType
 
 
-class MarkedContentImplementation:  # (MarkedDocumentContract):  TODO: fix the abc class
-    def __init__(self, site, body, content_fields, toc, content_id, content_type=None):
+class MarkedContentImplementation(ContentContract):
+    def __init__(self, site, body, content_fields, toc, content_id, document_type, mime_type='text/plain'):
         self.__site = site
         self.__body = body
         self.__content_fields = content_fields
         self.__model = content_fields.get_model()
         self.__content_id = content_id
-        self.__content_type = content_type
+        self.__document_type = document_type
+        self.__mime_type = mime_type
         self.__toc = toc
 
         # Objects like: Url, Pagination, etc.
         self.__objects = {}
+
+        # validation
+        assert self.__toc is not None
+        assert DocumentType.is_text(self.__document_type)
+
+    @property
+    def id(self):
+        return self.__content_id
+
+    @property
+    def document_type(self):
+        return self.__document_type
 
     @property
     def path_object(self):
@@ -28,17 +40,14 @@ class MarkedContentImplementation:  # (MarkedDocumentContract):  TODO: fix the a
         return f
 
     @property
-    def content_type(self):
-        return self.__content_type
-
-    @property
     def mime_type(self):
-        mime_type = 'octet/stream'
-        path = self.url_object.real_path
-        type, enc = mimetypes.guess_type(path)
-        if type:
-            mime_type = type
-        return mime_type
+        # mime_type = 'octet/stream'
+        # path = self.url_object.real_path
+        # type, enc = mimetypes.guess_type(path)
+        # if type:
+        #     mime_type = type
+        # return mime_type
+        return self.__mime_type
 
     @property
     def body(self):
@@ -49,12 +58,11 @@ class MarkedContentImplementation:  # (MarkedDocumentContract):  TODO: fix the a
         return self.__content_fields
 
     @property
-    def pagination(self):
-        return self.__pagination
+    def raw_fields(self):
+        raise NotImplemented
 
     @property
     def toc(self):
-        assert self.__toc is not None
         return self.__toc
 
     def __get(self, key):

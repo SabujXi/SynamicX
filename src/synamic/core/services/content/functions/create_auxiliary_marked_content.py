@@ -10,4 +10,4 @@ def content_create_auxiliary_marked_content(synamic, content, position):
                                        new_url,
                                        content.body,
                                        content.fields,
-                                       content_type=ContentContract.types.AUXILIARY)
+                                       document_type=ContentContract.__document_types.AUXILIARY)

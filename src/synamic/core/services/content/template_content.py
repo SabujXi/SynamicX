@@ -36,5 +36,5 @@ class TemplateContent(ContentContract):
         return None
 
     @property
-    def content_type(self):
-        return ContentContract.types.AUXILIARY
+    def document_type(self):
+        return ContentContract.__document_types.AUXILIARY

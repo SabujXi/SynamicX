@@ -1,4 +1,4 @@
-from synamic.core.services.urls.url import _ContentUrl
+from synamic.core.synamic.router.url import _ContentUrl
 from collections import deque
 import re
 

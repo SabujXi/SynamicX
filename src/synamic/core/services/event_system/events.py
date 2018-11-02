@@ -92,7 +92,7 @@ class EventSystem:
     So, as a protection only the first time the trigger method can be achieved and any subsequent call will raise
     exception.
     
-    * System event types can be derived from the EventTypes enum, but custom event types are specified by string.
+    * System event __document_types can be derived from the EventTypes enum, but custom event __document_types are specified by string.
     The strings are lowercased to avoid any type of probable conflict from inexperienced users/plugin-developers.
     
     Handler functions will be called with an event object. An event object will hold a subject,

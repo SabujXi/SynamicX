@@ -3,7 +3,7 @@ from synamic.core.synamic._synamic_enums import Key
 
 def synamic_add_document(synamic, document, content_map):
     self = synamic
-    assert document.is_auxiliary is False
+    assert document.is_generated_binary_document is False
     # 1. Content id
     if document.id is not None and document.id != "":
         parent_d = content_map[Key.CONTENTS_BY_ID]
@@ -28,5 +28,5 @@ def synamic_add_document(synamic, document, content_map):
     # 4. Contents set
     content_map[Key.CONTENTS_SET].add(document)
 
-    if document.is_dynamic:
+    if document.is_text_document:
         content_map[Key.DYNAMIC_CONTENTS].add(document)

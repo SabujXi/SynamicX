@@ -11,8 +11,7 @@
 import re
 
 from synamic.core.services.content.functions.construct_url_object import content_construct_url_object
-from synamic.core.contracts.content import ContentContract
-from synamic.core.contracts import BaseContentModuleContract
+from synamic.core.contracts.content import ContentContract, DocumentType
 from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static import StaticContent
 from synamic.core.services.content.toc import Toc
@@ -50,7 +49,7 @@ class _ContentFields(dict):
         return self.__content_id
 
 
-class ContentService(BaseContentModuleContract):
+class ContentService:
     __slots__ = ('__site', '__is_loaded', '__contents_by_id', '__dynamic_contents', '__auxiliary_contents')
 
     def __init__(self, site):
@@ -68,7 +67,7 @@ class ContentService(BaseContentModuleContract):
     def make_content_fields(self, fields_syd, file_path):
         types = self.__site.get_service('types')
 
-        content_type = ContentContract.types.DYNAMIC
+        content_type = DocumentType.TEXT_DOCUMENT
 
         model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
         model = self.__site.object_manager.get_model(model_name)
@@ -86,7 +85,7 @@ class ContentService(BaseContentModuleContract):
 
     def make_md_content(self, file_path):
         markdown_renderer = self.__site.get_service('types').get_converter('markdown')
-        content_type = ContentContract.types.DYNAMIC
+        content_type = DocumentType.TEXT_DOCUMENT
         fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
         content_fields = self.make_content_fields(fields_syd, file_path)
         toc = Toc()
@@ -127,7 +126,7 @@ class ContentService(BaseContentModuleContract):
 
         content = MarkedContentImplementation(self.__site, body, content_fields, toc,
                                               content_id=file_path.id,
-                                              content_type=content_type)
+                                              document_type=content_type)
         return content
 
     def make_paginated_md_content(self):

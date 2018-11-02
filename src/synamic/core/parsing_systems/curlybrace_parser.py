@@ -49,7 +49,7 @@ Escaping is done through backward slash. Escaping are relaxed and special in syn
 To escape a backward slash escape it with another one.
 Escaping does not take place in each and every thing.
 ----------------------------------
----------- CALCEL, don't want to keep type hinting, need to make things clean for end user | data types ----------
+---------- CALCEL, don't want to keep type hinting, need to make things clean for end user | data __document_types ----------
 * Data type inforcement *
 If you want to force type on a data then you can use the following key suffixes.
 !n -> number
@@ -93,7 +93,7 @@ list elements with [ & ]
 - List elements are separated by commas. You cannot enforce type on list elements, they must be inferred.
 - if you want special treatment then use model based parsing.
 
-- List elements can contain numbers, single line strings, date, time, date-time, boolean data types only.
+- List elements can contain numbers, single line strings, date, time, date-time, boolean data __document_types only.
 - Strings must be single line strings. You can use multiline strings with triple quoting.
 
 4) >> Other data: Priority 3 <<
