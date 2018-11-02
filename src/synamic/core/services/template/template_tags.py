@@ -62,4 +62,4 @@ class ResizeImageExtension(Extension):
 
     def _resize(self, path, width, height):
         cnt = self.environment.synamic_config.resize_image(path, width, height)
-        return cnt.url_object.path
+        return cnt.url_object.path_as_str

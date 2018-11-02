@@ -1,4 +1,4 @@
-from synamic.core.synamic.router.url import _ContentUrl
+from synamic.core.synamic.router.url import ContentUrl
 from collections import deque
 import re
 
@@ -56,7 +56,7 @@ def content_construct_url_object(site, path_object, slug_permalink_dict):
                 last_part = fn + '/'
 
     url_comps.append(last_part)
-    cnt_url = _ContentUrl(site, '')
+    cnt_url = ContentUrl(site, '')
 
     for url_path_comp in url_comps:
         cnt_url = cnt_url.join(url_path_comp)  # append_slash=append_slash)

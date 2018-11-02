@@ -12,7 +12,7 @@ import sass
 import io
 import mimetypes
 from synamic.core.contracts.content import ContentContract
-from synamic.core.synamic.router.url import _ContentUrl
+from synamic.core.synamic.router.url import ContentUrl
 
 
 class CSSContent(ContentContract):
@@ -22,7 +22,7 @@ class CSSContent(ContentContract):
         self.__site = site
         self.__scss_path = scss_path
         self.__path = css_path
-        self.__url = self.__url = _ContentUrl(self.__site, css_path)
+        self.__url = self.__url = ContentUrl(self.__site, css_path)
 
     @property
     def site(self):
@@ -50,7 +50,7 @@ class CSSContent(ContentContract):
     @property
     def mime_type(self):
         mime_type = 'octet/stream'
-        path = self.__url.real_path
+        path = self.__url.to_file_system_path
         type, enc = mimetypes.guess_type(path)
         if type:
             mime_type = type

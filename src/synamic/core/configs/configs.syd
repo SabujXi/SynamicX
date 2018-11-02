@@ -12,7 +12,3 @@ nourl_content_dirs_sw: _
 # children sites dir name
 subsites_dir: sites
 
-
-# index file name
-
-index_file_name = 'index.html'

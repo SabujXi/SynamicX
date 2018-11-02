@@ -32,7 +32,7 @@ def _synamic_build(synamic, content_map, event_trigger):
             if not os.path.exists(dir):
                 os.makedirs(dir)
 
-            with url.to_content_path.open('wb') as f:
+            with url.to_cpath.open('wb') as f:
                 stream = cont.get_stream()
                 f.write(stream.read())
                 stream.close()

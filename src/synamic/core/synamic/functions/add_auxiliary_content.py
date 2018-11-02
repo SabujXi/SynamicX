@@ -6,7 +6,7 @@ def synamic_add_auxiliary_content(synamic, document, content_map):
     assert document.is_generated_binary_document is True
     # 3. Content Url Object
     assert document.url_object not in content_map[
-        Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path
+        Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path_as_str
     content_map[Key.CONTENTS_BY_CONTENT_URL][document.url_object] = document
 
     # 4. Contents set

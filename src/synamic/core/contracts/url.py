@@ -59,7 +59,7 @@ class ContentUrlContract(abc.ABC):
         """
         :return: url_object-encoded version of path
          
-         Note: real_path does not need this because they do need to be present in html.
+         Note: to_file_system_path does not need this because they do need to be present in html.
         """
 
     @property
@@ -70,18 +70,18 @@ class ContentUrlContract(abc.ABC):
         
         e.g:
             path: me/one
-            real_path: me/one/index.html
+            to_file_system_path: me/one/index.html
         
         e.g2:
             path: me/one/hi.html
-            real_path: me/one/hi.html  # <the same>
+            to_file_system_path: me/one/hi.html  # <the same>
         """
 
     @property
     @abc.abstractmethod
     def dir_components(self):
         """
-            split real_path, not path, by forward slash '/'
+            split to_file_system_path, not path, by forward slash '/'
             BUT this depends on is_file.
             If it is_file then the basename of it will be excluded
             

@@ -168,7 +168,7 @@ class _Patterns:
             # data type specification cancelled (?P<type>![a-zA-Z0-9_]+)?[ \t]*    # enforced format. If it is specified in multiline code and no model is specified
                                    # then that format is ignored.
             :? # colon is optional
-            (?={|\[|\s)
+            (?={|\[|\s|\Z)
             ''', re.X)
     # is_multiline = re.compile(r'''^
     #         [ \t]*(?P<is_multiline>~{1,3})[ \t]* # is multi line
@@ -888,6 +888,12 @@ class Syd:
                     data = SydScalar(key, bare_string, SydDataType.string)
             data_list.append(data)
             end = end.strip()
+
+        if len(data_list) == 0:
+            # bare string
+            data_list.append(
+                SydScalar(key, '', SydDataType.string)
+            )
 
         if processing_inline_list:
             return data_list

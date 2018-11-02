@@ -1,10 +1,21 @@
-# pagination separator for both dir & url
+# url_partition_comp (used for pagination, marks, etc.) -> pagination separator for both dir & url
+# the path component after the url special sep determines what type of thing it is. e.g. for pagination it can be 'page'
 # putting this after an url it will be determined whether the requested url is a pagination url
 # One more thing, by default it is _ and it can be changed. BUT, urls cannot start with _ to protect this convention
 
-pagination_sep: _
-output_dir: _html,
-host_scheme: http,
-hostname: localhost,
+url_partition_comp: _
+# ...so pagination would be .../_/page/<a number>
+pagination_url_comp: page
+# .../_/m/tags/<a tag>  where tags is <marker id>
+mark_url_comp: m
+
+output_dir: _html
+
+# host settings
+host_scheme: http
+hostname: localhost
 host_port:
 host_base_path: /
+
+# index file name
+index_file_name: index.html

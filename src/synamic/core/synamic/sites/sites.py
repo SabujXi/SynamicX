@@ -26,6 +26,7 @@ class Sites:
 
         # adding the root site
         _root_site_id = self.make_id('::')
+        assert _root_site_id.components == tuple()
         _root_site = self.make_site(_root_site_id, self.__root_site_path, parent_site=None, root_site=None)
         self.__root_site = _root_site
         self.add_site(_root_site)
@@ -33,6 +34,10 @@ class Sites:
     @property
     def is_loaded(self):
         return self.__is_loaded
+
+    @property
+    def ids(self):
+        return tuple(self.__sites_map.keys())
 
     def make_id(self, comps):
         return _SiteId(comps)
@@ -139,6 +144,10 @@ class _SiteId:
     __path_pat_split_by = re.compile(r'[\\/]')
     __ws_pat = re.compile(r'\s', re.MULTILINE)
     __ids_sep = '::'
+
+    @property
+    def ids_sep(self):
+        return self.__ids_sep
 
     def __init__(self, comps):
         _bk_comps = comps

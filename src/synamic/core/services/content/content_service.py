@@ -22,11 +22,12 @@ _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
 
 class _ContentFields(dict):
-    def __init__(self, site, content_file_path, model, content_id, *a, **kwa):
+    def __init__(self, site, content_file_path, model, content_id, document_type, *a, **kwa):
         self.__site = site
         self.__content_file_path = content_file_path
         self.__model = model
         self.__content_id = content_id
+        self.__document_type = document_type
         super().__init__(*a, *kwa)
 
     def clone(self):
@@ -47,6 +48,9 @@ class _ContentFields(dict):
 
     def get_content_id(self):
         return self.__content_id
+
+    def get_document_type(self):
+        return self.__document_type
 
 
 class ContentService:
@@ -69,7 +73,7 @@ class ContentService:
         content_type = DocumentType.TEXT_DOCUMENT
         model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
         model = self.__site.object_manager.get_model(model_name)
-        content_fields = _ContentFields(self.__site, file_path, model, file_path.id)
+        content_fields = _ContentFields(self.__site, file_path, model, file_path.id, DocumentType.HTML_DOCUMENT)
         for key in fields_syd.keys():
             if key in model:
                 model_field = model[key]
@@ -83,7 +87,7 @@ class ContentService:
 
     def make_md_content(self, file_path):
         markdown_renderer = self.__site.get_service('types').get_converter('markdown')
-        document_type = DocumentType.TEXT_DOCUMENT
+        document_type = DocumentType.HTML_DOCUMENT
         fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
         content_fields = self.make_content_fields(fields_syd, file_path)
         toc = Toc()

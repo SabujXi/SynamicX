@@ -68,7 +68,7 @@ class Synamic(SynamicContract):
     def root_path(self) -> str:
         return self.__root_site_root
 
-    @loaded
+    # @loaded
     @property
     def router(self):
         return self.__router

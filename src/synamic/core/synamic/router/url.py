@@ -11,126 +11,98 @@
 import re
 import urllib.parse
 from typing import Union
+from synamic.core.contracts import DocumentType
 
-from synamic.core.services.filesystem.content_path import _CPath
 
-
-class _ContentUrl:
+class ContentUrl:
     @classmethod
-    def __to_components(cls, url_comps_or_path: Union[str, list, tuple, _CPath], append_slash=False) -> tuple:
-        # print("URl comps or path: %s" % url_comps_or_path)
-        res_url_comps = []
-        if type(url_comps_or_path) is str:
-            if not re.match(r'[\\/]+$', url_comps_or_path):
-                if append_slash:
-                    url_comps_or_path += '/'
-            for url_comp in re.split(r'[\\/]+', url_comps_or_path):
-                res_url_comps.append(url_comp)
+    def path_to_components(cls, *url_path_comps: Union[str, list, tuple]) -> tuple:
+        res_url_path_comps = []
+        for _comps in url_path_comps:
+            if isinstance(_comps, str):
+                for url_comp in re.split(r'[\\/]+', _comps):
+                    res_url_path_comps.append(url_comp)
 
-        elif type(url_comps_or_path) in (list, tuple):
-            # print("URL AS LIST PATH: `%s`" % str(url_comps_or_path))
-            assert not append_slash, "Cannot do append slashing for list/tuple comps - list or tuple comps are considered files -- ;) always files first"
-            # assert type(url_comps_or_path) in {list, tuple}, "Url components can either be str, list or tuple"
-            # validation for double space
+            elif isinstance(_comps, (list, tuple)):
+                for url_comp in _comps:
+                    assert isinstance(url_comp, str)
+                    res_url_path_comps.extend(
+                        cls.path_to_components(url_comp)
+                    )
+            else:
+                raise Exception('Invalid argument for url component: %s' % str(url_path_comps))
 
-            # removing empty str from middle - they will be intact at both ends
-            # idx = 0
-            # last_idx = len(url_comps_or_path) - 1
-            # last_comp_was_empty = False  # last_comp_was_empty == ''
-            for url_comp in url_comps_or_path:
-                # assert not re.match(r'^\s+$', url_comp), "A component of an url cannot be one or all whitespaces"
-                # if url_comp == '':
-                #     if last_comp_was_empty:
-                #         last_comp_was_empty = True
-                #         continue
-                #     last_comp_was_empty = True
-                # else:
-                #     last_comp_was_empty = False
+        # ../../../ recalculation and empty string removing from middle
+        _ = []
+        for idx, comp in enumerate(res_url_path_comps):
+            if comp == '.':
+                # just ignore it
+                continue
+            elif comp == '..' and idx != 0:
+                #  delete the last comp and add current one (replace the last one)
+                _[-1] = comp
+            elif not (idx == 0 or idx == len(res_url_path_comps) - 1):  # sparing the first and last empty string only
+                if comp == '':
+                    pass  # ignore
+            else:
+                _.append(comp)
+        res_url_path_comps = _
 
-                # if url_comp == '' and idx != 0 and idx != last_idx:
-                #     idx += 1
-                #     continue
-                res_url_comps.append(url_comp)
+        # re-adding empty string for zero length comps
+        if len(res_url_path_comps) == 0:
+            res_url_path_comps.append('')
 
-            # if res_url_comps[-1] != '' and res_url_comps[-1] != 'index.html':
-            #     # index.html (lower) is special
-            #     res_url_comps.append('')
-
-        elif type(url_comps_or_path) is _CPath:
-            assert not append_slash, "Cannot do append slashing for static content (I hope you did not pass path of a dynamic content)"
-            # for static file only - though no such checking is done
-            # no append_slash things will happen here as it is for static content,
-            # do not use this for dynamic content path
-
-            assert url_comps_or_path.is_file, "Cannot create content url of a directory"
-            res_url_comps = list(url_comps_or_path.path_comps)
-        else:
-            raise Exception('Invalid argument for url component: %s' % str(url_comps_or_path))
-        if len(res_url_comps) == 0:
-            res_url_comps.append('')
-
-        if res_url_comps[-1] == 'index.html':
-            res_url_comps[-1] = ''
-
-        final_res_comps = []
-        # print("Res url comps: %s" % str(res_url_comps))
-        # removing duplicate components
-        idx = 0
-        last_idx = len(res_url_comps) - 1
-        # last_comp_was_empty = False  # last_comp_was_empty == ''
-
-        for url_comp in res_url_comps:
+        # validating
+        for idx, url_comp in enumerate(res_url_path_comps):
             assert not re.match(r'^\s+$', url_comp), "A component of an url cannot be one or all whitespaces"
-            if not (idx == 0 or idx == last_idx):  # sparing the first and last empty string only
-                if url_comp == '':
-                    idx += 1
-                    continue
-            final_res_comps.append(url_comp)
-            idx += 1
 
-        if len(final_res_comps) == 2:  # eg ['', ''] == '/'.split('/')
-            if final_res_comps[0] == '' and final_res_comps[1] == '':
-                final_res_comps = ['']
-        # print("Final Res url comps: %s" % str(final_res_comps))
-        return tuple(final_res_comps)
+        # ['', ''] issue
+        if list(res_url_path_comps) == ['', '']:  # eg ['', ''] == '/'.split('/')
+            res_url_path_comps = ['']
+        # comps should begin with empty string ... we can only handle site root absolute url as there is no context for
+        # relative url in this function.
+        if res_url_path_comps[0] != '':
+            res_url_path_comps.insert(0, '')
+        return tuple(res_url_path_comps)
 
-    @classmethod
-    def __to_content_components(cls, _url_comps):
+    def __init__(self, site, url_path_comps, for_document_type=None):
         """
-        __to_components() can be used for anything (e.g. in join() to join another string and construct url)
-         and thus it does not prepend and empty string at the start. So, here this one comes handy.
-         """
-        if _url_comps[0] != '':
-            _url_comps = ('', *_url_comps)
-        return _url_comps
-
-    def __init__(self, site, url_comps, append_slash=False):
-        """
-        append_slash is only for dynamic contents and only when the url_comps is being passed as sting (not: list, tuple, content path) 
+        append_slash is only for dynamic contents and only when the url_path_comps is being passed as sting (not: list, tuple, content path)
         So, we are not persisting that data
         
         'index.html' in lower case is special throughout the url system - see the codes for extracting more info.
         
         if we indicate ...
         """
-        self.__url_comps = self.__to_content_components(
-                self.__to_components(url_comps, append_slash)
-            )
+        self.__url_path_comps = self.path_to_components(
+            url_path_comps
+        )
 
         self.__site = site
-        self.__of_static_file = type(url_comps) is _CPath
+        self.__for_document_type = for_document_type
+        # TODO: fix this
+        # assert type(self.__for_document_type) is DocumentType
+        # assert DocumentType.is_text(self.__for_document_type) or DocumentType.is_binary(self.__for_document_type) or\
+        #     self.__for_document_type == DocumentType.DIRECTORY
+        self.__path_str = None
+        self.__path_components_w_site = None
         self.__url_str = None
 
-        self.__append_slash = append_slash
+    @property
+    def for_site(self):
+        return self.__site
 
-    def join(self, url_comps: Union[str, list, tuple], append_slash=False):
-        assert type(url_comps) is not _CPath, "Static files components are all in one to construct an url, no need to include that here"
-        this_comps = self.__url_comps
-        other_comps = self.__to_components(url_comps, append_slash=append_slash)
+    @property
+    def for_document_type(self):
+        return self.__for_document_type
+
+    def join(self, url_comps: Union[str, list, tuple], for_document_type=None):
+        this_comps = self.__url_path_comps
+        other_comps = self.path_to_components(url_comps)
+
         this_end = this_comps[-1]
-        # print("Other url comps str: `%s`" % url_comps)
-        # print("Other url comps Tuple: `%s`" % str(other_comps))
         other_start = other_comps[0]
+
         if this_end != '' and other_start != '':
             comps = this_comps[:-1] + (this_end + other_start,) + other_comps[1:]
         elif this_end == '' or other_start == '':
@@ -144,115 +116,132 @@ class _ContentUrl:
             comps = this_comps[:-1] + (res_comp,) + other_comps[1:]
         else:
             comps = this_comps + other_comps
-        # comps = this_comps + other_comps
-        return self.__class__(self.__site, comps)  #, append_slash=append_slash)
-
-    @property
-    def of_static_file(self):
-        return self.__of_static_file
-
-    @property
-    def is_dir(self):
-        return True if self.__url_comps[-1] == '' else False
-
-    @property
-    def is_file(self):
-        return not self.is_dir
-
-    @property
-    def file_name(self):
-        fn = self.__url_comps[-1]
-        if fn == '':
-            fn = 'index.html'
-        return fn
+        if for_document_type is None:
+            for_document_type = self.__for_document_type
+        return self.__class__(self.__site, comps, for_document_type)
 
     @property
     def path_components(self):
-        return self.__url_comps
+        return self.__url_path_comps
 
     @property
-    def path(self):
-        if self.__url_str is None:
-            comps = self.__url_comps
-            if len(comps) == 1 and comps[0] == '':
-                _url_str = self.__site.prefix_dir + '/'
+    def path_components_w_site(self):
+        if self.__path_components_w_site is None:
+            host_base_path = self.__site.object_manager.get_site_settings()['host_base_path']
+            self.__path_components_w_site = self.path_to_components(
+                host_base_path, self.__site.id.components, self.__url_path_comps
+            )
+        return self.__path_components_w_site
+
+    @property
+    def path_as_str(self):
+        if self.__path_str is None:
+            comps = self.path_components_w_site
+            if comps == ('', ):
+                path_str = '/'
             else:
-                _url_str = self.__site.prefix_dir + "/".join(self.__url_comps)
-            if not _url_str.startswith('/'):
-                _url_str = '/' + _url_str
-            self.__url_str = _url_str
-        return self.__url_str
+                path_str = '/'.join(comps)
+            self.__path_str = path_str
+        return self.__path_str
 
     @property
-    def url_encoded_path(self):
-        return urllib.parse.quote_plus(self.path, safe='/', encoding='utf-8')
-
-    @property
-    def absolute_url(self):
-        raise NotImplemented
+    def path_as_str_encoded(self):
+        return urllib.parse.quote_plus(self.path_as_str, safe='/', encoding='utf-8')
 
     @property
     def url(self):
-        return self.url_encoded_path
+        """URL with host name, port, path"""
+        if self.__url_str is None:
+            ss = self.__site.object_manager.get_site_settings()
+            host_scheme = ss['host_scheme']
+            hostname = ss['hostname']
+            port = ss['port']
+            if port:
+                port_part = ':' + port
+            else:
+                port_part = ''
+            _ = host_scheme + '://' + hostname + port_part + self.path_as_str
+            self.__url_str = _
+        return self.__url_str
 
     @property
-    def real_path(self):
-        p = self.path
-        if p.endswith('/'):
-            p += 'index.html'
+    def url_encoded(self):
+        return urllib.parse.quote_plus(self.url, safe='/', encoding='utf-8')
+
+    @property
+    def to_file_system_path(self):
+        p = self.path_as_str
+        if DocumentType.is_html(self.__for_document_type):
+            index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
+            if p.endswith('/'):
+                p += index_file_name
+            else:
+                p += '/' + index_file_name
+        else:
+            # validation
+            assert not p.endswith('/')
         return p
 
     @property
-    def dir_components(self):
-        res = []
-        if self.is_file:
-            assert self.__url_comps[-1] != '', 'Logical error, ask Sabuj to fix | path: `%s`' % self.path
-            dirs = self.__url_comps[:-1]
-        else:
-            dirs = self.__url_comps
-
-        for d in dirs:
-            if d == '':
-                continue
-            res.append(d)
-        return tuple(res)
+    def is_file(self):
+        return DocumentType.is_file(self.__for_document_type)
 
     @property
-    def path_components(self):
-        res = []
-        if self.is_file:
-            _paths = self.__url_comps
-        else:
-            _paths = list(self.__url_comps)
-            _paths.append('index.html')
-
-        for d in _paths:
-            if d == '':
-                continue
-            res.append(d)
-        return tuple(res)
-
-    @property
-    def to_content_path(self):
+    def to_cpath(self):
         return self.__site.path_tree.create_cpath(
-            (self.__site.site_settings.output_dir, *self.path_components),
+            self.to_file_system_path,
             is_file=self.is_file
         )
 
-    @property
-    def append_slash(self):
-        return self.__append_slash
-
     def __str__(self):
-        return self.path
+        return self.path_as_str
 
     def __repr__(self):
         return repr(self.__str__())
 
     def __eq__(self, other):
-        if self.path_components == other.path_comps:
-            return True
-        return False
+        return self.path_components_w_site == other.path_components_w_site
 
     def __hash__(self):
-        return hash(self.__url_comps)
+        return hash(self.path_components_w_site)
+
+    @classmethod
+    def parse_requested_url(cls, synamic, url_str):
+        parsed_url = urllib.parse.urlparse(url_str)
+        url_path = parsed_url.path
+        # Unused for now: url_query = parsed_url.query
+        # Unused for now: url_fragment = parsed_url.fragment
+        path_segments = list(cls.path_to_components(url_path))
+        assert path_segments[0] == ''
+        del path_segments[0]
+
+        # partition at special url comp
+        site_ids_comps = [site_id.components for site_id in synamic.sites.ids]
+        url_partition_comp = synamic.default_configs.get('settings')['url_partition_comp']
+
+        site_id_components, path_components, special_components = [], [], []
+
+        #  extract out site id.
+        for site_id_comps in site_ids_comps:
+            if len(path_segments) < len(site_id_comps):
+                continue
+            if path_segments[:len(site_id_comps)] == site_ids_comps:
+                site_id_components = path_segments[:len(site_id_comps)]
+                path_segments = path_segments[len(site_id_comps):]
+                break
+
+        # extract out paginated part
+        assert '/' not in url_partition_comp
+        assert ' ' not in url_partition_comp
+        for idx, segment in enumerate(path_segments):
+            if segment == url_partition_comp:
+                special_components.extend(
+                    path_segments[idx+1:]
+                )
+                break
+            else:
+                path_components.append(segment)
+
+        site_id = synamic.sites.make_id('/'.join(site_id_components))
+
+        return site_id, path_components, special_components

@@ -18,8 +18,12 @@ class DocumentType(enum.Enum):
     GENERATED_BINARY_DOCUMENT = "GENERATED_BINARY_DOCUMENT"
     TEXT_DOCUMENT = "TEXT_DOCUMENT"
     GENERATED_TEXT_DOCUMENT = "GENERATED_TEXT_DOCUMENT"
+    HTML_DOCUMENT = "HTML_DOCUMENT"
+    GENERATED_HTML_DOCUMENT = "GENERATED_HTML_DOCUMENT"
     NOURL_DOCUMENT = "NOURL_DOCUMENT"
     META_DOCUMENT = "META_DOCUMENT"
+    DIRECTORY = "DIRECTORY"
+    NONE = "NONE"
 
     @classmethod
     def is_binary(cls, other):
@@ -27,7 +31,15 @@ class DocumentType(enum.Enum):
 
     @classmethod
     def is_text(cls, other):
-        return other in (cls.TEXT_DOCUMENT, cls.GENERATED_TEXT_DOCUMENT)
+        return other in (cls.TEXT_DOCUMENT, cls.GENERATED_TEXT_DOCUMENT, cls.HTML_DOCUMENT, cls.GENERATED_HTML_DOCUMENT)
+
+    @classmethod
+    def is_html(cls, other):
+        return other in (cls.HTML_DOCUMENT, cls.GENERATED_HTML_DOCUMENT)
+
+    @classmethod
+    def is_file(cls, other):
+        return cls.is_text(other) or cls.is_binary(other)
 
 
 class ContentContract(metaclass=abc.ABCMeta):
@@ -68,7 +80,7 @@ class ContentContract(metaclass=abc.ABCMeta):
         """
          return mime/type
          
-         this can be determined by the extension of real_path() on the url_object object.
+         this can be determined by the extension of to_file_system_path() on the url_object object.
         """
 
     @property

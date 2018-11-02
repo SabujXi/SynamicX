@@ -45,7 +45,7 @@ class StaticContent(ContentContract):
     @property
     def mime_type(self):
         # mime_type = 'octet/stream'
-        # path = self.__url.real_path
+        # path = self.__url.to_file_system_path
         # type, enc = mimetypes.guess_type(path)
         # if type:
         #     mime_type = type

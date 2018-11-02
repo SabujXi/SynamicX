@@ -69,18 +69,29 @@ class _SiteSettings:
 class SiteSettingsService:
     def __init__(self, site):
         self.__site = site
+        self.__is_loaded = False
 
     def load(self):
-        pass
+        self.__is_loaded = True
 
     def make_site_settings(self):
         system_settings_syd = self.__site.default_configs.get('settings')
         dirs_syd = self.__site.default_configs.get('dirs')
         configs_syd = self.__site.default_configs.get('configs')
 
-        om = self.__site.object_manager
-        fn = 'settings.syd'
-        user_syd = om.get_syd(fn)
-        new_syd = system_settings_syd.new(dirs_syd, configs_syd, user_syd)
+        site_om = self.__site.object_manager
+        settings_fn = 'settings.syd'
+        site_settings_syd = site_om.get_syd(settings_fn)
 
+        # all parent settings are merged
+        parent_settings = []
+        while self.__site.has_parent:
+            parent_settings.append(
+                self.__site.parent.object_manager.get_site_settings()
+            )
+        parent_settings.reverse()
+        parent_settings = [dirs_syd, configs_syd] + parent_settings
+        parent_settings.append(site_settings_syd)
+
+        new_syd = system_settings_syd.new(*parent_settings)
         return new_syd
