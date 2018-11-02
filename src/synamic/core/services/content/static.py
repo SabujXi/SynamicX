@@ -7,65 +7,51 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-
-import mimetypes
-
-from synamic.core.contracts.content import ContentContract
-from synamic.core.synamic.router.url import _ContentUrl
+import io
+from synamic.core.contracts.content import ContentContract, DocumentType
 
 
 class StaticContent(ContentContract):
-    def __init__(self, site, path, file_content=None):
-        assert file_content is None
-        self.__url = None
+    def __init__(self, site, file_cpath, content_id, file_content=None, document_type=DocumentType.BINARY_DOCUMENT, mime_type='octet/stream'):
         self.__site = site
-        self.__path = path
+        self.__file_cpath = file_cpath
+        self.__content_id = content_id
+        self.__file_content = file_content
+        self.__document_type = document_type
+        self.__mime_type = mime_type
+
+        # validation
+        assert DocumentType.is_binary(self.__document_type)
+        assert type(self.__file_content) in (type(None), bytes, bytearray)
+        if self.__file_cpath is None:
+            assert file_content is not None
+        assert bool(content_id) or content_id == 0
 
     @property
-    def path(self):
-        return self.__path
+    def id(self):
+        return self.__content_id
 
     @property
     def path_object(self):
-        return self.path
+        return self.__file_cpath
 
     def get_stream(self):
-        file = self.path.open('rb')
+        if self.__file_content is not None:
+            file = io.BytesIO(self.__file_content)
+        else:
+            file = self.path_object.open('rb')
         return file
 
     @property
     def mime_type(self):
-        mime_type = 'octet/stream'
-        path = self.__url.real_path
-        type, enc = mimetypes.guess_type(path)
-        if type:
-            mime_type = type
-        return mime_type
+        # mime_type = 'octet/stream'
+        # path = self.__url.real_path
+        # type, enc = mimetypes.guess_type(path)
+        # if type:
+        #     mime_type = type
+        # return mime_type
+        return self.__mime_type
 
     @property
     def document_type(self):
-        return ContentContract.__document_types.STATIC
-
-    @property
-    def url_object(self):
-        if self.__url is None:
-            self.__url = _ContentUrl(self.__site, self.__path)
-        return self.__url
-
-        # if file_path.meta_info:
-        #     permalink = file_path.meta_info.get('permalink', None)
-        #     if permalink:
-        #         permalink = permalink.rstrip(r'\/')
-        #         permalink_comps = [x for x in re.split(r'[\\/]+', permalink)]
-        #     else:
-        #         permalink_comps = file_path.path_comps
-        #
-        #     id = file_path.meta_info.get('id', None)
-        #     cnt_url = _ContentUrl(self, permalink_comps, append_slash=False)
-        # else:
-        #     cnt_url = _ContentUrl(self, file_path.path_comps, append_slash=False)
-        #     id = None
-        #
-        # if id is None:
-        #     id = "/".join(file_path.path_comps)
-
+        return self.__document_type

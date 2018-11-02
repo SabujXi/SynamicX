@@ -9,7 +9,7 @@
 """
 
 import re
-
+import mimetypes
 from synamic.core.services.content.functions.construct_url_object import content_construct_url_object
 from synamic.core.contracts.content import ContentContract, DocumentType
 from synamic.core.standalones.functions.decorators import not_loaded
@@ -66,9 +66,7 @@ class ContentService:
 
     def make_content_fields(self, fields_syd, file_path):
         types = self.__site.get_service('types')
-
         content_type = DocumentType.TEXT_DOCUMENT
-
         model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
         model = self.__site.object_manager.get_model(model_name)
         content_fields = _ContentFields(self.__site, file_path, model, file_path.id)
@@ -85,7 +83,7 @@ class ContentService:
 
     def make_md_content(self, file_path):
         markdown_renderer = self.__site.get_service('types').get_converter('markdown')
-        content_type = DocumentType.TEXT_DOCUMENT
+        document_type = DocumentType.TEXT_DOCUMENT
         fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
         content_fields = self.make_content_fields(fields_syd, file_path)
         toc = Toc()
@@ -124,9 +122,17 @@ class ContentService:
         # #
         # url_object = content_construct_url_object(site, file_path, url_construction_dict)
 
-        content = MarkedContentImplementation(self.__site, body, content_fields, toc,
-                                              content_id=file_path.id,
-                                              document_type=content_type)
+        content_id =file_path.id
+        # mime type guess
+        mime_type = 'text/html'
+        content = MarkedContentImplementation(self.__site,
+                                              file_path,
+                                              body,
+                                              content_fields,
+                                              toc,
+                                              content_id,
+                                              document_type,
+                                              mime_type=mime_type)
         return content
 
     def make_paginated_md_content(self):
@@ -136,5 +142,14 @@ class ContentService:
     def make_static_content(self, path):
         path_tree = self.__site.get_service('path_tree')
         path_obj = path_tree.create_file_cpath(path)
-        return StaticContent(self.__site, path_obj)
+        content_id = path_obj.id
+        file_content = None
+        mime_type = 'octet/stream'  # TODO: guess the content type here.
+        return StaticContent(
+            self.__site,
+            path_obj,
+            content_id,
+            file_content=file_content,
+            document_type=DocumentType.BINARY_DOCUMENT,
+            mime_type=mime_type)
 

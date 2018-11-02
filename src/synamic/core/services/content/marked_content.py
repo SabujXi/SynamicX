@@ -3,8 +3,9 @@ from synamic.core.contracts import ContentContract, DocumentType
 
 
 class MarkedContentImplementation(ContentContract):
-    def __init__(self, site, body, content_fields, toc, content_id, document_type, mime_type='text/plain'):
+    def __init__(self, site, file_cpath, body, content_fields, toc, content_id, document_type, mime_type='text/plain'):
         self.__site = site
+        self.__file_cpath = file_cpath
         self.__body = body
         self.__content_fields = content_fields
         self.__model = content_fields.get_model()
@@ -30,7 +31,7 @@ class MarkedContentImplementation(ContentContract):
 
     @property
     def path_object(self):
-        return self.__content_fields.get_content_path()
+        return self.__file_cpath
 
     def get_stream(self):
         template_name = self.__content_fields.get('template', 'default.html')
@@ -41,12 +42,6 @@ class MarkedContentImplementation(ContentContract):
 
     @property
     def mime_type(self):
-        # mime_type = 'octet/stream'
-        # path = self.url_object.real_path
-        # type, enc = mimetypes.guess_type(path)
-        # if type:
-        #     mime_type = type
-        # return mime_type
         return self.__mime_type
 
     @property

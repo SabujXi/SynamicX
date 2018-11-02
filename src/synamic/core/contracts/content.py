@@ -22,7 +22,7 @@ class DocumentType(enum.Enum):
     META_DOCUMENT = "META_DOCUMENT"
 
     @classmethod
-    def is_static(cls, other):
+    def is_binary(cls, other):
         return other in (cls.BINARY_DOCUMENT, cls.GENERATED_BINARY_DOCUMENT)
 
     @classmethod
