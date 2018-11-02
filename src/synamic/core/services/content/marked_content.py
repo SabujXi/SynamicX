@@ -73,7 +73,8 @@ class MarkedContentImplementation(ContentContract):
         return self.__get(key)
 
     def __str__(self):
-        return self.body  # TODO: fix this long repr... file path and summary?
+        # return self.body  # TODO: fix this long repr... file path and summary?
+        return "<%s>\n%s\n\n%s" % (self.path_object.relative_path, self['title'], self.body[:100] + '...')
 
     def __repr__(self):
         return str(self)

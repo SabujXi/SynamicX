@@ -38,12 +38,18 @@ class ContentUrl:
             if comp == '.':
                 # just ignore it
                 continue
-            elif comp == '..' and idx != 0:
+            elif comp == '..':
                 #  delete the last comp and add current one (replace the last one)
-                _[-1] = comp
+                if idx == 0:
+                    continue
+                else:
+                    if len(_) >= 1:
+                        del _[-1]
             elif not (idx == 0 or idx == len(res_url_path_comps) - 1):  # sparing the first and last empty string only
                 if comp == '':
                     pass  # ignore
+                else:
+                    _.append(comp)
             else:
                 _.append(comp)
         res_url_path_comps = _
@@ -52,17 +58,19 @@ class ContentUrl:
         if len(res_url_path_comps) == 0:
             res_url_path_comps.append('')
 
-        # validating
-        for idx, url_comp in enumerate(res_url_path_comps):
-            assert not re.match(r'^\s+$', url_comp), "A component of an url cannot be one or all whitespaces"
+        # comps should begin with empty string ... we can only handle site root absolute url as there is no context for
+        # relative url in this function.
+        elif res_url_path_comps[0] != '':
+            res_url_path_comps.insert(0, '')
 
         # ['', ''] issue
         if list(res_url_path_comps) == ['', '']:  # eg ['', ''] == '/'.split('/')
             res_url_path_comps = ['']
-        # comps should begin with empty string ... we can only handle site root absolute url as there is no context for
-        # relative url in this function.
-        if res_url_path_comps[0] != '':
-            res_url_path_comps.insert(0, '')
+
+        # validating
+        for idx, url_comp in enumerate(res_url_path_comps):
+            assert not re.match(r'^\s+$', url_comp), "A component of an url cannot be one or all whitespaces"
+
         return tuple(res_url_path_comps)
 
     def __init__(self, site, url_path_comps, for_document_type=None):
@@ -74,9 +82,16 @@ class ContentUrl:
         
         if we indicate ...
         """
-        self.__url_path_comps = self.path_to_components(
-            url_path_comps
-        )
+
+        # TODO: make appending slash system  settings based.
+        if DocumentType.is_html(for_document_type):
+            self.__url_path_comps = self.path_to_components(
+                url_path_comps, '/'
+            )
+        else:
+            self.__url_path_comps = self.path_to_components(
+                url_path_comps
+            )
 
         self.__site = site
         self.__for_document_type = for_document_type
@@ -136,6 +151,17 @@ class ContentUrl:
     @property
     def path_as_str(self):
         if self.__path_str is None:
+            comps = self.path_components
+            if comps == ('', ):
+                path_str = '/'
+            else:
+                path_str = '/'.join(comps)
+            self.__path_str = path_str
+        return self.__path_str
+
+    @property
+    def path_as_str_w_site(self):
+        if self.__path_str is None:
             comps = self.path_components_w_site
             if comps == ('', ):
                 path_str = '/'
@@ -147,6 +173,10 @@ class ContentUrl:
     @property
     def path_as_str_encoded(self):
         return urllib.parse.quote_plus(self.path_as_str, safe='/', encoding='utf-8')
+
+    @property
+    def path_as_str_w_site_encoded(self):
+        return urllib.parse.quote_plus(self.path_as_str_w_site, safe='/', encoding='utf-8')
 
     @property
     def url(self):
@@ -179,7 +209,8 @@ class ContentUrl:
                 p += '/' + index_file_name
         else:
             # validation
-            assert not p.endswith('/')
+            # assert not p.endswith('/')
+            pass
         return p
 
     @property
@@ -194,7 +225,7 @@ class ContentUrl:
         )
 
     def __str__(self):
-        return self.path_as_str
+        return self.path_as_str_w_site
 
     def __repr__(self):
         return repr(self.__str__())
@@ -207,13 +238,16 @@ class ContentUrl:
 
     @classmethod
     def parse_requested_url(cls, synamic, url_str):
+        # python urlparse // bug workaround
+        url_str = re.sub(r'(?<!:)/+', '/', url_str)
+
         parsed_url = urllib.parse.urlparse(url_str)
         url_path = parsed_url.path
         # Unused for now: url_query = parsed_url.query
         # Unused for now: url_fragment = parsed_url.fragment
         path_segments = list(cls.path_to_components(url_path))
-        assert path_segments[0] == ''
-        del path_segments[0]
+        assert path_segments[0] == ''  # logical validation of path to components
+        # del path_segments[0]
 
         # partition at special url comp
         site_ids_comps = [site_id.components for site_id in synamic.sites.ids]

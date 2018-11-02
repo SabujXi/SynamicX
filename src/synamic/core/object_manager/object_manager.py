@@ -1,4 +1,5 @@
 from collections import defaultdict, OrderedDict
+from synamic.core.contracts import DocumentType
 from synamic.core.services.content.functions.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import Syd
@@ -21,7 +22,7 @@ class ObjectManager:
         self.__site_settings_cachemap = defaultdict(dict)
 
         # url object to contents
-        self.__url_to_content_paths_cachemap = defaultdict(dict)
+        self.__url_to_text_content_paths_cachemap = defaultdict(dict)
 
         self.__is_loaded = False
 
@@ -44,7 +45,7 @@ class ObjectManager:
     def _reload_for(self, site):
         self.__content_fields_cachemap[site.id].clear()
         self.__marker_by_id_cachemap[site.id].clear()
-        self.__url_to_content_paths_cachemap[site.id].clear()
+        self.__url_to_text_content_paths_cachemap[site.id].clear()
         self._load_for(site)
 
     def _load_for(self, site):
@@ -69,7 +70,8 @@ class ObjectManager:
                     content_meta = content_service.make_content_fields(fields_syd, file_path)
                     self.__content_fields_cachemap[site.id][file_path.id] = content_meta
                 else:
-                    site.add_static_content(file_path)  # TODO: what here?
+                    # No need to cache anything about static file.
+                    pass
         else:
             raise NotImplemented
             # database backend is not implemented yet. AND there is nothing to do here for db, skip it when implemented
@@ -84,18 +86,57 @@ class ObjectManager:
                 self.__marker_by_id_cachemap[site.id][marker_id] = marker
 
     def __cache_urls(self, site):
-        if len(self.__url_to_content_paths_cachemap[site.id]) == 0:
+        if len(self.__url_to_text_content_paths_cachemap[site.id]) == 0:
             for content_fields in self.__content_fields_cachemap[site.id].values():
                 # TODO: convert permalink to path and slug along with dir based url
-                # print(content_fields.get_content_path())
-                permalink = content_fields['permalink']
-                url_path_comps = permalink
+                path = content_fields.get('path', None)
+                slug = content_fields.get('slug', None)
+                permalink = content_fields.get('permalink', None)  # Temporarily keeping it for backward compatibility.
+                                                                   # TODO: remove it and keep path only
+                if permalink is not None:
+                    path = permalink
+
+                if path is not None:
+                    #  discard everything and keep it. No processing needed.
+                    pass
+                elif slug is not None:
+                    # calculate through file system.
+                    cpath = content_fields.get_content_path()
+                    cpath_comps = cpath.path_comps
+                    basename = cpath_comps[-1]
+                    cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
+                    # instead of hard coded.
+                    _ = []
+                    for ccomp in cpath_comps:
+                        if not ccomp.startswith('_'):
+                            _.append(ccomp)
+
+                    cpath_comps = _
+                    cpath_comps.append(slug)
+                    path = cpath_comps
+                else:
+                    # calculate through file system.
+                    cpath = content_fields.get_content_path()
+                    cpath_comps = cpath.path_comps
+                    basename = cpath_comps[-1]
+                    cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
+                    # instead of hard coded.
+                    _ = []
+                    for ccomp in cpath_comps:
+                        if not ccomp.startswith('_'):
+                            _.append(ccomp)
+
+                    cpath_comps = _
+                    cpath_comps.append(basename)
+                    path = cpath_comps
+
+                url_path_comps = path
                 url_object = self.__synamic.router.make_url(
                     site,
                     url_path_comps,
                     for_document_type=content_fields.get_document_type()
                 )
-                self.__url_to_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
+                self.__url_to_text_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
 
     #  @loaded
     def get_content_meta(self, site, path):
@@ -107,15 +148,10 @@ class ObjectManager:
             # file backend
             return self.__content_fields_cachemap[site.id][path.path_comps]
 
-    def get_content_by_url(self, site, url_object):
-        content_cpath = self.__url_to_content_paths_cachemap[site.id].get(url_object)
-        return self.get_content(site, content_cpath)
-
-
     #  @loaded
-    def get_content(self, site, path):
+    def get_text_content(self, site, path):
         # create content, meta, set meta with converters. Setting it from here will help caching.
-        # TODO: other type of contents except md contents.
+        # TODO: other type of contents besides md contents.
         content_service = site.get_service('contents')
         path_tree = self.get_path_tree(site)
         contents_dir = site.default_configs.get('dirs')['contents.contents']
@@ -125,6 +161,14 @@ class ObjectManager:
             file_cpath = path
         md_content = content_service.make_md_content(file_cpath)
         return md_content
+
+    def get_binary_content(self, site, path):
+        path_tree = site.get_service('path_tree')
+        if not path_tree.exists(path):
+            return None
+        else:
+            content_service = site.get_service('contents')
+            return content_service.make_static_content(path)
 
     def get_static_file_paths(self, site):
         pass
@@ -216,6 +260,10 @@ class ObjectManager:
         # - when to use it when not (when not cached)
         return self.__content_fields_cachemap[site].copy()
 
+    def get_text_cpath_by_curl(self, site, url_object, default=None):
+        content_cpath = self.__url_to_text_content_paths_cachemap[site.id].get(url_object, default)
+        return content_cpath
+
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
             self.__site = site
@@ -244,11 +292,11 @@ class ObjectManager:
         def get_content_meta(self, path):
             return self.__object_manager.get_content_meta(self.site, path)
 
-        def get_content_by_url(self, url_object):
-            return self.__object_manager.get_content_by_url(self.site, url_object)
+        def get_text_content(self, path):
+            return self.__object_manager.get_text_content(self.site, path)
 
-        def get_content(self, path):
-            return self.__object_manager.get_content(self.site, path)
+        def get_binary_content(self, path):
+            return self.__object_manager.get_binary_content(self.site, path)
 
         def get_static_file_paths(self):
             return self.__object_manager.get_static_file_paths(self.site)
@@ -295,4 +343,7 @@ class ObjectManager:
         @property
         def cached_content_metas(self):
             return self.__object_manager.get_cached_content_metas(self.site)
+
+        def get_text_cpath_by_curl(self, url_object, default=None):
+            return self.__object_manager.get_text_cpath_by_curl(self.site, url_object, default=None)
 

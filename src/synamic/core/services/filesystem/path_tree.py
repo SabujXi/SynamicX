@@ -64,7 +64,7 @@ class PathTree(object):
         elif type(path_comp) is _CPath:
             comps = path_comp.path_comps
         else:
-            raise Exception("Path comps must be list, tuple, string or _CPath object when it is not string")
+            raise Exception("Path comps must be list, tuple, string or _CPath object when it is not string: %s" % type(path_comp))
 
         # Relative URL processing.
         new_comps = []

@@ -152,34 +152,6 @@ class _Site:
         return self.__is_loaded
 
     @property
-    def prefix_dir(self):
-        settings_prefix_dir = self.site_settings.prefix_dir
-        # TODO: fix it
-        if not settings_prefix_dir:
-            res = self.__prefix_dir
-        else:
-            res = settings_prefix_dir + '/' + self.__prefix_dir
-        return res
-
-    @loaded
-    @property
-    def sites(self):
-        # TODO: fix it
-        # TODO: Sites can only be instantiated, accessed from root synamic - otherwise raise exception. is_root
-        self.__sites
-
-    @loaded
-    @property
-    def router(self):
-        # TODO: Router can only be instantiated, accessed from root synamic - otherwise raise exception. is_root
-        pass
-
-    @loaded
-    @property
-    def builder(self):
-        pass
-
-    @property
     def site_wrapper(self):
         return _SiteWrapper(self)
 
