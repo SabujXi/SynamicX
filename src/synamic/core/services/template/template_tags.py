@@ -19,7 +19,7 @@ class GetUrlExtension(Extension):
     def __init__(self, environment):
         super().__init__(environment)
         environment.extend(
-            synamic_config=None
+            site_object=None
         )
 
     def parse(self, parser):
@@ -30,7 +30,7 @@ class GetUrlExtension(Extension):
         return nodes.Output([call], lineno=lineno)
 
     def _get_url(self, parameter):
-        url = self.environment.synamic_config.get_url(parameter)
+        url = self.environment.site_object.object_manager.get_url(parameter)
         return url
 
 
@@ -40,7 +40,7 @@ class ResizeImageExtension(Extension):
     def __init__(self, environment):
         super().__init__(environment)
         environment.extend(
-            synamic_config=None
+            site_object=None
         )
 
     def parse(self, parser):
@@ -61,5 +61,5 @@ class ResizeImageExtension(Extension):
         return nodes.Output([call], lineno=lineno)
 
     def _resize(self, path, width, height):
-        cnt = self.environment.synamic_config.resize_image(path, width, height)
+        cnt = self.environment.site_object.object_manager.resize_image(path, width, height)
         return cnt.url_object.path_as_str

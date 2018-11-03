@@ -35,8 +35,8 @@ class SynamicTemplateService:
             extensions=[GetUrlExtension, ResizeImageExtension]
         )
         # setting config object to global of environment
-        self.__template_env.site_config = self.__site
-        self.__template_env.globals['site'] = self.__site
+        self.__template_env.site_object = self.__site
+        # self.__template_env.globals['site'] = self.__site
 
         self.__is_loaded = True
 

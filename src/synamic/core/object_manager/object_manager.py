@@ -4,6 +4,7 @@ from synamic.core.services.content.functions.content_splitter import content_spl
 from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
+from synamic.core.contracts import ContentContract, DocumentType
 
 
 class ObjectManager:
@@ -90,65 +91,109 @@ class ObjectManager:
     def __cache_urls(self, site):
         if len(self.__url_to_text_content_paths_cachemap[site.id]) == 0:
             for content_fields in self.__content_fields_cachemap[site.id].values():
-                # TODO: convert permalink to path and slug along with dir based url
-                path = content_fields.get('path', None)
-                slug = content_fields.get('slug', None)
-                permalink = content_fields.get('permalink', None)  # Temporarily keeping it for backward compatibility.
-                                                                   # TODO: remove it and keep path only
-                if permalink is not None:
-                    path = permalink
-
-                if path is not None:
-                    #  discard everything and keep it. No processing needed.
-                    pass
-                elif slug is not None:
-                    # calculate through file system.
-                    cpath = content_fields.get_content_path()
-                    cpath_comps = cpath.path_comps
-                    basename = cpath_comps[-1]
-                    cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
-                    # instead of hard coded.
-                    _ = []
-                    for ccomp in cpath_comps:
-                        if not ccomp.startswith('_'):
-                            _.append(ccomp)
-
-                    cpath_comps = _
-                    cpath_comps.append(slug)
-                    path = cpath_comps
-                else:
-                    # calculate through file system.
-                    cpath = content_fields.get_content_path()
-                    cpath_comps = cpath.path_comps
-                    basename = cpath_comps[-1]
-                    cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
-                    # instead of hard coded.
-                    _ = []
-                    for ccomp in cpath_comps:
-                        if not ccomp.startswith('_'):
-                            _.append(ccomp)
-
-                    cpath_comps = _
-                    cpath_comps.append(basename)
-                    path = cpath_comps
-
-                url_path_comps = path
-                url_object = self.__synamic.router.make_url(
-                    site,
-                    url_path_comps,
-                    for_document_type=content_fields.get_document_type()
-                )
+                url_object = self.content_fields_to_url(site, content_fields)
                 self.__url_to_text_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
 
+    def content_fields_to_url(self, site, fields):
+        assert site.get_service('contents').is_type_content_fields(fields)
+        content_fields = fields
+        # TODO: convert permalink to path and slug along with dir based url
+        path = content_fields.get('path', None)
+        slug = content_fields.get('slug', None)
+        permalink = content_fields.get('permalink', None)  # Temporarily keeping it for backward compatibility.
+        # TODO: remove it and keep path only
+        if permalink is not None:
+            path = permalink
+
+        if path is not None:
+            #  discard everything and keep it. No processing needed.
+            pass
+        elif slug is not None:
+            # calculate through file system.
+            cpath = content_fields.get_content_path()
+            cpath_comps = cpath.path_comps
+            basename = cpath_comps[-1]
+            # TODO: what to do to basename? unused!
+            cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
+            # instead of hard coded.
+            _ = []
+            for ccomp in cpath_comps:
+                if not ccomp.startswith('_'):
+                    _.append(ccomp)
+
+            cpath_comps = _
+            cpath_comps.append(slug)
+            path = cpath_comps
+        else:
+            # calculate through file system.
+            cpath = content_fields.get_content_path()
+            cpath_comps = cpath.path_comps
+            basename = cpath_comps[-1]
+            cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
+            # instead of hard coded.
+            _ = []
+            for ccomp in cpath_comps:
+                if not ccomp.startswith('_'):
+                    _.append(ccomp)
+
+            cpath_comps = _
+            cpath_comps.append(basename)
+            path = cpath_comps
+
+        url_path_comps = path
+        url_object = self.__synamic.router.make_url(
+            site,
+            url_path_comps,
+            for_document_type=content_fields.get_document_type()
+        )
+        return url_object
+
+    def cpath_to_url(self, site, cpath):
+        assert self.get_path_tree(site).is_cpath_type(cpath)
+        if cpath.exists():
+            if cpath.id in self.__content_fields_cachemap[site.id]:
+                content_fields = self.__content_fields_cachemap[site.id].get(cpath.id, None)
+                if content_fields is not None:
+                    return self.content_fields_to_url(content_fields)
+            else:
+                # try STATIC FILE
+                url_object = self.__synamic.router.make_url(
+                    site,
+                    cpath.path_comps,
+                    for_document_type=DocumentType.NONE  # TODO: these should not be NONE, there should be a better way.
+                )
+                return url_object
+        return None
+
+    def to_url(self, site, param):
+        if self.get_path_tree(site).is_cpath_type(param):
+            return self.cpath_to_url(site, param)
+        elif site.get_service('contents').is_type_content_fields(param):
+            return self.content_fields_to_url(site, param)
+        elif isinstance(param, ContentContract):
+            if DocumentType.is_text(param.document_type):
+                url_object = self.content_fields_to_url(site, param.fields)
+            else:
+                # For STATIC Files
+                assert DocumentType.is_binary(param.document_type)
+                url_object = self.__synamic.router.make_url(
+                    site,
+                    param.path_object.path_comps,
+                    for_document_type=param.document_type
+                )
+        else:
+            raise Exception('Invalid type of param for getting url.')
+        return url_object
+
     #  @loaded
-    def get_content_meta(self, site, path):
+    def get_content_fields(self, site, path):
         path_tree = site.get_service('path_tree')
         path = path_tree.create_cpath(path)
         if site.synamic.env['backend'] == 'database':
             raise NotImplemented
         else:
             # file backend
-            return self.__content_fields_cachemap[site.id][path.path_comps]
+            return self.__content_fields_cachemap[site.id][path.id]
 
     #  @loaded
     def get_text_content(self, site, path):
@@ -161,6 +206,8 @@ class ObjectManager:
             file_cpath = path_tree.create_file_cpath(contents_dir + '/' + path)
         else:
             file_cpath = path
+        if not file_cpath.exists():
+            return None
         md_content = content_service.make_md_content(file_cpath)
         return md_content
 
@@ -232,15 +279,34 @@ class ObjectManager:
         path_tree = site.get_service('path_tree')
         return path_tree
 
-    def get_url(self, url_str):
+    def get_url(self, site, url_str):
+        _url_str_bk = url_str
         url_str = url_str.strip()
         low_url = url_str.lower()
         if low_url.startswith('http://') or low_url.startswith('https://') or low_url.startswith('ftp://'):
             return url_str
-        elif low_url.startswith('geturl://'):
-            new_url = url_str[len('geturl://'):]
+
+        if low_url.startswith('geturl://'):
+            get_url_content = url_str[len('geturl://'):]
         else:
-            new_url = url_str
+            get_url_content = url_str
+
+        result_url = None
+        url_for, for_value = get_url_content.split(':')
+        assert url_for in ('file', 'sass')
+        if url_for == 'file':
+            file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
+            result_url = self.cpath_to_url(site, file_cpath)
+        elif url_for == 'sass':
+            # TODO: implement this
+            raise NotImplemented
+        else:  # content
+            raise NotImplemented
+
+        if result_url is None:
+            raise Exception('File not found: %s' % _url_str_bk)
+        else:
+            return result_url.url_encoded
 
     def get_site_settings(self, site):
         ss = self.__site_settings_cachemap.get(site.id, None)
@@ -301,8 +367,8 @@ class ObjectManager:
         def site(self):
             return self.__site
 
-        def get_content_meta(self, path):
-            return self.__object_manager.get_content_meta(self.site, path)
+        def get_content_fields(self, path):
+            return self.__object_manager.get_content_fields(self.site, path)
 
         def get_text_content(self, path):
             return self.__object_manager.get_text_content(self.site, path)

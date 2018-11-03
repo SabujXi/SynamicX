@@ -23,7 +23,7 @@ class SynamicRenderer(mistune.Renderer):
         lsrc = src.lower()
         if lsrc.startswith('geturl://'):
             _url = src[len('geturl://'):]
-            url = self.__site.get_url(_url)
+            url = self.__site.object_manager.get_url(_url)
         else:
             url = src
         return "<img src='%s' title='%s' alt='%s' class='img-responsive center-block'>" % (url, title, alt_text)
@@ -32,7 +32,7 @@ class SynamicRenderer(mistune.Renderer):
         ll = link.lower()
         if ll.startswith('geturl://'):
             _url = link[len('geturl://'):]
-            url = self.__site.get_url(_url)
+            url = self.__site.object_manager.get_url(_url)
         else:
             url = link
         return "<a href='%s' title='%s'>%s</a>" % (url, title, content)

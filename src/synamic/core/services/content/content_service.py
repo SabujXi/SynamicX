@@ -72,6 +72,9 @@ class ContentService:
     def load(self):
         self.__is_loaded = True
 
+    def is_type_content_fields(self, other):
+        return type(other) is _ContentFields
+
     def make_content_fields(self, fields_syd, file_cpath):
         # get dir meta syd
         # """It should not live here as it is compile time dependency"""
