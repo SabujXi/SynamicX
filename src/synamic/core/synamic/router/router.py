@@ -22,10 +22,10 @@ class RouterService:
         else:
             # step 1: search for static/binary file in file system with the path components : TODO: do for static.
             # step 2 if 1 fails: search for non-static content and in this case the url is already cached.
-            url_object = ContentUrl(site, path_components, DocumentType.NONE)
+            url_object = self.make_url(site, path_components, DocumentType.NONE)
             content = self.get_content_by_url(site, url_object)
             if content is None:
-                url_object = ContentUrl(site, path_components, DocumentType.HTML_DOCUMENT)
+                url_object = self.make_url(site, path_components, DocumentType.HTML_DOCUMENT)
                 content = self.get_content_by_url(site, url_object)
         return content
 
@@ -46,7 +46,6 @@ class RouterService:
             file_cpath = contents_dir_cpath.join(fs_path, is_file=True)
 
             if file_cpath.exists():
-                print('Exists: %s' % str(file_cpath))
                 return site.object_manager.get_binary_content(file_cpath)
             else:
                 return None

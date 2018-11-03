@@ -138,7 +138,6 @@ class ObjectManager:
                     url_path_comps,
                     for_document_type=content_fields.get_document_type()
                 )
-                print(url_object)
                 self.__url_to_text_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
 
     #  @loaded
