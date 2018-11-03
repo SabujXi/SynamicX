@@ -24,9 +24,9 @@ class RouterService:
             # step 2 if 1 fails: search for non-static content and in this case the url is already cached.
             url_object = ContentUrl(site, path_components, DocumentType.NONE)
             content = self.get_content_by_url(site, url_object)
-            # if content is None:
-            #     url_object = ContentUrl(site, path_components, DocumentType.HTML_DOCUMENT)
-            #     content = self.get_content_by_url(site, url_object)
+            if content is None:
+                url_object = ContentUrl(site, path_components, DocumentType.HTML_DOCUMENT)
+                content = self.get_content_by_url(site, url_object)
         return content
 
     def get_content_by_url(self, site, url_object):
@@ -41,10 +41,12 @@ class RouterService:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
             contents_dir = self.__synamic.default_configs.get('dirs')['contents.contents']
             contents_dir_cpath = site.object_manager.get_path_tree().create_dir_cpath(contents_dir)
-            file_cpath = contents_dir_cpath.join(url_object.to_file_system_path, is_file=True)
+            fs_path = url_object.to_file_system_path
+            fs_path = fs_path.rstrip('/\\')
+            file_cpath = contents_dir_cpath.join(fs_path, is_file=True)
 
             if file_cpath.exists():
-                print("Cpath %s exists" % str(file_cpath))
+                print('Exists: %s' % str(file_cpath))
                 return site.object_manager.get_binary_content(file_cpath)
             else:
                 return None

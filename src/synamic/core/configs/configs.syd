@@ -12,3 +12,7 @@ nourl_content_dirs_sw: _
 # children sites dir name
 subsites_dir: sites
 
+# Dynamic content directory meta.
+# metas are just like compile time dependencies.
+# during content/fields loading those values will be inserted into the contents.
+dir_meta_file_name: .meta.syd

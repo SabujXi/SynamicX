@@ -2,7 +2,7 @@ from collections import defaultdict, OrderedDict
 from synamic.core.contracts import DocumentType
 from synamic.core.services.content.functions.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
-from synamic.core.parsing_systems.curlybrace_parser import Syd
+from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 
 
@@ -23,6 +23,9 @@ class ObjectManager:
 
         # url object to contents
         self.__url_to_text_content_paths_cachemap = defaultdict(dict)
+
+        # syd cachemap
+        self.__cpath_to_syd_cachemap = defaultdict(dict)
 
         self.__is_loaded = False
 
@@ -135,6 +138,7 @@ class ObjectManager:
                     url_path_comps,
                     for_document_type=content_fields.get_document_type()
                 )
+                print(url_object)
                 self.__url_to_text_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
 
     #  @loaded
@@ -186,20 +190,30 @@ class ObjectManager:
 
     @staticmethod
     def empty_syd():
-        return Syd('')
+        return SydParser('').parse()
 
     def get_raw_data(self, site, path) -> str:
-        path = self.get_path_tree(site).create_file_cpath(path)
+        path_tree = self.get_path_tree(site)
+        if not path_tree.is_cpath_type(path):
+            path = path_tree.create_file_cpath(path)
         with path.open('r', encoding='utf-8') as f:
             text = f.read()
         return text
 
-    def get_syd(self, site, path) -> Syd:
-        syd = Syd(self.get_raw_data(site, path)).parse()
+    def get_syd(self, site, path):
+        path_tree = self.get_path_tree(site)
+        if not path_tree.is_cpath_type(path):
+            path = path_tree.create_file_cpath(path)
+
+        if path in self.__cpath_to_syd_cachemap:
+            syd = self.__cpath_to_syd_cachemap[path]
+        else:
+            syd = SydParser(self.get_raw_data(site, path)).parse()
+            self.__cpath_to_syd_cachemap[path] = syd
         return syd
 
     def make_syd(self, raw_data):
-        syd = Syd(raw_data).parse()
+        syd = SydParser(raw_data).parse()
         return syd
 
     def get_model(self, site, model_name):
@@ -309,7 +323,7 @@ class ObjectManager:
         def get_raw_data(self, path) -> str:
             return self.__object_manager.get_raw_data(self.site, path)
 
-        def get_syd(self, path) -> Syd:
+        def get_syd(self, path):
             return self.__object_manager.get_syd(self.site, path)
 
         def make_syd(self, raw_data):

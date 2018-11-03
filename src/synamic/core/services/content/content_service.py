@@ -22,12 +22,13 @@ _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
 
 class _ContentFields(dict):
-    def __init__(self, site, content_file_path, model, content_id, document_type, *a, **kwa):
+    def __init__(self, site, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa):
         self.__site = site
         self.__content_file_path = content_file_path
         self.__model = model
         self.__content_id = content_id
         self.__document_type = document_type
+        self.__raw_fields = raw_fileds
         super().__init__(*a, *kwa)
 
     def clone(self):
@@ -52,6 +53,9 @@ class _ContentFields(dict):
     def get_document_type(self):
         return self.__document_type
 
+    def get_raw_fields(self):
+        return self.__raw_fields
+
 
 class ContentService:
     __slots__ = ('__site', '__is_loaded', '__contents_by_id', '__dynamic_contents', '__auxiliary_contents')
@@ -68,12 +72,29 @@ class ContentService:
     def load(self):
         self.__is_loaded = True
 
-    def make_content_fields(self, fields_syd, file_path):
+    def make_content_fields(self, fields_syd, file_cpath):
+        # get dir meta syd
+        # """It should not live here as it is compile time dependency"""
+        # each field from meta syd will be converted with individual content model and site type system.
+        dir_meta_file_name = self.__site.default_configs.get('configs')['dir_meta_file_name']
+        _syd = self.__site.object_manager.empty_syd()
+        parent_cpaths = file_cpath.parent_cpaths
+        for dir_cpath in parent_cpaths:
+            dir_meta_cfile = dir_cpath.join(dir_meta_file_name, is_file=True)
+            if dir_meta_cfile.exists():
+                dir_meta_syd = self.__site.object_manager.get_syd(dir_meta_cfile)
+                _syd = _syd.new(dir_meta_syd)
+        else:  # for else when loop ended normally without using break.
+            fields_syd = _syd.new(fields_syd)
+
         types = self.__site.get_service('types')
-        content_type = DocumentType.TEXT_DOCUMENT
+        # TODO: what is the document type???
+        document_type = DocumentType.HTML_DOCUMENT
         model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
         model = self.__site.object_manager.get_model(model_name)
-        content_fields = _ContentFields(self.__site, file_path, model, file_path.id, DocumentType.HTML_DOCUMENT)
+        content_fields = _ContentFields(self.__site, file_cpath, model, file_cpath.id, document_type, fields_syd)
+
+        # convert with type system.
         for key in fields_syd.keys():
             if key in model:
                 model_field = model[key]

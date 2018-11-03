@@ -1,6 +1,6 @@
 import os
 from pprint import pprint
-from synamic.core.parsing_systems.curlybrace_parser import Syd
+from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.synamic import Synamic
 from synamic.core.object_manager import ObjectManager
 
@@ -15,11 +15,11 @@ def bootstrap(site_root):
         text = f.read()
 
     # > debug delete: settings value display.
-    settings_syd = Syd(text, None).parse()
+    settings_syd = SydParser(text, None).parse()
     for key, value in settings_syd.items():
         print(key, ' => ', value)
 
-    print('\n ---- Syd __str__ ----- \n')
+    print('\n ---- SydParser __str__ ----- \n')
     pprint(settings_syd)
     # < debug delete
 
@@ -28,7 +28,7 @@ def bootstrap(site_root):
     fn = os.path.join('A:\MyProjects\PersonalProjects\AdvancedSiteGenerator\Synamic\src\synamic\core\configs\dirs.syd')
     with open(fn) as f:
         text = f.read()
-    dirs_tree = Syd(text, None).parse()
+    dirs_tree = SydParser(text, None).parse()
     print(dirs_tree.value)
 
     synamic = Synamic(site_root)

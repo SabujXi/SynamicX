@@ -113,14 +113,12 @@ class PathTree(object):
         """
         Create a Content Path object.
         """
-        # comps = []
-        # for path_comp in path_comps:
-        #     if type(path_comp) is self.__CPath:
-        #         assert path_comp.site is self.__site.id
-        #         comps.append(path_comp.path_comps)
-        #     else:
-        #         comps.append(path_comp)
         comps = self.to_comps(*path_comps)
+        if not is_file:
+            if comps[-1] != '':
+                comps += ('', )
+        else:
+            assert comps[-1] != ''
         path_obj = self.__CPath(self, self.__site, comps, is_file=is_file)
         return path_obj
 
@@ -252,7 +250,8 @@ class PathTree(object):
 
             if os.path.isfile(path_abs) and (files_only is True or files_only is None):
                 move_in = True
-                path_obj = self.__CPath(self, self.__site, path_comps, is_file=True)
+                # path_obj = self.__CPath(self, self.__site, path_comps, is_file=True)
+                path_obj = self.create_cpath(path_comps, is_file=True)
                 if checker is not None and not checker(path_obj):
                     move_in = False
                 elif path_base.startswith(self.__ignore_files_sw):
@@ -262,7 +261,8 @@ class PathTree(object):
                     files.append(path_obj)
 
             elif os.path.isdir(path_abs) and (directories_only is True or directories_only is None):
-                path_obj = self.__CPath(self, self.__site, path_comps, is_file=False)
+                # path_obj = self.__CPath(self, self.__site, path_comps, is_file=False)
+                path_obj = self.create_cpath(path_comps, is_file=False)
                 move_in = True
                 if checker is not None and not checker(path_obj):
                     move_in = False
@@ -297,6 +297,9 @@ class PathTree(object):
         dirs, _ = self.list_cpaths(initial_path_comps, directories_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker)
         return dirs
 
+    def is_cpath_type(self, other):
+        return type(other) is self.__CPath
+
     class __CPath:
         """
         CPath => Content Path
@@ -309,6 +312,10 @@ class PathTree(object):
             self.__cpath_comps = cpath_comps
             self.__site = site
             self.__is_file = is_file
+            if is_file:
+                assert cpath_comps[-1] != ''
+            else:
+                assert cpath_comps[-1] == ''
 
         @property
         def site(self):
@@ -316,24 +323,26 @@ class PathTree(object):
 
         @property
         def parent_cpath(self):
-            if len(self.__cpath_comps) <= 1:
+            path_comps = self.path_comps
+            if len(path_comps) <= 1:
                 # contents/a-file
                 # contents/dirA/b-file
                 # * contents cannot have parent (==None) (Content Path is not for the site root or above dirs! SO -_-)
                 return None
-            pp = self.__path_tree.create_cpath(self.path_comps[:-1])
+            new_comps = path_comps[:-1]
+            pp = self.__path_tree.create_cpath(new_comps, is_file=False)
             assert pp.is_dir, "Logical error, inform the developer (Sabuj)"  # Just to be safe from future bug.
             return pp
 
         @property
-        def parent_cpaths(self) -> deque:
+        def parent_cpaths(self) -> tuple:
             parent_paths = deque()
             pp = self.parent_cpath
             while pp is not None:
                 parent_paths.appendleft(pp)
-                pp = pp.parent_path
+                pp = pp.parent_cpath
 
-            return parent_paths
+            return tuple(parent_paths)
 
         @property
         def relative_path(self):
@@ -344,7 +353,13 @@ class PathTree(object):
 
         @property
         def path_comps(self):
-            return tuple(self.__cpath_comps)
+            comps = self.__cpath_comps
+            # remove empty string from both ends
+            if len(comps) > 1 and comps[-1] == '':
+                comps = comps[:-1]
+            if len(comps) > 1 and comps[0] == '':
+                comps = comps[1:]
+            return tuple(comps)
 
         @property
         def abs_path(self):
@@ -412,9 +427,9 @@ class PathTree(object):
             assert self.is_file, 'Cannot call open() on a directory: %s' % self.relative_path
             return self.__path_tree.open(self.__cpath_comps, mode, *args, **kwargs)
 
-        def join(self, path_str_or_cmps, is_file=True):
+        def join(self, *path_str_or_cmps, is_file=True):
             """Creates a new path joining to this one"""
-            comps = self.__path_tree.to_comps(path_str_or_cmps)  # [p for p in re.split(r'[\\/]+', path_str) if p != '']
+            comps = self.__path_tree.to_comps(*path_str_or_cmps) # [p for p in re.split(r'[\\/]+', path_str) if p != '']
             if self.is_dir:
                 new_path_comps = (*self.path_comps, *comps)
             else:

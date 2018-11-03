@@ -1,5 +1,5 @@
 import os
-from synamic.core.parsing_systems.curlybrace_parser import Syd
+from synamic.core.parsing_systems.curlybrace_parser import SydParser
 _BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -19,6 +19,6 @@ class DefaultConfigManager:
             sydC = self.__loaded[name]
         else:
             text = get_file_contents(name + '.syd')
-            sydC = Syd(text).parse()
+            sydC = SydParser(text).parse()
             self.__loaded[name] = sydC
         return sydC

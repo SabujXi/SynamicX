@@ -369,23 +369,23 @@ class SydContainer(__SydData):
             except IndexError:
                 raise IndexError('%d does not exist')
         else:
-            ks = key.split('.')
+            keys = key.split('.')
             try:
-                cont_tuple = tuple(t[1] for t in self.__map[ks[0]])
-                ks = ks[1:]
-                last_idx = len(ks) - 1
-                idx = 0
-                for k in ks:
+                first_key = keys[0]
+                cont_tuple = tuple(t[1] for t in self.__map[first_key])
+                keys = keys[1:]
+                last_idx = len(keys) - 1
+                for idx, _key in enumerate(keys):
                     if last_idx == idx:
                         if not cont_tuple[-1].is_container:
+                            # print('Found value is not a block - it is a scalar')
                             raise KeyError('Found value is not a block - it is a scalar')
-                    _ = cont_tuple[-1]._get_original(k, multi=multi)
+                    _ = cont_tuple[-1]._get_original(_key, multi=multi)
 
                     if multi:
                         cont_tuple = _
                     else:
                         cont_tuple = (_, )
-                    idx += 1
 
                 if multi:
                     d = cont_tuple
@@ -402,12 +402,14 @@ class SydContainer(__SydData):
         return value
 
     def __converted_value(self, key, value):
+        # raise NotImplemented
         converter = self.__converters.get(key, None)
         if converter is not None:
             value = converter(value)
         return value
 
     def set_converter(self, key, converter):
+        raise NotImplemented
         """
         Converters are supposed to be used on parent containers - keys accessing through the
         parent can provide converted value.
@@ -420,13 +422,16 @@ class SydContainer(__SydData):
             value = self._get_original(key, multi=multi)
             if not multi:
                 value = self.__converted_value(key, value.value)
+                # value = value.value
             else:
                 values = value
                 _values = []
                 for v in values:
                     _values.append(self.__converted_value(key, v))
+                    # _values.append(v)
                 value = tuple(_values)
-        except (KeyError, IndexError, AssertionError):
+        # except (KeyError, IndexError, AssertionError):
+        except (KeyError, IndexError):
             value = default
         return value
 
@@ -456,14 +461,13 @@ class SydContainer(__SydData):
                 del self.__list[idx]
 
             new_map = type(self.__map)()
-            idx = 0
-            for e in self.__list:
+            for idx, e in enumerate(self.__list):
                 if e.key not in new_map:
                     l = []
+                    new_map[e.key] = l  # Here was that deadly bug
                 else:
                     l = new_map[e.key]
                 l.append((idx, e))
-                idx += 1
             self.__map = new_map
 
     def __delitem__(self, key):
@@ -563,7 +567,7 @@ class _ParseState(enum.Enum):
         return str(self)
 
 
-class Syd:
+class SydParser:
     def __init__(self, text, debug=False):
         self.__text = text
         self.__debug = debug
@@ -606,12 +610,11 @@ class Syd:
         return len(self.__parse_states)
 
     def parse(self):  # (-1)
-        if len(self.__lines) == 0:
-            return
-        assert self.__current_line_no == 0
-        self.__enter_state(_ParseState.processing_block)
-        self.__process_block('__root__')  # root doc is considered a single block.
-        self.__leave_state(_ParseState.processing_block)
+        if len(self.__lines) != 0:
+            assert self.__current_line_no == 0
+            self.__enter_state(_ParseState.processing_block)
+            self.__process_block('__root__')  # root doc is considered a single block.
+            self.__leave_state(_ParseState.processing_block)
         return self.__tree
 
     def __process_block(self, key, block_type=None):  # (0)
@@ -1048,8 +1051,8 @@ if __name__ == '__main__':
     max1: 5
     lis1: xx
     """
-    s = Syd(text, None, debug=True)
-    s2 = Syd(text2, None, debug=True)
+    s = SydParser(text, None, debug=True)
+    s2 = SydParser(text2, None, debug=True)
     print("--- parsing ----")
     tree = s.parse()
     tree2 = s2.parse()
