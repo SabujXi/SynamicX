@@ -10,7 +10,7 @@
 
 import configparser, json, toml
 from synamic.core.standalones.functions.yaml_processor import load_yaml
-from synamic.core.services.filesystem.content_path import _CPath
+from synamic.core.services.filesystem.path_tree import _CPath
 from synamic.core.parsing_systems.document_parser import FieldParser
 from synamic.core.standalones.functions.decorators import not_loaded
 

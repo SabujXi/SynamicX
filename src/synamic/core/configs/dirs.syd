@@ -6,6 +6,12 @@
 # contents
 contents {
     contents: /contents
+
+    # statics
+    statics: ${ contents }/statics
+
+    # assets / pre-process that will be pre-processed or so
+    pre_process: ${ contents }/.pre_process
 }
 
 # meta
@@ -28,17 +34,6 @@ sites: {
     sites: /sites
 }
 
-# assets that will be pre-processed or so
-assets: {
-    assets: /assets
-    sass: ${assets}/sass
-}
-
-# statics
-statics: {
-    statics: /statics
-}
-
 # upload
 uploads: {
     uploads: /uploads
@@ -59,8 +54,9 @@ cache: {
 # so the file name directly maps to the url
 # if another url collides with another one then an error will be reported.
 # these files are not put in db if db backend is used.
-root_files: {
-    root_files: /root_files
-}
+// idea DUMPED as the contents dir will handle all the contents from static, pre process to marked.
+# root_files: {
+#    root_files: /root_files
+# }
 
 # }

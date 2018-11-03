@@ -105,11 +105,12 @@ class EventSystem:
 
     @classmethod
     def get_event_system(cls, site):
-        return cls.__instances_map.get(site, None)
+        # return cls.__instances_map.get(site, None)
+        raise NotImplemented
 
-    def __init__(self, site):
-        assert site not in self.__instances_map
-        self.__instances_map[site] = self
+    def __init__(self, site_or_synamic):
+        assert site_or_synamic not in self.__instances_map
+        self.__instances_map[site_or_synamic] = self
         #  event maps: key => event type, value => ordered dict of event handlers
         self.__get_trigger_count = 0
         self.__event_map = {}

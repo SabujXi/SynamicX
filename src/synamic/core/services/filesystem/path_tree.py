@@ -11,7 +11,8 @@
 import os
 import re
 from collections import deque
-from synamic.core.services.filesystem.content_path import _CPath
+from collections.__init__ import deque
+regex_type = type(re.compile(""))
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 
 
@@ -40,62 +41,87 @@ class PathTree(object):
         self.__is_loaded = True
 
     @classmethod
-    def to_comps(cls, path_comp):
+    def __str_path_to_comps(cls, path_str):
+        # converting sting paths like ('x', 'a/b\\path_comp_str') to ('x', 'a', 'b', 'path_comp_str')
+        # assert path_str.strip() != ''  # by empty path we mean site root
+        str_comps = []
+        for path_comp_str in _Patterns.path_sep.split(path_str):
+            path_comp_str = path_comp_str.strip()
+            str_comps.append(path_comp_str)
+        return str_comps
+
+    @classmethod
+    def __sequence_path_to_comps(cls, path_sequence):
+        str_comps = []
+        for path_comp in path_sequence:
+            if isinstance(path_comp, str):
+                str_comps.extend(cls.__str_path_to_comps(path_comp))
+            elif isinstance(path_comp, (list, tuple)):
+                str_comps.extend(cls.__sequence_path_to_comps(path_comp))
+            else:
+                raise Exception('Invalid component type for path: %s' % str(type(path_comp)))
+        return str_comps
+
+    @classmethod
+    def to_comps(cls, *path_comps):
         comps = []
-        if type(path_comp) is str:
-            path_str = path_comp
-            # assert path_str.strip() != ''  # by empty path we mean site root
-            path_str = os.path.normpath(path_str)
-            path_comp_str_s = []
-            for path_comp_str in _Patterns.path_sep.split(path_str):
-                path_comp_str = path_comp_str.strip()
-                if path_comp_str != '':
-                    path_comp_str_s.append(path_comp_str)
-            comps.extend(path_comp_str_s)
-        elif type(path_comp) in {tuple, list}:
-            # converting sting paths like ('x', 'a/b\\path_comp_str') to ('x', 'a', 'b', 'path_comp_str')
-            _i = 0
-            while _i < len(path_comp):
-                comp_ = path_comp[_i]
-                # comp_str = os.path.normpath(comp_str)
-                path_comp_s = cls.to_comps(comp_)
-                comps.extend(path_comp_s)
-                _i += 1
-        elif type(path_comp) is _CPath:
-            comps = path_comp.path_comps
-        else:
-            raise Exception("Path comps must be list, tuple, string or _CPath object when it is not string: %s" % type(path_comp))
+        for path_comp in path_comps:
+            if isinstance(path_comp, str):
+                comps.extend(cls.__str_path_to_comps(path_comp))
+            elif isinstance(path_comp, (tuple, list)):
+                comps.extend(cls.__sequence_path_to_comps(path_comp))
+            elif type(path_comp) is cls.__CPath:
+                # TODO: should check that called and caller are in the same site. This method is clcass method
+                # and i cannot check the validity now.
+                comps.extend(path_comp.path_comps)
+            else:
+                raise Exception("Path comps must be list, tuple, string or __CPath object when it is not string: %s" % type(path_comp))
+
+        # remove empty '' part except for the first and last one
+        _ = []
+        for idx, comp in enumerate(comps):
+            if idx in {0, len(comps) - 1}:
+                # keep empty string for first and last part
+                _.append(comp)
+            else:
+                # ignore the empty string.
+                if comp != '':
+                    _.append(comp)
+        comps = _
 
         # Relative URL processing.
-        new_comps = []
-        for comp in comps:
+        _ = []
+        for idx, comp in enumerate(comps):
             if comp == '..':
-                if len(new_comps) > 0:
-                    del new_comps[-1]
+                if idx > 0:
+                    del _[-1]
             elif comp == '.':
                 # skip
                 continue
             else:
-                new_comps.append(comp)
+                _.append(comp)
+        else:
+            if _ == []:
+                _ = ['']
+            if _[0] != '':
+                _.insert(0, '')
+        comps = _
 
-        return tuple(new_comps)
-
-    @classmethod
-    def varargs_to_comps(cls, *vararg):
-        comps = []
-        for comp in vararg:
-            sub_comps = cls.to_comps(comp)
-            comps.extend(sub_comps)
         return tuple(comps)
 
-    def create_cpath(self, *path_comps, is_file=False) -> _CPath:
+    def create_cpath(self, *path_comps, is_file=False):
         """
         Create a Content Path object.
         """
-        _ = []
-        _.extend(path_comps)
-        comps = self.to_comps(_)
-        path_obj = _CPath(self, self.__site, comps, is_file=is_file)
+        # comps = []
+        # for path_comp in path_comps:
+        #     if type(path_comp) is self.__CPath:
+        #         assert path_comp.site is self.__site.id
+        #         comps.append(path_comp.path_comps)
+        #     else:
+        #         comps.append(path_comp)
+        comps = self.to_comps(*path_comps)
+        path_obj = self.__CPath(self, self.__site, comps, is_file=is_file)
         return path_obj
 
     def create_file_cpath(self, *path_comps):
@@ -105,22 +131,22 @@ class PathTree(object):
         return self.create_cpath(*path_comps, is_file=False)
 
     def exists(self, *path) -> bool:
-        comps = self.varargs_to_comps(*path)
+        comps = self.to_comps(*path)
         """Checks existence relative to the root"""
         return True if os.path.exists(self.__full_path(comps)) else False
 
     def is_file(self, *path) -> bool:
-        comps = self.varargs_to_comps(*path)
+        comps = self.to_comps(*path)
         fn = self.__full_path(comps)
         return True if os.path.isfile(fn) else False
 
     def is_dir(self, *path) -> bool:
-        comps = self.varargs_to_comps(*path)
+        comps = self.to_comps(*path)
         fn = self.__full_path(comps)
         return True if os.path.isdir(fn) else False
 
-    def join(self, *content_paths) -> _CPath:
-        comps = self.varargs_to_comps(*content_paths)
+    def join(self, *content_paths):
+        comps = self.to_comps(*content_paths)
         return self.create_cpath(comps)
 
     def open(self, file_path, *args, **kwargs):
@@ -129,18 +155,38 @@ class PathTree(object):
         return open(fn, *args, **kwargs)
 
     def makedirs(self, *dir_path):
-        comps = self.varargs_to_comps(*dir_path)
+        comps = self.to_comps(*dir_path)
         full_p = self.__full_path(comps)
         os.makedirs(full_p)
 
-    def get_full_path(self, comps) -> str:
-        comps = self.to_comps(comps)
-        return os.path.join(self.__site.abs_site_path, *comps)
+    @staticmethod
+    def join_comps(*comps):
+        """Comps must be strings
+        Replacement for os path join as that discards empty string instead of putting a forward slash there"""
+        _ = []
+        for idx, comp in enumerate(comps):
+            assert type(comp) is str
+            while comp.endswith(('/', '\\')):
+                comp = comp[:-1]
+            if idx > 0:
+                while comp.startswith(('/', '\\')):
+                    comp = comp[1:]
+
+            if idx not in (0, len(comps) - 1):
+                if comp == '':
+                    # ignore empty string to avoid double slash in path
+                    continue
+            _.append(comp)
+        return '/'.join(_)
+
+    def get_full_path(self, *comps) -> str:
+        comps = self.to_comps(*comps)
+        return self.join_comps(self.__site.abs_site_path, *comps)
 
     def __full_path(self, comps):
         # for internal use only where there is no normalization needed with self.to_comps
         """Comma separated arguments of path components or os.sep separated paths"""
-        return os.path.join(self.__site.abs_site_path, *comps)
+        return self.join_comps(self.__site.abs_site_path, *comps)
 
     def __list_cpaths_loop2(self, starting_comps=(), files_only=None, directories_only=None, depth=None, exclude_comps_tuples=(), checker=None):
         """
@@ -206,7 +252,7 @@ class PathTree(object):
 
             if os.path.isfile(path_abs) and (files_only is True or files_only is None):
                 move_in = True
-                path_obj = _CPath(self, self.__site, path_comps, is_file=True)
+                path_obj = self.__CPath(self, self.__site, path_comps, is_file=True)
                 if checker is not None and not checker(path_obj):
                     move_in = False
                 elif path_base.startswith(self.__ignore_files_sw):
@@ -216,7 +262,7 @@ class PathTree(object):
                     files.append(path_obj)
 
             elif os.path.isdir(path_abs) and (directories_only is True or directories_only is None):
-                path_obj = _CPath(self, self.__site, path_comps, is_file=False)
+                path_obj = self.__CPath(self, self.__site, path_comps, is_file=False)
                 move_in = True
                 if checker is not None and not checker(path_obj):
                     move_in = False
@@ -231,7 +277,7 @@ class PathTree(object):
         return directories, files
 
     def list_cpaths(self, initial_path_comps=(), files_only=None, directories_only=None, depth=None, exclude_compss=(), checker=None):
-        if type(initial_path_comps) is _CPath:
+        if type(initial_path_comps) is self.__CPath:
             starting_comps = initial_path_comps.path_components
         else:
             starting_comps = self.to_comps(initial_path_comps)
@@ -250,3 +296,189 @@ class PathTree(object):
     def list_dir_cpaths(self, initial_path_comps='', depth=None, exclude_compss=(), checker=None):
         dirs, _ = self.list_cpaths(initial_path_comps, directories_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker)
         return dirs
+
+    class __CPath:
+        """
+        CPath => Content Path
+        Convention:
+        1. Content Path will be indicated as cpath
+        2. String Path will be indicated as path
+        """
+        def __init__(self, path_tree, site, cpath_comps, is_file=True):
+            self.__path_tree = path_tree
+            self.__cpath_comps = cpath_comps
+            self.__site = site
+            self.__is_file = is_file
+
+        @property
+        def site(self):
+            return self.__site
+
+        @property
+        def parent_cpath(self):
+            if len(self.__cpath_comps) <= 1:
+                # contents/a-file
+                # contents/dirA/b-file
+                # * contents cannot have parent (==None) (Content Path is not for the site root or above dirs! SO -_-)
+                return None
+            pp = self.__path_tree.create_cpath(self.path_comps[:-1])
+            assert pp.is_dir, "Logical error, inform the developer (Sabuj)"  # Just to be safe from future bug.
+            return pp
+
+        @property
+        def parent_cpaths(self) -> deque:
+            parent_paths = deque()
+            pp = self.parent_cpath
+            while pp is not None:
+                parent_paths.appendleft(pp)
+                pp = pp.parent_path
+
+            return parent_paths
+
+        @property
+        def relative_path(self):
+            """
+            Relative paths are relative from site root.
+            """
+            return self.__path_tree.join_comps(*self.__cpath_comps).replace('\\', '/')
+
+        @property
+        def path_comps(self):
+            return tuple(self.__cpath_comps)
+
+        @property
+        def abs_path(self):
+            return self.__path_tree.get_full_path(self.__cpath_comps)
+
+        @property
+        def is_file(self):
+            return self.__is_file
+
+        @property
+        def is_dir(self):
+            return not self.__is_file
+
+        @property
+        def basename(self):
+            """
+            Relative base name
+            """
+            return self.__cpath_comps[-1]
+
+        @property
+        def dirname_comps(self):
+            """
+            Relative dirname
+            """
+            return self.__cpath_comps[:-1]
+
+        @property
+        def extension(self, dot_count=1):
+            if self.is_file:
+                dotted_parts = self.basename.rsplit(".", maxsplit=dot_count)
+                if not len(dotted_parts) < dot_count + 1:
+                    return ".".join(dotted_parts[-dot_count:])
+            return ''
+
+        def list_paths(self, initial_comps=(), depth=None):
+            comps = self.__path_tree.to_comps(initial_comps)
+            comps = (*self.__cpath_comps, *comps)
+            return self.__path_tree.list_cpaths(
+                initial_path_comps=comps,
+                depth=depth
+            )
+
+        def list_files(self, initial_comps=(), depth=None):
+            comps = self.__path_tree.to_comps(initial_comps)
+            comps = (*self.__cpath_comps, *comps)
+            return self.__path_tree.list_file_cpaths(
+                initial_path_comps=comps,
+                depth=depth
+            )
+
+        def list_dirs(self, initial_comps=(), depth=None):
+            comps = self.__path_tree.to_comps(initial_comps)
+            comps = (*self.__cpath_comps, *comps)
+            return self.__path_tree.list_dir_cpaths(
+                initial_path_comps=comps,
+                depth=depth
+            )
+
+        def exists(self):
+            """Real time checking"""
+            return self.__path_tree.exists(self.__cpath_comps)
+
+        def open(self, mode, *args, **kwargs):
+            assert self.is_file, 'Cannot call open() on a directory: %s' % self.relative_path
+            return self.__path_tree.open(self.__cpath_comps, mode, *args, **kwargs)
+
+        def join(self, path_str_or_cmps, is_file=True):
+            """Creates a new path joining to this one"""
+            comps = self.__path_tree.to_comps(path_str_or_cmps)  # [p for p in re.split(r'[\\/]+', path_str) if p != '']
+            if self.is_dir:
+                new_path_comps = (*self.path_comps, *comps)
+            else:
+                new_path_comps = (*self.path_comps[:-1], self.path_comps[-1] + comps[0], *comps[1:])
+            return self.__path_tree.create_cpath(new_path_comps, is_file=is_file)
+
+        @staticmethod
+        def __process_regex(regex, ignorecase=True):
+            """Matches against relative path"""
+            if isinstance(regex, str):
+                if ignorecase:
+                    regex = re.compile(regex, re.IGNORECASE)
+                else:
+                    regex = re.compile(regex, re.IGNORECASE)
+            else:
+                assert type(regex) is regex_type, "regex argument must provide compiled regular expression or string"
+            return regex
+
+        def match(self, regex, ignorecase=True):
+            """Matches against relative path"""
+            regex = self.__process_regex(regex, ignorecase)
+            return regex.match(self.relative_path)
+
+        def match_basename(self, regex, ignorecase=True):
+            """"""
+            regex = self.__process_regex(regex, ignorecase)
+            return regex.match(self.basename)
+
+        def match_extension(self, regex, ignorecase=True):
+            """"""
+            regex = self.__process_regex(regex, ignorecase)
+            return regex.match(self.extension)
+
+        def startswith(self, *comps):
+            ccomps = self.__path_tree.to_comps(comps)
+            if not (len(self.path_comps) < len(ccomps)):
+                if self.path_comps[:len(ccomps)] == ccomps:
+                    return True
+            return False
+
+        def endswith(self, *comps):
+            ccomps = self.__path_tree.to_comps(comps)
+            if not (len(self.path_comps) < len(ccomps)):
+                if self.path_comps[-len(ccomps):] == ccomps:
+                    return True
+            return False
+
+        def getmtime(self):
+            return os.path.getmtime(self.abs_path)
+
+        @property
+        def id(self):
+            return '/'.join(self.path_comps)
+
+        def __eq__(self, other):
+            if self.path_comps == other.path_comps:
+                return True
+            return False
+
+        def __hash__(self):
+            return hash(self.path_comps)
+
+        def __str__(self):
+            return "__CPath: %s" % self.relative_path
+
+        def __repr__(self):
+            return repr(str(self))

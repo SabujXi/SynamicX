@@ -82,7 +82,6 @@ class Sites:
 
         # load all the sites.
         for site in self.__sites_map.values():
-            print(site)
             site.load()
         self.__is_loaded = True
         return self
@@ -119,7 +118,6 @@ class Sites:
         real_site_comps = self.__get_real_site_path_comps(tuple(virtual_site_comps))
         real_site_comps += (self.__default_configs.get('configs')['subsites_dir'], )
         subsites_dir_abs = os.path.join(self.__root_site_path, *real_site_comps)
-        print('subsites_dir_abs : ', subsites_dir_abs)
         if os.path.exists(subsites_dir_abs):
             subsite_ids = []
             for site_id in os.listdir(subsites_dir_abs):

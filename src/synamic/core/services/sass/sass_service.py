@@ -47,7 +47,7 @@ class SASSService:
 
     def get_static_css_path(self, scss_file_path):
         path_tree = self.__site.get_service('path_tree')
-        static_dir = self.__site.default_configs.get('dirs')['statics.statics']
+        static_dir = self.__site.default_configs.get('dirs')['contents.statics']
         scss_basename = scss_file_path.basename
         bcomps = scss_file_path.dirname_comps
         bname = scss_basename[:len(scss_basename) - len('.scss')] + '.css'

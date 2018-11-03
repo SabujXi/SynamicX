@@ -12,7 +12,6 @@ class RouterService:
 
     def get_content(self, url_str: str):
         site_id, path_components, special_components = ContentUrl.parse_requested_url(self.__synamic, url_str)
-        # print("Path comps: %s" % str(path_components))
         try:
             site = self.__synamic.sites.get_by_id(site_id)
         except KeyError:
@@ -25,9 +24,9 @@ class RouterService:
             # step 2 if 1 fails: search for non-static content and in this case the url is already cached.
             url_object = ContentUrl(site, path_components, DocumentType.NONE)
             content = self.get_content_by_url(site, url_object)
-            if content is None:
-                url_object = ContentUrl(site, path_components, DocumentType.HTML_DOCUMENT)
-                content = self.get_content_by_url(site, url_object)
+            # if content is None:
+            #     url_object = ContentUrl(site, path_components, DocumentType.HTML_DOCUMENT)
+            #     content = self.get_content_by_url(site, url_object)
         return content
 
     def get_content_by_url(self, site, url_object):
@@ -40,14 +39,13 @@ class RouterService:
                 return None
         else:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
-            statics_dir = self.__synamic.default_configs.get('dirs')['statics.statics']
             contents_dir = self.__synamic.default_configs.get('dirs')['contents.contents']
-            statics_cpath = site.object_manager.get_path_tree().create_file_cpath([statics_dir, url_object.to_file_system_path])
-            contents_cpath = site.object_manager.get_path_tree().create_file_cpath([contents_dir, url_object.to_file_system_path])
-            if statics_cpath.exists():
-                return site.object_manager.get_binary_content(statics_cpath)
-            elif contents_cpath.exists():
-                return site.object_manager.get_binary_content(contents_cpath)
+            contents_dir_cpath = site.object_manager.get_path_tree().create_dir_cpath(contents_dir)
+            file_cpath = contents_dir_cpath.join(url_object.to_file_system_path, is_file=True)
+
+            if file_cpath.exists():
+                print("Cpath %s exists" % str(file_cpath))
+                return site.object_manager.get_binary_content(file_cpath)
             else:
                 return None
 

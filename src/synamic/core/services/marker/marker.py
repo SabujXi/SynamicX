@@ -152,7 +152,6 @@ class Marker:
 
         if self.is_hierarchical:
             for _mark in _marks:
-                print(_mark)
                 _mark_maps = _mark.marks
                 if _mark_maps is not None:
                     self.__process_marks_list(_mark_maps, res_mark_objs, _mark)

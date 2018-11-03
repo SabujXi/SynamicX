@@ -16,21 +16,47 @@ from synamic.core.contracts import DocumentType
 
 class ContentUrl:
     @classmethod
+    def __str_path_to_comps(cls, path_str):
+        comps = []
+        for url_comp in re.split(r'[\\/]+', path_str):
+            comps.append(url_comp)
+        return comps
+
+    @classmethod
+    def __sequence_to_comps(cls, path_sequence):
+        comps = []
+        for url_comp in path_sequence:
+            assert isinstance(url_comp, str)
+            comps.extend(
+                cls.__str_path_to_comps(url_comp)
+            )
+        return comps
+
+    @classmethod
     def path_to_components(cls, *url_path_comps: Union[str, list, tuple]) -> tuple:
         res_url_path_comps = []
         for _comps in url_path_comps:
             if isinstance(_comps, str):
-                for url_comp in re.split(r'[\\/]+', _comps):
-                    res_url_path_comps.append(url_comp)
-
+                res_url_path_comps.extend(cls.__str_path_to_comps(_comps))
             elif isinstance(_comps, (list, tuple)):
-                for url_comp in _comps:
-                    assert isinstance(url_comp, str)
-                    res_url_path_comps.extend(
-                        cls.path_to_components(url_comp)
-                    )
+                res_url_path_comps.extend(cls.__sequence_to_comps(_comps))
+            # elif type(_comps) is cls:
+            #     res_url_path_comps.extend(_comps.path_components)
+            # unlike path component url component should not allow anothe url in to components
+            # as different site may be involved
             else:
                 raise Exception('Invalid argument for url component: %s' % str(url_path_comps))
+
+        # ignore empty ones
+        _ = []
+        for idx, comp in enumerate(res_url_path_comps):
+            if idx in (0, len(res_url_path_comps) - 1):  # sparing the first and last empty string only
+                _.append(comp)
+            else:
+                if comp != '':
+                    _.append(comp)
+                # else ignore
+        res_url_path_comps = _
 
         # ../../../ recalculation and empty string removing from middle
         _ = []
@@ -45,11 +71,6 @@ class ContentUrl:
                 else:
                     if len(_) >= 1:
                         del _[-1]
-            elif not (idx == 0 or idx == len(res_url_path_comps) - 1):  # sparing the first and last empty string only
-                if comp == '':
-                    pass  # ignore
-                else:
-                    _.append(comp)
             else:
                 _.append(comp)
         res_url_path_comps = _

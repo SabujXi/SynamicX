@@ -80,7 +80,6 @@ class ObjectManager:
         if len(self.__marker_by_id_cachemap[site.id]) == 0:
             marker_service = site.get_service('markers')
             marker_ids = marker_service.get_marker_ids()
-            print("marker_ids: %s" % str(marker_ids))
             for marker_id in marker_ids:
                 marker = marker_service.make_marker(marker_id)
                 self.__marker_by_id_cachemap[site.id][marker_id] = marker
@@ -176,7 +175,7 @@ class ObjectManager:
     def all_static_paths(self, site):
         paths = []
         path_tree = site.get_service('path_tree')
-        statics_dir = site.default_configs.get('dirs')['statics.statics']
+        statics_dir = site.default_configs.get('dirs')['contents.statics']
         contents_dir = site.default_configs.get('dirs')['contents.contents']
         paths.extend(path_tree.list_file_cpaths(statics_dir))
 
