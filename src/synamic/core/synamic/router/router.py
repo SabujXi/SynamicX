@@ -34,7 +34,7 @@ class RouterService:
         if DocumentType.is_text(url_object.for_document_type):
             content_cpath = site.object_manager.get_text_cpath_by_curl(url_object)
             if content_cpath is not None:
-                return site.object_manager.get_text_content(content_cpath)
+                return site.object_manager.get_marked_content(content_cpath)
             else:
                 return None
         else:

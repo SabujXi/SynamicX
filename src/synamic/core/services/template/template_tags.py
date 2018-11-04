@@ -30,7 +30,7 @@ class GetUrlExtension(Extension):
         return nodes.Output([call], lineno=lineno)
 
     def _get_url(self, parameter):
-        url = self.environment.site_object.object_manager.get_url(parameter)
+        url = self.environment.site_object.object_manager.geturl(parameter)
         return url
 
 

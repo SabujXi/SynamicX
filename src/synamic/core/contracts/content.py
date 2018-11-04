@@ -65,6 +65,11 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
+    def site(self):
+        pass
+
+    @property
+    @abc.abstractmethod
     def id(self):
         """
             Content id will not be of type int, it will be kept as string because there may be string id many time in our program.

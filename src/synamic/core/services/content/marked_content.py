@@ -28,6 +28,10 @@ class MarkedContentImplementation(ContentContract):
         return self.__content_id
 
     @property
+    def site(self):
+        return self.__site
+
+    @property
     def document_type(self):
         return self.__document_type
 

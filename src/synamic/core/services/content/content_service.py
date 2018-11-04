@@ -13,7 +13,8 @@ import mimetypes
 from synamic.core.services.content.functions.construct_url_object import content_construct_url_object
 from synamic.core.contracts.content import ContentContract, DocumentType
 from synamic.core.standalones.functions.decorators import not_loaded
-from synamic.core.services.content.static import StaticContent
+from synamic.core.services.content.static_content import StaticContent
+from synamic.core.services.content.generated_content import GeneratedContent
 from synamic.core.services.content.toc import Toc
 from synamic.core.services.content.marked_content import MarkedContentImplementation
 
@@ -157,11 +158,21 @@ class ContentService:
             document_type=document_type,
             mime_type=mime_type)
 
+    def build_generated_content(
+            self, url_object, content_id, file_content,
+            document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
+        return GeneratedContent(self.__site, url_object, content_id, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath, **kwargs)
+
     def make_content_fields(self, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa):
         """Just makes an instance"""
         return self.__ContentFields(self.__site, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa)
 
-    def make_content_id(self, str_id):
+    def make_content_id(self, param):
+        path_tree = self.__site.get_service('path_tree')
+        if path_tree.is_type_cpath(param):
+            str_id = param.id
+        else:
+            str_id = param
         return self.__ContentID(str_id)
 
     class __ContentFields(dict):

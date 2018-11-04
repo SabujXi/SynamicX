@@ -34,6 +34,10 @@ class StaticContent(ContentContract):
         return self.__content_id
 
     @property
+    def site(self):
+        return self.__site
+
+    @property
     def path_object(self):
         return self.__file_cpath
 

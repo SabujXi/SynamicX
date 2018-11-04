@@ -14,7 +14,7 @@ class ObjectManager:
         self.__synamic = synamic
 
         # content
-        self.__content_fields_cachemap = defaultdict(dict)
+        self.__marked_content_fields_cachemap = defaultdict(dict)
 
         # marker
         self.__marker_by_id_cachemap = defaultdict(dict)
@@ -23,7 +23,7 @@ class ObjectManager:
         self.__site_settings_cachemap = defaultdict(dict)
 
         # url object to contents
-        self.__url_to_text_content_paths_cachemap = defaultdict(dict)
+        self.__url_to_marked_content_paths_cachemap = defaultdict(dict)
 
         # syd cachemap
         self.__cpath_to_syd_cachemap = defaultdict(dict)
@@ -50,17 +50,17 @@ class ObjectManager:
         self.__is_loaded = True
 
     def _reload_for(self, site):
-        self.__content_fields_cachemap[site.id].clear()
+        self.__marked_content_fields_cachemap[site.id].clear()
         self.__marker_by_id_cachemap[site.id].clear()
-        self.__url_to_text_content_paths_cachemap[site.id].clear()
+        self.__url_to_marked_content_paths_cachemap[site.id].clear()
         self._load_for(site)
 
     def _load_for(self, site):
         self.__cache_markers(site)
-        self.__cache_content_metas(site)
-        self.__cache_urls(site)
+        self.__cache_marked_content_fields(site)
+        self.__cache_marked_content_urls(site)
 
-    def __cache_content_metas(self, site):
+    def __cache_marked_content_fields(self, site):
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
             content_service = site.get_service('contents')
             path_tree = self.get_path_tree(site)
@@ -75,7 +75,8 @@ class ObjectManager:
                     del body
                     fields_syd = self.make_syd(front_matter)
                     content_fields = content_service.build_content_fields(fields_syd, file_path)
-                    self.__content_fields_cachemap[site.id][file_path.id] = content_fields
+                    content_id = content_service.make_content_id(file_path)
+                    self.__marked_content_fields_cachemap[site.id][content_id] = content_fields
                 else:
                     # No need to cache anything about static file.
                     pass
@@ -91,11 +92,11 @@ class ObjectManager:
                 marker = marker_service.make_marker(marker_id)
                 self.__marker_by_id_cachemap[site.id][marker_id] = marker
 
-    def __cache_urls(self, site):
-        if len(self.__url_to_text_content_paths_cachemap[site.id]) == 0:
-            for content_fields in self.__content_fields_cachemap[site.id].values():
+    def __cache_marked_content_urls(self, site):
+        if len(self.__url_to_marked_content_paths_cachemap[site.id]) == 0:
+            for content_fields in self.__marked_content_fields_cachemap[site.id].values():
                 url_object = self.content_fields_to_url(site, content_fields)
-                self.__url_to_text_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
+                self.__url_to_marked_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
 
     def content_fields_to_url(self, site, fields):
         assert site.get_service('contents').is_type_content_fields(fields)
@@ -164,15 +165,17 @@ class ObjectManager:
     #  @loaded
     def get_content_fields(self, site, path):
         path_tree = site.get_service('path_tree')
+        content_service = site.get_service('contents')
         path = path_tree.create_cpath(path)
         if site.synamic.env['backend'] == 'database':
             raise NotImplemented
         else:
             # file backend
-            return self.__content_fields_cachemap[site.id][path.id]
+            content_id = content_service.make_content_id(path)
+            return self.__marked_content_fields_cachemap[site.id][content_id]
 
     #  @loaded
-    def get_text_content(self, site, path):
+    def get_marked_content(self, site, path):
         # create content, meta, set meta with converters. Setting it from here will help caching.
         # TODO: other type of contents besides md contents.
         content_service = site.get_service('contents')
@@ -255,7 +258,7 @@ class ObjectManager:
         path_tree = site.get_service('path_tree')
         return path_tree
 
-    def get_url(self, site, url_str):
+    def geturl(self, site, url_str):
         _url_str_bk = url_str
         url_str = url_str.strip()
         low_url = url_str.lower()
@@ -272,7 +275,14 @@ class ObjectManager:
         assert url_for in ('file', 'sass')
         if url_for == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
-            result_url = self.cpath_to_url(site, file_cpath)
+            content_id = site.get_service('contents').make_content_id(file_cpath)
+            if content_id in self.__cache_marked_content_fields:
+                # TRY MARKED
+                content_fileds = self.__cache_marked_content_fields
+                result_url = self.content_fields_to_url(site, content_fileds)
+            else:
+                # try STATIC
+                result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
         elif url_for == 'sass':
             # TODO: implement this
             raise NotImplemented
@@ -280,7 +290,7 @@ class ObjectManager:
             raise NotImplemented
 
         if result_url is None:
-            raise Exception('File not found: %s' % _url_str_bk)
+            raise Exception('URL not found for geturl(): %s' % _url_str_bk)
         else:
             return result_url.url_encoded
 
@@ -312,10 +322,10 @@ class ObjectManager:
     def get_cached_content_metas(self, site):
         # TODO: logic for cached content metas
         # - when to use it when not (when not cached)
-        return self.__content_fields_cachemap[site].copy()
+        return self.__marked_content_fields_cachemap[site].copy()
 
     def get_text_cpath_by_curl(self, site, url_object, default=None):
-        content_cpath = self.__url_to_text_content_paths_cachemap[site.id].get(url_object, default)
+        content_cpath = self.__url_to_marked_content_paths_cachemap[site.id].get(url_object, default)
         return content_cpath
 
     class __ObjectManagerForSite:
@@ -347,7 +357,7 @@ class ObjectManager:
             return self.__object_manager.get_content_fields(self.site, path)
 
         def get_text_content(self, path):
-            return self.__object_manager.get_text_content(self.site, path)
+            return self.__object_manager.get_marked_content(self.site, path)
 
         def get_binary_content(self, path):
             return self.__object_manager.get_binary_content(self.site, path)
@@ -380,7 +390,7 @@ class ObjectManager:
             return self.__object_manager.get_path_tree(self.site)
 
         def get_url(self, url_str):
-            return self.__object_manager.get_url(self.site, url_str)
+            return self.__object_manager.geturl(self.site, url_str)
 
         def get_site_settings(self):
             return self.__object_manager.get_site_settings(self.site)

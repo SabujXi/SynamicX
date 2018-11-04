@@ -12,7 +12,7 @@ class Chapter:
             l = self.__chapter_field.get('link').value.strip()
             if l.startswith('geturl://'):
                 gurl = l[len('geturl://'):]
-                link = self.__config.get_url(gurl)
+                link = self.__config.geturl(gurl)
             else:
                 link = l
             self.__link = link

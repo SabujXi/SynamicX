@@ -63,7 +63,9 @@ class PathTree(object):
         return str_comps
 
     @classmethod
-    def to_comps(cls, *path_comps):
+    def to_cpath_comps(cls, *path_comps):
+        """Creates special cpath components that can have '' empty string on both ends
+        To get components (without empty string on both ends) use path_comps property on cpath object"""
         comps = []
         for path_comp in path_comps:
             if isinstance(path_comp, str):
@@ -113,7 +115,7 @@ class PathTree(object):
         """
         Create a Content Path object.
         """
-        comps = self.to_comps(*path_comps)
+        comps = self.to_cpath_comps(*path_comps)
         if not is_file:
             if comps[-1] != '':
                 comps += ('', )
@@ -129,31 +131,31 @@ class PathTree(object):
         return self.create_cpath(*path_comps, is_file=False)
 
     def exists(self, *path) -> bool:
-        comps = self.to_comps(*path)
+        comps = self.to_cpath_comps(*path)
         """Checks existence relative to the root"""
         return True if os.path.exists(self.__full_path(comps)) else False
 
     def is_file(self, *path) -> bool:
-        comps = self.to_comps(*path)
+        comps = self.to_cpath_comps(*path)
         fn = self.__full_path(comps)
         return True if os.path.isfile(fn) else False
 
     def is_dir(self, *path) -> bool:
-        comps = self.to_comps(*path)
+        comps = self.to_cpath_comps(*path)
         fn = self.__full_path(comps)
         return True if os.path.isdir(fn) else False
 
     def join(self, *content_paths):
-        comps = self.to_comps(*content_paths)
+        comps = self.to_cpath_comps(*content_paths)
         return self.create_cpath(comps)
 
     def open(self, file_path, *args, **kwargs):
-        comps = self.to_comps(file_path)
+        comps = self.to_cpath_comps(file_path)
         fn = self.__full_path(comps)
         return open(fn, *args, **kwargs)
 
     def makedirs(self, *dir_path):
-        comps = self.to_comps(*dir_path)
+        comps = self.to_cpath_comps(*dir_path)
         full_p = self.__full_path(comps)
         os.makedirs(full_p)
 
@@ -178,11 +180,11 @@ class PathTree(object):
         return '/'.join(_)
 
     def get_full_path(self, *comps) -> str:
-        comps = self.to_comps(*comps)
+        comps = self.to_cpath_comps(*comps)
         return self.join_comps(self.__site.abs_site_path, *comps)
 
     def __full_path(self, comps):
-        # for internal use only where there is no normalization needed with self.to_comps
+        # for internal use only where there is no normalization needed with self.to_cpath_comps
         """Comma separated arguments of path components or os.sep separated paths"""
         return self.join_comps(self.__site.abs_site_path, *comps)
 
@@ -280,10 +282,10 @@ class PathTree(object):
         if type(initial_path_comps) is self.__CPath:
             starting_comps = initial_path_comps.path_components
         else:
-            starting_comps = self.to_comps(initial_path_comps)
+            starting_comps = self.to_cpath_comps(initial_path_comps)
         _exclude_compss = []
         for pc in exclude_compss:
-            _exclude_compss.append(self.to_comps(pc))
+            _exclude_compss.append(self.to_cpath_comps(pc))
         exclude_compss = tuple(_exclude_compss)
 
         dirs, files = self.__list_cpaths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth, exclude_comps_tuples=exclude_compss, checker=checker)
@@ -307,15 +309,26 @@ class PathTree(object):
         1. Content Path will be indicated as cpath
         2. String Path will be indicated as path
         """
-        def __init__(self, path_tree, site, cpath_comps, is_file=True):
+        def __init__(self, path_tree, site, cpath_special_comps, is_file=True):
             self.__path_tree = path_tree
-            self.__cpath_comps = cpath_comps
+            self.__cpath_special_comps = cpath_special_comps
             self.__site = site
             self.__is_file = is_file
             if is_file:
-                assert cpath_comps[-1] != ''
+                assert cpath_special_comps[-1] != ''
             else:
-                assert cpath_comps[-1] == ''
+                assert cpath_special_comps[-1] == ''
+
+            # make path comps
+            comps = self.__cpath_special_comps
+            # remove empty string from both ends
+            if len(comps) > 1 and comps[-1] == '':
+                comps = comps[:-1]
+            # the first element be '' as it can be the root. so the following code must not run.
+            # if len(comps) > 1 and comps[0] == '':
+            #     comps = comps[1:]
+
+            self.__path_comps = comps
 
         @property
         def site(self):
@@ -349,21 +362,21 @@ class PathTree(object):
             """
             Relative paths are relative from site root.
             """
-            return self.__path_tree.join_comps(*self.__cpath_comps).replace('\\', '/')
+            return self.__path_tree.join_comps(*self.__cpath_special_comps).replace('\\', '/')
 
         @property
         def path_comps(self):
-            comps = self.__cpath_comps
-            # remove empty string from both ends
-            if len(comps) > 1 and comps[-1] == '':
-                comps = comps[:-1]
-            if len(comps) > 1 and comps[0] == '':
-                comps = comps[1:]
-            return tuple(comps)
+            return tuple(self.__path_comps)
+
+        @property
+        def cpath_comps(self):
+            """Special cpath comps that can have '' empty string on both ends - path tree's to components make this
+            special components"""
+            return tuple(self.__cpath_special_comps)
 
         @property
         def abs_path(self):
-            return self.__path_tree.get_full_path(self.__cpath_comps)
+            return self.__path_tree.get_full_path(self.__cpath_special_comps)
 
         @property
         def is_file(self):
@@ -378,14 +391,14 @@ class PathTree(object):
             """
             Relative base name
             """
-            return self.__cpath_comps[-1]
+            return self.path_comps[-1]
 
         @property
         def dirname_comps(self):
             """
             Relative dirname
             """
-            return self.__cpath_comps[:-1]
+            return self.__cpath_special_comps[:-1]
 
         @property
         def extension(self, dot_count=1):
@@ -396,24 +409,27 @@ class PathTree(object):
             return ''
 
         def list_paths(self, initial_comps=(), depth=None):
-            comps = self.__path_tree.to_comps(initial_comps)
-            comps = (*self.__cpath_comps, *comps)
+            assert self.is_dir
+            comps = self.__path_tree.to_cpath_comps(initial_comps)
+            comps = (*self.path_comps, *comps)
             return self.__path_tree.list_cpaths(
                 initial_path_comps=comps,
                 depth=depth
             )
 
         def list_files(self, initial_comps=(), depth=None):
-            comps = self.__path_tree.to_comps(initial_comps)
-            comps = (*self.__cpath_comps, *comps)
+            assert self.is_dir
+            comps = self.__path_tree.to_cpath_comps(initial_comps)
+            comps = (*self.path_comps, *comps)
             return self.__path_tree.list_file_cpaths(
                 initial_path_comps=comps,
                 depth=depth
             )
 
         def list_dirs(self, initial_comps=(), depth=None):
-            comps = self.__path_tree.to_comps(initial_comps)
-            comps = (*self.__cpath_comps, *comps)
+            assert self.is_dir
+            comps = self.__path_tree.to_cpath_comps(initial_comps)
+            comps = (*self.path_comps, *comps)
             return self.__path_tree.list_dir_cpaths(
                 initial_path_comps=comps,
                 depth=depth
@@ -421,15 +437,15 @@ class PathTree(object):
 
         def exists(self):
             """Real time checking"""
-            return self.__path_tree.exists(self.__cpath_comps)
+            return self.__path_tree.exists(self.__cpath_special_comps)
 
         def open(self, mode, *args, **kwargs):
             assert self.is_file, 'Cannot call open() on a directory: %s' % self.relative_path
-            return self.__path_tree.open(self.__cpath_comps, mode, *args, **kwargs)
+            return self.__path_tree.open(self.__cpath_special_comps, mode, *args, **kwargs)
 
         def join(self, *path_str_or_cmps, is_file=True):
             """Creates a new path joining to this one"""
-            comps = self.__path_tree.to_comps(*path_str_or_cmps) # [p for p in re.split(r'[\\/]+', path_str) if p != '']
+            comps = self.__path_tree.to_cpath_comps(*path_str_or_cmps) # [p for p in re.split(r'[\\/]+', path_str) if p != '']
             if self.is_dir:
                 new_path_comps = (*self.path_comps, *comps)
             else:
@@ -464,18 +480,39 @@ class PathTree(object):
             return regex.match(self.extension)
 
         def startswith(self, *comps):
-            ccomps = self.__path_tree.to_comps(comps)
+            ccomps = self.__path_tree.to_cpath_comps(comps)
             if not (len(self.path_comps) < len(ccomps)):
                 if self.path_comps[:len(ccomps)] == ccomps:
                     return True
             return False
 
         def endswith(self, *comps):
-            ccomps = self.__path_tree.to_comps(comps)
+            ccomps = self.__path_tree.to_cpath_comps(comps)
             if not (len(self.path_comps) < len(ccomps)):
                 if self.path_comps[-len(ccomps):] == ccomps:
                     return True
             return False
+
+        def get_comps_after(self, cpath):
+            this_comps = self.path_comps
+            that_comps = cpath.path_comps
+            if that_comps == this_comps:
+                return tuple()
+            if len(this_comps) > len(that_comps):
+                # this comps must have less elements
+                return None
+            elif this_comps[1] != that_comps[1]:
+                # at least the first element
+                return None
+            else:
+                diff = []
+                for idx, this_comp in enumerate(this_comps):
+                    that_comp = that_comps[idx]
+                    if that_comp == this_comp:
+                        continue
+                    else:
+                        diff.extend(that_comps[idx + 1:])
+                return tuple(diff)
 
         def getmtime(self):
             return os.path.getmtime(self.abs_path)
