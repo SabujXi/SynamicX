@@ -324,9 +324,8 @@ class PathTree(object):
             # remove empty string from both ends
             if len(comps) > 1 and comps[-1] == '':
                 comps = comps[:-1]
-            # the first element be '' as it can be the root. so the following code must not run.
-            # if len(comps) > 1 and comps[0] == '':
-            #     comps = comps[1:]
+            if len(comps) > 1 and comps[0] == '':
+                comps = comps[1:]
 
             self.__path_comps = comps
 
@@ -501,7 +500,7 @@ class PathTree(object):
             if len(this_comps) > len(that_comps):
                 # this comps must have less elements
                 return None
-            elif this_comps[1] != that_comps[1]:
+            elif this_comps[0] != that_comps[0]:
                 # at least the first element
                 return None
             else:

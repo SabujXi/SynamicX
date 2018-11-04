@@ -97,6 +97,7 @@ class ObjectManager:
             for content_fields in self.__marked_content_fields_cachemap[site.id].values():
                 url_object = self.content_fields_to_url(site, content_fields)
                 self.__url_to_marked_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
+                print(url_object)
 
     def content_fields_to_url(self, site, fields):
         assert site.get_service('contents').is_type_content_fields(fields)
@@ -356,7 +357,7 @@ class ObjectManager:
         def get_content_fields(self, path):
             return self.__object_manager.get_content_fields(self.site, path)
 
-        def get_text_content(self, path):
+        def get_marked_content(self, path):
             return self.__object_manager.get_marked_content(self.site, path)
 
         def get_binary_content(self, path):

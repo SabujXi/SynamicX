@@ -8,7 +8,7 @@ from synamic.core.services.image_resizer.image_resizer_service import ImageResiz
 from synamic.core.services.site_settings.site_settings import SiteSettingsService
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.services.types.type_system import TypeSystem
-from synamic.core.services.sass.sass_service import SASSService
+from synamic.core.services.pre_processor import PreProcessorService
 from synamic.core.services.tasks import TasksService
 from synamic.core.services.marker import MarkerService
 from synamic.core.configs import DefaultConfigManager
@@ -37,7 +37,7 @@ def _install_default_services(site):
     self.add_service('contents', ContentService)
 
     self.add_service('image_resizer', ImageResizerService)
-    self.add_service('sass', SASSService)
+    self.add_service('pre_processor', PreProcessorService)
 
     self.add_service('tasks', TasksService)
 
