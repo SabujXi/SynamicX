@@ -32,7 +32,7 @@ class RouterService:
     def get_content_by_url(self, site, url_object):
         """Forgiving function that returns None"""
         if DocumentType.is_text(url_object.for_document_type):
-            content_cpath = site.object_manager.get_text_cpath_by_curl(url_object)
+            content_cpath = site.object_manager.get_marked_cpath_by_curl(url_object)
             if content_cpath is not None:
                 return site.object_manager.get_marked_content(content_cpath)
             else:

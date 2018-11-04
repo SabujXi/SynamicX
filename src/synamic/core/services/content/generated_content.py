@@ -80,4 +80,9 @@ class GeneratedContent(ContentContract):
 
     @property
     def file_content(self):
-        return self.__file_content if self.__file_content is not None else self.get_stream().read()
+        if self.__file_content is not None:
+            return self.__file_content
+        else:
+            with self.get_stream() as stream:
+                content = stream.read()
+                return content

@@ -1,4 +1,4 @@
-from collections import defaultdict, OrderedDict
+from collections import defaultdict, OrderedDict, namedtuple
 from synamic.core.contracts import DocumentType
 from synamic.core.services.content.functions.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
@@ -9,27 +9,12 @@ from synamic.core.contracts import ContentContract, DocumentType
 
 class ObjectManager:
     def __init__(self, synamic):
-        self.__site_object_managers = OrderedDict({})
-
         self.__synamic = synamic
 
-        # content
-        self.__marked_content_fields_cachemap = defaultdict(dict)
+        self.__site_object_managers = OrderedDict({})
+        self.__site_settings = defaultdict(dict)
 
-        # marker
-        self.__marker_by_id_cachemap = defaultdict(dict)
-
-        # site settings
-        self.__site_settings_cachemap = defaultdict(dict)
-
-        # url object to contents
-        self.__url_to_marked_content_paths_cachemap = defaultdict(dict)
-
-        # syd cachemap
-        self.__cpath_to_syd_cachemap = defaultdict(dict)
-
-        # generated content cachemap
-        self.__generated_content_cachemap = defaultdict(dict)
+        self.__cache = self.__Cache(self.__synamic)
 
         self.__is_loaded = False
 
@@ -50,15 +35,13 @@ class ObjectManager:
         self.__is_loaded = True
 
     def _reload_for(self, site):
-        self.__marked_content_fields_cachemap[site.id].clear()
-        self.__marker_by_id_cachemap[site.id].clear()
-        self.__url_to_marked_content_paths_cachemap[site.id].clear()
+        self.__cache.clear_cache(site)
         self._load_for(site)
 
     def _load_for(self, site):
         self.__cache_markers(site)
         self.__cache_marked_content_fields(site)
-        self.__cache_marked_content_urls(site)
+        self.__cache_pre_processed_contents(site)
 
     def __cache_marked_content_fields(self, site):
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
@@ -75,8 +58,11 @@ class ObjectManager:
                     del body
                     fields_syd = self.make_syd(front_matter)
                     content_fields = content_service.build_content_fields(fields_syd, file_path)
+                    # TODO: now content id is considered url - what to do with content id?
                     content_id = content_service.make_content_id(file_path)
-                    self.__marked_content_fields_cachemap[site.id][content_id] = content_fields
+                    url_object = self.content_fields_to_url(site, content_fields)
+                    self.__cache.add_marked_content_fields(site, content_fields, url_object)
+                    # self.__marked_content_fields_cachemap[site.id][content_id] = content_fields
                 else:
                     # No need to cache anything about static file.
                     pass
@@ -85,19 +71,21 @@ class ObjectManager:
             # database backend is not implemented yet. AND there is nothing to do here for db, skip it when implemented
 
     def __cache_markers(self, site):
-        if len(self.__marker_by_id_cachemap[site.id]) == 0:
-            marker_service = site.get_service('markers')
-            marker_ids = marker_service.get_marker_ids()
-            for marker_id in marker_ids:
-                marker = marker_service.make_marker(marker_id)
-                self.__marker_by_id_cachemap[site.id][marker_id] = marker
+        marker_service = site.get_service('markers')
+        marker_ids = marker_service.get_marker_ids()
+        for marker_id in marker_ids:
+            marker = marker_service.make_marker(marker_id)
+            self.__cache.add_marker(site, marker_id, marker)
+            # self.__marker_by_id_cachemap[site.id][marker_id] = marker
 
-    def __cache_marked_content_urls(self, site):
-        if len(self.__url_to_marked_content_paths_cachemap[site.id]) == 0:
-            for content_fields in self.__marked_content_fields_cachemap[site.id].values():
-                url_object = self.content_fields_to_url(site, content_fields)
-                self.__url_to_marked_content_paths_cachemap[site.id][url_object] = content_fields.get_content_path()
-                print(url_object)
+    def __cache_pre_processed_contents(self, site):
+        pre_processor_service = site.get_service('pre_processor')
+        pre_processors = pre_processor_service.pre_processors
+        for pre_processor in pre_processors:
+            generated_contents = pre_processor.get_generated_contents()
+            for generated_content in generated_contents:
+                self.__cache.add_pre_processed_content(site, generated_content)
+                # self.__pre_processed_content_cachemap[site.id][generated_content.id] = generated_content
 
     def content_fields_to_url(self, site, fields):
         assert site.get_service('contents').is_type_content_fields(fields)
@@ -164,7 +152,7 @@ class ObjectManager:
         return url_object
 
     #  @loaded
-    def get_content_fields(self, site, path):
+    def get_content_fields(self, site, path, default=None):
         path_tree = site.get_service('path_tree')
         content_service = site.get_service('contents')
         path = path_tree.create_cpath(path)
@@ -173,7 +161,8 @@ class ObjectManager:
         else:
             # file backend
             content_id = content_service.make_content_id(path)
-            return self.__marked_content_fields_cachemap[site.id][content_id]
+            return self.__cache.get_marked_content_fields_by_cpath(site, path, default=default)
+            # return self.__marked_content_fields_cachemap[site.id][content_id]
 
     #  @loaded
     def get_marked_content(self, site, path):
@@ -231,11 +220,10 @@ class ObjectManager:
         if not path_tree.is_type_cpath(path):
             path = path_tree.create_file_cpath(path)
 
-        if path in self.__cpath_to_syd_cachemap:
-            syd = self.__cpath_to_syd_cachemap[path]
-        else:
+        syd = self.__cache.get_syd(site, path, default=None)
+        if syd is None:
             syd = SydParser(self.get_raw_data(site, path)).parse()
-            self.__cpath_to_syd_cachemap[path] = syd
+            self.__cache.add_syd(site, path, syd)
         return syd
 
     def make_syd(self, raw_data):
@@ -285,6 +273,7 @@ class ObjectManager:
                 # try STATIC
                 result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
         elif url_for == 'sass':
+            # pre-processor stuff. Must be in pre processed content.
             # TODO: implement this
             raise NotImplemented
         else:  # content
@@ -296,10 +285,10 @@ class ObjectManager:
             return result_url.url_encoded
 
     def get_site_settings(self, site):
-        ss = self.__site_settings_cachemap.get(site.id, None)
+        ss = self.__site_settings.get(site.id, None)
         if ss is None:
             ss = site.get_service('site_settings').make_site_settings()
-            self.__site_settings_cachemap[site.id] = ss
+            self.__site_settings[site.id] = ss
         return ss
 
     def get_content_by_segments(self, site, path_segments, pagination_segments):
@@ -307,27 +296,26 @@ class ObjectManager:
         pass
 
     def get_marker(self, site, marker_id):
-        if marker_id in self.__marker_by_id_cachemap[site.id]:
-            return self.__marker_by_id_cachemap[site.id][marker_id]
-        else:
+        marker = self.__cache.get_marker(site, marker_id, default=None)
+        if marker is None:
             raise Exception('Marker does not exist: %s' % marker_id)
+        return marker
 
     def get_markers(self, site, marker_type):
         assert marker_type in {'single', 'multiple', 'hierarchical'}
         _ = []
-        for marker in self.__marker_by_id_cachemap[site.id].values():
+        for marker in self.__cache.get_markers(site):
             if marker.type == marker_type:
                 _.append(marker)
         return _
 
-    def get_cached_content_metas(self, site):
+    def get_all_cached_marked_fields(self, site):
         # TODO: logic for cached content metas
         # - when to use it when not (when not cached)
-        return self.__marked_content_fields_cachemap[site].copy()
+        return self.__cache.get_all_marked_content_fields(site)
 
-    def get_text_cpath_by_curl(self, site, url_object, default=None):
-        content_cpath = self.__url_to_marked_content_paths_cachemap[site.id].get(url_object, default)
-        return content_cpath
+    def get_marked_cpath_by_curl(self, site, url_object, default=None):
+        return self.__cache.get_marked_cpath_by_curl(site, url_object, default=default)
 
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
@@ -390,7 +378,7 @@ class ObjectManager:
         def get_path_tree(self):
             return self.__object_manager.get_path_tree(self.site)
 
-        def get_url(self, url_str):
+        def geturl(self, url_str):
             return self.__object_manager.geturl(self.site, url_str)
 
         def get_site_settings(self):
@@ -406,14 +394,105 @@ class ObjectManager:
             return self.__object_manager.get_markers(self.site, marker_type)
 
         @property
-        def cached_content_metas(self):
-            return self.__object_manager.get_cached_content_metas(self.site)
+        def get_all_cached_marked_fields(self):
+            return self.__object_manager.get_all_cached_marked_fields(self.site)
 
-        def get_text_cpath_by_curl(self, url_object, default=None):
-            return self.__object_manager.get_text_cpath_by_curl(self.site, url_object, default=None)
+        def get_marked_cpath_by_curl(self, url_object, default=None):
+            return self.__object_manager.get_marked_cpath_by_curl(self.site, url_object, default=None)
 
         def static_content_cpath_to_url(self, cpath, for_document_type):
             return self.__object_manager.static_content_cpath_to_url(self.site, cpath, for_document_type)
 
         def content_fields_to_url(self, fields):
             return self.__object_manager.content_fields_to_url(self.site, fields)
+
+    class __Cache:
+        ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value'))
+        TYPE_CONTENT_FIELDS = 'f'
+        TYPE_PRE_PROCESSED_CONTENT = 'p'
+
+        def __init__(self, synamic):
+            self.__synamic = synamic
+
+            # marker
+            self.__marker_by_id_cachemap = defaultdict(dict)
+            # syd cachemap
+            self.__cpath_to_syd_cachemap = defaultdict(dict)
+
+            self.__contents_cachemap = defaultdict(dict)
+            # key is url object value is a named tuple of
+            # ContentCacheTuple
+
+            self.__cpath_to_content_fields = defaultdict(dict)
+
+        def __add_content(self, site, value, url_object, value_type):
+            assert url_object not in self.__contents_cachemap[site.id]
+            content_cache_tuple = self.ContentCacheTuple(type=value_type, value=value)
+            self.__contents_cachemap[site.id][url_object] = content_cache_tuple
+
+        def add_pre_processed_content(self, site, value):
+            url_object = value.url_object
+            self.__add_content(site, value, url_object, self.TYPE_PRE_PROCESSED_CONTENT)
+
+        def add_marked_content_fields(self, site, content_fields, url_object):
+            value = content_fields
+            self.__add_content(site, value, url_object, self.TYPE_CONTENT_FIELDS)
+            self.__cpath_to_content_fields[site.id][content_fields.get_content_path()] = content_fields
+
+        def get_marked_value_tuple_by_url(self, site, url_object, default=None):
+            return self.__contents_cachemap[site.id].get(url_object, default)
+
+        def get_marked_content_fields_by_url(self, site, url_object, default=None):
+            value_tuple = self.get_marked_value_tuple_by_url(site, url_object, default=None)
+            if value_tuple is not None:
+                if value_tuple.type == self.TYPE_CONTENT_FIELDS:
+                    return value_tuple.value
+            return default
+
+        def get_marked_cpath_by_curl(self, site, curl, default=None):
+            cfs = self.get_marked_content_fields_by_url(site, curl, None)
+            if cfs is None:
+                return default
+            else:
+                return cfs.get_content_path()
+
+        def get_all_marked_content_fields(self, site):
+            all_fields = []
+            for value_tuple in self.__contents_cachemap[site.id]:
+                if value_tuple.type == self.TYPE_CONTENT_FIELDS:
+                    all_fields.append(value_tuple.value)
+            return tuple(all_fields)
+
+        def get_marked_content_fields_by_cpath(self, site, cpath, default=None):
+            return self.__cpath_to_content_fields[site.id].get(cpath, default)
+
+        def add_marker(self, site, marker_id, marker):
+            self.__marker_by_id_cachemap[site.id][marker_id] = marker
+
+        def get_marker(self, site, marker_id, default=None):
+            return self.__marker_by_id_cachemap[site.id].get(marker_id, default)
+
+        def get_markers(self, site):
+            return tuple(self.__marker_by_id_cachemap[site.id].values())
+
+        def add_syd(self, site, cpath, syd):
+            self.__cpath_to_syd_cachemap[site.id][cpath] = syd
+
+        def get_syd(self, site, cpath, default=None):
+            return self.__cpath_to_syd_cachemap[site.id].get(cpath, default)
+
+        def clear_content_cache(self, site):
+            self.__contents_cachemap[site.id].clear()
+            self.__cpath_to_content_fields[site.id].clear()
+
+        def clear_marker_cache(self, site):
+            self.__marker_by_id_cachemap[site.id].clear()
+
+        def clear_syd_cache(self, site):
+            self.__cpath_to_syd_cachemap[site.id].clear()
+
+        def clear_cache(self, site):
+            """Clear all"""
+            self.clear_content_cache(site)
+            self.clear_marker_cache(site)
+            self.clear_syd_cache(site)

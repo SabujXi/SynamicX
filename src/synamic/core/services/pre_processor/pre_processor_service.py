@@ -54,5 +54,9 @@ class PreProcessorService:
         else:
             return processor
 
+    @property
+    def pre_processors(self):
+        return tuple(self.__name_to_processor.values())
+
     def __getattr__(self, key):
         return self.get_processor(key, error_out=True)

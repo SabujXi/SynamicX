@@ -495,7 +495,7 @@ class PathTree(object):
         def get_comps_after(self, cpath):
             this_comps = self.path_comps
             that_comps = cpath.path_comps
-            if that_comps == this_comps:
+            if this_comps == that_comps:
                 return tuple()
             if len(this_comps) > len(that_comps):
                 # this comps must have less elements
@@ -504,14 +504,10 @@ class PathTree(object):
                 # at least the first element
                 return None
             else:
-                diff = []
-                for idx, this_comp in enumerate(this_comps):
-                    that_comp = that_comps[idx]
-                    if that_comp == this_comp:
-                        continue
-                    else:
-                        diff.extend(that_comps[idx + 1:])
-                return tuple(diff)
+                if this_comps == tuple(that_comps[:len(this_comps)]):
+                    return that_comps[len(this_comps):]
+                else:
+                    return None
 
         def getmtime(self):
             return os.path.getmtime(self.abs_path)
