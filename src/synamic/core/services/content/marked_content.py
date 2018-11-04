@@ -46,7 +46,10 @@ class MarkedContentImplementation(ContentContract):
     def get_stream(self):
         template_name = self.__content_fields.get('template', 'default.html')
         templates = self.__site.get_service('templates')
-        res = templates.render(template_name, content=self)
+        res = templates.render(template_name, context={
+            'site': self.__site,
+            'content': self
+        })
         f = io.BytesIO(res.encode('utf-8'))
         return f
 

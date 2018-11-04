@@ -79,11 +79,23 @@ class MenuService:
         )
         return menu_obj
 
+    def get_menu_names(self):
+        menu_names = []
+        path_tree = self.__site.get_service('path_tree')
+        menu_cdir = path_tree.create_dir_cpath(self.__menu_dir)
+        menu_cfiles = menu_cdir.list_files(depth=1)
+        for menu_cfile in menu_cfiles:
+            basename = menu_cfile.basename
+            if basename.lower().endswith('.syd'):
+                menu_name = basename[:-len('.syd')]
+                menu_names.append(menu_name)
+        return tuple(menu_names)
+
     def _process_menu(self, starting_menu_syd) -> tuple:
         res_list = []
         menus = starting_menu_syd.get('menus', None)
         if menus is not None:
-            for menu in menus.values():
+            for menu in menus:
                 dict_flat = menu
                 title = dict_flat.get('title', None)
                 assert title is not None

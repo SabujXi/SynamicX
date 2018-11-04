@@ -42,6 +42,7 @@ class ObjectManager:
         self.__cache_markers(site)
         self.__cache_marked_content_fields(site)
         self.__cache_pre_processed_contents(site)
+        self.__cache_menus(site)
 
     def __cache_marked_content_fields(self, site):
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
@@ -86,6 +87,13 @@ class ObjectManager:
             for generated_content in generated_contents:
                 self.__cache.add_pre_processed_content(site, generated_content, generated_content.source_cpath)
                 # self.__pre_processed_content_cachemap[site.id][generated_content.id] = generated_content
+
+    def __cache_menus(self, site):
+        menu_service = site.get_service('menus')
+        menu_names = menu_service.get_menu_names()
+        for menu_name in menu_names:
+            menu = menu_service.make_menu(menu_name)
+            self.__cache.add_menu(site, menu_name, menu)
 
     def content_fields_to_url(self, site, fields):
         assert site.get_service('contents').is_type_content_fields(fields)
@@ -318,6 +326,9 @@ class ObjectManager:
     def get_marked_cpath_by_curl(self, site, url_object, default=None):
         return self.__cache.get_marked_cpath_by_curl(site, url_object, default=default)
 
+    def get_menu(self, site, menu_name, default=None):
+        return self.__cache.get_menu(site, menu_name, default=default)
+
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
             self.__site = site
@@ -407,6 +418,9 @@ class ObjectManager:
         def content_fields_to_url(self, fields):
             return self.__object_manager.content_fields_to_url(self.site, fields)
 
+        def get_menu(self, menu_name, default=None):
+            return self.__object_manager.get_menu(self.site, menu_name, default=default)
+
     class __Cache:
         ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value', 'cpath'))
         TYPE_CONTENT_FIELDS = 'f'
@@ -419,6 +433,9 @@ class ObjectManager:
             self.__marker_by_id_cachemap = defaultdict(dict)
             # syd cachemap
             self.__cpath_to_syd_cachemap = defaultdict(dict)
+
+            # menus
+            self.__menus_cachemap = defaultdict(dict)
 
             self.__contents_cachemap = defaultdict(dict)
             # key is url object value is a named tuple of
@@ -492,6 +509,18 @@ class ObjectManager:
         def get_syd(self, site, cpath, default=None):
             return self.__cpath_to_syd_cachemap[site.id].get(cpath, default)
 
+        def add_menu(self, site, menu_name, menu):
+            self.__menus_cachemap[site.id][menu_name] = menu
+
+        def get_menu(self, site, menu_name, default=None):
+            menu = self.__menus_cachemap[site.id].get(menu_name, None)
+            if menu is None:
+                return default
+            return menu
+
+        def get_menus(self, site):
+            return tuple(self.__menus_cachemap[site.id].values())
+
         def clear_content_cache(self, site):
             self.__contents_cachemap[site.id].clear()
             self.__cpath_to_content_fields[site.id].clear()
@@ -503,8 +532,12 @@ class ObjectManager:
         def clear_syd_cache(self, site):
             self.__cpath_to_syd_cachemap[site.id].clear()
 
+        def clear_menus_cache(self, site):
+            self.__menus_cachemap[site.id].clear()
+
         def clear_cache(self, site):
             """Clear all"""
             self.clear_content_cache(site)
             self.clear_marker_cache(site)
             self.clear_syd_cache(site)
+            self.clear_menus_cache(site)
