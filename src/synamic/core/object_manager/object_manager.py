@@ -84,7 +84,7 @@ class ObjectManager:
         for pre_processor in pre_processors:
             generated_contents = pre_processor.get_generated_contents()
             for generated_content in generated_contents:
-                self.__cache.add_pre_processed_content(site, generated_content)
+                self.__cache.add_pre_processed_content(site, generated_content, generated_content.source_cpath)
                 # self.__pre_processed_content_cachemap[site.id][generated_content.id] = generated_content
 
     def content_fields_to_url(self, site, fields):
@@ -265,16 +265,15 @@ class ObjectManager:
         if url_for == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
             content_id = site.get_service('contents').make_content_id(file_cpath)
-            if content_id in self.__cache_marked_content_fields:
-                # TRY MARKED
-                content_fileds = self.__cache_marked_content_fields
-                result_url = self.content_fields_to_url(site, content_fileds)
+            marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
+            if marked_content_fields is not None:
+                result_url = self.content_fields_to_url(site, marked_content_fields)
             else:
                 # try STATIC
                 result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
         elif url_for == 'sass':
             # pre-processor stuff. Must be in pre processed content.
-            scss_cpath = site.get_service('pre_processor').make_cpath(for_value)
+            scss_cpath = site.get_service('pre_processor').get_processor('sass').make_cpath(for_value)
             scss_content = self.__cache.get_pre_processed_content_by_cpath(site, scss_cpath, None)
             if scss_content is not None:
                 result_url = scss_content.url_object
@@ -409,7 +408,7 @@ class ObjectManager:
             return self.__object_manager.content_fields_to_url(self.site, fields)
 
     class __Cache:
-        ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value'))
+        ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value', 'cpath'))
         TYPE_CONTENT_FIELDS = 'f'
         TYPE_PRE_PROCESSED_CONTENT = 'p'
 
@@ -426,19 +425,23 @@ class ObjectManager:
             # ContentCacheTuple
 
             self.__cpath_to_content_fields = defaultdict(dict)
+            self.__cpath_to_pre_processed_contents = defaultdict(dict)
 
-        def __add_content(self, site, value, url_object, value_type):
+        def __add_content(self, site, value, url_object, path_object, value_type):
             assert url_object not in self.__contents_cachemap[site.id]
-            content_cache_tuple = self.ContentCacheTuple(type=value_type, value=value)
+            content_cache_tuple = self.ContentCacheTuple(type=value_type, value=value, cpath=path_object)
             self.__contents_cachemap[site.id][url_object] = content_cache_tuple
 
-        def add_pre_processed_content(self, site, value):
+        def add_pre_processed_content(self, site, pre_processed_content, path_object=None):
+            value = pre_processed_content
             url_object = value.url_object
-            self.__add_content(site, value, url_object, self.TYPE_PRE_PROCESSED_CONTENT)
+            self.__add_content(site, value, url_object, path_object, self.TYPE_PRE_PROCESSED_CONTENT)
+            if path_object is not None:
+                self.__cpath_to_pre_processed_contents[site.id][path_object] = pre_processed_content
 
         def add_marked_content_fields(self, site, content_fields, url_object):
             value = content_fields
-            self.__add_content(site, value, url_object, self.TYPE_CONTENT_FIELDS)
+            self.__add_content(site, value, url_object, content_fields.get_content_path(), self.TYPE_CONTENT_FIELDS)
             self.__cpath_to_content_fields[site.id][content_fields.get_content_path()] = content_fields
 
         def get_marked_value_tuple_by_url(self, site, url_object, default=None):
@@ -469,11 +472,10 @@ class ObjectManager:
             return self.__cpath_to_content_fields[site.id].get(cpath, default)
 
         def get_pre_processed_content_by_cpath(self, site, cpath, default=None):
-            value_tuple = self.__contents_cachemap[site.id].get(cpath, None)
-            if value_tuple is not None:
-                if value_tuple.type == self.TYPE_PRE_PROCESSED_CONTENT:
-                    return value_tuple.value
-            return default
+            pc = self.__cpath_to_pre_processed_contents[site.id].get(cpath, None)
+            if pc is None:
+                return default
+            return pc
 
         def add_marker(self, site, marker_id, marker):
             self.__marker_by_id_cachemap[site.id][marker_id] = marker
@@ -493,6 +495,7 @@ class ObjectManager:
         def clear_content_cache(self, site):
             self.__contents_cachemap[site.id].clear()
             self.__cpath_to_content_fields[site.id].clear()
+            self.__cpath_to_pre_processed_contents[site.id].clear()
 
         def clear_marker_cache(self, site):
             self.__marker_by_id_cachemap[site.id].clear()
