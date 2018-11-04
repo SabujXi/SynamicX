@@ -1,4 +1,5 @@
 import re
+from synamic.core.parsing_systems.curlybrace_parser import SydParser  #covert_one_value
 from collections import OrderedDict, namedtuple
 _operators_map = OrderedDict([
     ('contains', 'CONTAINS'),
@@ -144,6 +145,17 @@ class Parser:
                 assert section.logic is None
             else:
                 assert section.logic is not None
+
+        # convert values according to syd system.
+        _ = []
+        for section in sections:
+            _.append(self.Section(
+                section[0],
+                section[1],
+                SydParser.covert_one_value(section[2]),
+                section[3])
+            )
+        sections = tuple(_)
         return sections
 
 
@@ -154,4 +166,4 @@ def test(query):
 
 
 if __name__ == '__main__':
-    test('a > b & c in d | d in ~hh        & m contains tag 1, tag 2 & n !in go sfsdfsdf')
+    test('  x > 1 | time > 12:24     AM | a > b & c in d | d in ~hh        & m contains tag 1, tag 2 & n !in go sfsdfsdf')

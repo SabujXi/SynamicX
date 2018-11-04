@@ -814,94 +814,10 @@ class SydParser:
             self.__container_stack[-1].add(data)
 
     def __process_datum_inline(self, text, key, processing_inline_list=False):
-        data_list = []
-        end = text.strip(' \t')
-        if processing_inline_list:
-            x = processing_inline_list
-
-        while end:
-            # single quoted string
-            if end.startswith("'") or end.startswith('"'):
-                if end.startswith("'"):  # and end.endswith("'"):
-                    content = end[1:]
-                    res, end, _ = self.__single_q_string(content)
-                    data = SydScalar(key, res, SydDataType.string)
-                # double quoted string
-                elif end.startswith('"'):  # and end.endswith('"'):
-                    content = end[1:]
-                    res, end, _ = self.__double_q_string(content)
-                    res = res.replace(r'\n', '\n')
-                    res = res.replace(r'\r', '\r')
-                    res = res.replace(r'\t', '\t')
-                    data = SydScalar(key, res, SydDataType.string)
-                if processing_inline_list:
-                    next_comma_match = _Patterns.inline_list_separator.search(end)
-                    if next_comma_match:
-                        next_stop = next_comma_match.end()
-                        end = end[next_stop:]
-                else:
-                    if end.strip() != '':
-                        raise Exception("String Parsing error, %s" % self.__fmt_error_msg)
-            else:
-                orig_end = end
-                next_stop = len(end)
-                data_part = end[:next_stop]
-                end = end[next_stop:]
-                if processing_inline_list:
-                    next_comma_match = _Patterns.inline_list_separator.search(orig_end)
-                    if next_comma_match:
-                        next_stop = next_comma_match.end()
-                        data_part = orig_end[:next_stop - 1]
-                        end = orig_end[next_stop:]
-                data_part = data_part.strip()
-
-                number_match = _Patterns.number.match(data_part)
-                date_match = _Patterns.date.match(data_part)
-                time_match = _Patterns.time.match(data_part)
-                datetime_match = _Patterns.datetime.match(data_part)
-
-                # number
-                if number_match:
-                    if data_part.isdigit():
-                        number = int(data_part)
-                    else:
-                        number = float(data_part)
-                    data = SydScalar(key, number, SydDataType.number)
-                # date match
-                elif date_match:
-                    date_string = data_part
-                    data = SydScalar(key, date_string, SydDataType.date)
-
-                # time match
-                elif time_match:
-                    time_string = data_part
-                    data = SydScalar(key, time_string, SydDataType.time)
-                # date-time match
-                elif datetime_match:
-                    dt_string = data_part
-                    dt = dt_string  # convert first
-                    data = SydScalar(key, dt, SydDataType.datetime)
-                # bare string : last resort
-                else:
-                    bare_string = data_part
-                    if len(bare_string) > 1:
-                        if bare_string[0:2] in (r'\(', r'\{', r'\['):
-                            bare_string = bare_string[2:]
-                    bare_string = bare_string.strip()
-                    data = SydScalar(key, bare_string, SydDataType.string)
-            data_list.append(data)
-            end = end.strip()
-
-        if len(data_list) == 0:
-            # bare string
-            data_list.append(
-                SydScalar(key, '', SydDataType.string)
-            )
-
-        if processing_inline_list:
-            return data_list
-        else:
-            return data_list[0]
+        try:
+            return self.convert_to_scalar_values(text, key, processing_inline_list=processing_inline_list)
+        except ValueError as ve:
+            raise Exception(ve.args[0] % self.__fmt_error_msg)
 
     @staticmethod
     def __extract_key(text):
@@ -996,6 +912,103 @@ class SydParser:
         res = res.replace(r"\%s" % q, "%s" % q)
         end = line[end_pos:]
         return res, end, end_pos
+
+    @classmethod
+    def convert_to_scalar_values(cls, text, key, processing_inline_list=False):
+        data_list = []
+        text = text.strip(' \t\r\n')
+
+        while text:
+            # single quoted string
+            if text.startswith(("'", '"')):
+                if text.startswith("'"):  # and text.endswith("'"):
+                    content = text[1:]
+                    res, text, _ = cls.__single_q_string(content)
+                    data = SydScalar(key, res, SydDataType.string)
+                # double quoted string
+                else:  # text.startswith('"'):  # and text.endswith('"'):
+                    content = text[1:]
+                    res, text, _ = cls.__double_q_string(content)
+                    res = res.replace(r'\n', '\n')
+                    res = res.replace(r'\r', '\r')
+                    res = res.replace(r'\t', '\t')
+                    data = SydScalar(key, res, SydDataType.string)
+
+                if processing_inline_list:
+                    next_comma_match = _Patterns.inline_list_separator.search(text)
+                    if next_comma_match:
+                        next_stop = next_comma_match.end()
+                        text = text[next_stop:]
+                else:
+                    if text.strip() != '':
+                        raise ValueError("We are not processing inline list, but still there are some data left after"
+                                         " converting one, %s")
+            else:
+                orig_end = text
+                next_stop = len(text)
+                data_part = text[:next_stop]
+                text = text[next_stop:]
+                if processing_inline_list:
+                    next_comma_match = _Patterns.inline_list_separator.search(orig_end)
+                    if next_comma_match:
+                        next_stop = next_comma_match.end()
+                        data_part = orig_end[:next_stop - 1]
+                        text = orig_end[next_stop:]
+                data_part = data_part.strip()
+
+                number_match = _Patterns.number.match(data_part)
+                date_match = _Patterns.date.match(data_part)
+                time_match = _Patterns.time.match(data_part)
+                datetime_match = _Patterns.datetime.match(data_part)
+
+                # number
+                if number_match:
+                    if data_part.isdigit():
+                        number = int(data_part)
+                    else:
+                        number = float(data_part)
+                    data = SydScalar(key, number, SydDataType.number)
+                # date match
+                elif date_match:
+                    date_string = data_part
+                    data = SydScalar(key, date_string, SydDataType.date)
+
+                # time match
+                elif time_match:
+                    time_string = data_part
+                    data = SydScalar(key, time_string, SydDataType.time)
+                # date-time match
+                elif datetime_match:
+                    dt_string = data_part
+                    dt = dt_string  # convert first
+                    data = SydScalar(key, dt, SydDataType.datetime)
+                # bare string : last resort
+                else:
+                    bare_string = data_part
+                    if len(bare_string) > 1:
+                        if bare_string[0:2] in (r'\(', r'\{', r'\['):
+                            bare_string = bare_string[2:]
+                    bare_string = bare_string.strip()
+                    data = SydScalar(key, bare_string, SydDataType.string)
+
+            data_list.append(data)
+            text = text.strip()
+
+        if len(data_list) == 0:
+            # bare string
+            data_list.append(
+                SydScalar(key, '', SydDataType.string)
+            )
+
+        if processing_inline_list:
+            return data_list
+        else:
+            return data_list[0]
+
+    @classmethod
+    def covert_one_value(cls, text):
+        syd_scalar = cls.convert_to_scalar_values(text, None, processing_inline_list=False)
+        return syd_scalar.value
 
 
 if __name__ == '__main__':
