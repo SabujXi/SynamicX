@@ -21,42 +21,6 @@ from synamic.core.services.content.marked_content import MarkedContentImplementa
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
 
 
-class _ContentFields(dict):
-    def __init__(self, site, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa):
-        self.__site = site
-        self.__content_file_path = content_file_path
-        self.__model = model
-        self.__content_id = content_id
-        self.__document_type = document_type
-        self.__raw_fields = raw_fileds
-        super().__init__(*a, *kwa)
-
-    def clone(self):
-        c = self.__class__(self.__site, self.__model)
-        for key, value in self.items():
-            c[key] = value
-        return c
-
-    def __getattr__(self, key):
-        return self.get(key, None)
-
-    def get_content_path(self):
-        """Content file path"""
-        return self.__content_file_path
-
-    def get_model(self):
-        return self.__model
-
-    def get_content_id(self):
-        return self.__content_id
-
-    def get_document_type(self):
-        return self.__document_type
-
-    def get_raw_fields(self):
-        return self.__raw_fields
-
-
 class ContentService:
     __slots__ = ('__site', '__is_loaded', '__contents_by_id', '__dynamic_contents', '__auxiliary_contents')
 
@@ -72,10 +36,15 @@ class ContentService:
     def load(self):
         self.__is_loaded = True
 
-    def is_type_content_fields(self, other):
-        return type(other) is _ContentFields
+    @classmethod
+    def is_type_content_fields(cls, other):
+        return type(other) is cls.__ContentFields
 
-    def make_content_fields(self, fields_syd, file_cpath):
+    @classmethod
+    def is_type_content_id(cls, other):
+        return type(other) is cls.__ContentID
+
+    def build_content_fields(self, fields_syd, file_cpath):
         # get dir meta syd
         # """It should not live here as it is compile time dependency"""
         # each field from meta syd will be converted with individual content model and site type system.
@@ -95,7 +64,7 @@ class ContentService:
         document_type = DocumentType.HTML_DOCUMENT
         model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
         model = self.__site.object_manager.get_model(model_name)
-        content_fields = _ContentFields(self.__site, file_cpath, model, file_cpath.id, document_type, fields_syd)
+        content_fields = self.make_content_fields(file_cpath, model, self.make_content_id(file_cpath.id), document_type, fields_syd)
 
         # convert with type system.
         for key in fields_syd.keys():
@@ -109,11 +78,11 @@ class ContentService:
             content_fields[key] = value
         return content_fields
 
-    def make_md_content(self, file_path):
+    def build_md_content(self, file_path):
         markdown_renderer = self.__site.get_service('types').get_converter('markdown')
         document_type = DocumentType.HTML_DOCUMENT
         fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
-        content_fields = self.make_content_fields(fields_syd, file_path)
+        content_fields = self.build_content_fields(fields_syd, file_path)
         toc = Toc()
         body = markdown_renderer(body_text, value_pack={
             'toc': toc
@@ -150,11 +119,13 @@ class ContentService:
         # #
         # url_object = content_construct_url_object(site, file_path, url_construction_dict)
 
-        content_id =file_path.id
+        content_id = self.make_content_id(file_path.id)
         # mime type guess
         mime_type = 'text/html'
+        url_object = self.__site.object_manager.content_fields_to_url(content_fields)
         content = MarkedContentImplementation(self.__site,
                                               file_path,
+                                              url_object,
                                               body,
                                               content_fields,
                                               toc,
@@ -163,21 +134,90 @@ class ContentService:
                                               mime_type=mime_type)
         return content
 
-    def make_paginated_md_content(self):
+    def build_paginated_md_content(self):
         # TODO: code it
         pass
 
-    def make_static_content(self, path):
+    def build_static_content(self, path):
         path_tree = self.__site.get_service('path_tree')
         path_obj = path_tree.create_file_cpath(path)
-        content_id = path_obj.id
+        content_id = self.make_content_id(path_obj.id)
         file_content = None
         mime_type = 'octet/stream'  # TODO: guess the content type here.
+        document_type = DocumentType.BINARY_DOCUMENT
+
+        url_object = self.__site.object_manager.static_content_cpath_to_url(path_obj, document_type)
+
         return StaticContent(
             self.__site,
             path_obj,
+            url_object,
             content_id,
             file_content=file_content,
-            document_type=DocumentType.BINARY_DOCUMENT,
+            document_type=document_type,
             mime_type=mime_type)
+
+    def make_content_fields(self, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa):
+        """Just makes an instance"""
+        return self.__ContentFields(self.__site, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa)
+
+    def make_content_id(self, str_id):
+        return self.__ContentID(str_id)
+
+    class __ContentFields(dict):
+        def __init__(self, site, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa):
+            assert ContentService.is_type_content_id(content_id)
+            self.__site = site
+            self.__content_file_path = content_file_path
+            self.__model = model
+            self.__content_id = content_id
+            self.__document_type = document_type
+            self.__raw_fields = raw_fileds
+            super().__init__(*a, *kwa)
+
+        def clone(self):
+            c = self.__class__(self.__site, self.__model)
+            for key, value in self.items():
+                c[key] = value
+            return c
+
+        def __getattr__(self, key):
+            return self.get(key, None)
+
+        def get_content_path(self):
+            """Content file path"""
+            return self.__content_file_path
+
+        def get_model(self):
+            return self.__model
+
+        def get_content_id(self):
+            return self.__content_id
+
+        def get_document_type(self):
+            return self.__document_type
+
+        def get_raw_fields(self):
+            return self.__raw_fields
+
+    class __ContentID:
+        def __init__(self, str_id):
+            assert isinstance(str_id, str)
+            self.__str_id = str_id
+
+        @property
+        def str_id(self):
+            return self.__str_id
+
+        def __eq__(self, other):
+            return self.__str_id == other.str_id
+
+        def __hash__(self):
+            return hash(self.__str_id)
+
+        def __str__(self):
+            return "ContentID: %s" % self.str_id
+
+        def __repr__(self):
+            return repr(self.__str__())
 

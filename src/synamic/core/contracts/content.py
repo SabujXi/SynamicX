@@ -26,20 +26,33 @@ class DocumentType(enum.Enum):
     NONE = "NONE"
 
     @classmethod
-    def is_binary(cls, other):
-        return other in (cls.BINARY_DOCUMENT, cls.GENERATED_BINARY_DOCUMENT)
+    def is_binary(cls, other, not_generated=False):
+        if not_generated:
+            return other in (cls.BINARY_DOCUMENT, )
+        else:
+            return other in (cls.BINARY_DOCUMENT, cls.GENERATED_BINARY_DOCUMENT)
 
     @classmethod
-    def is_text(cls, other):
-        return other in (cls.TEXT_DOCUMENT, cls.GENERATED_TEXT_DOCUMENT, cls.HTML_DOCUMENT, cls.GENERATED_HTML_DOCUMENT)
+    def is_text(cls, other, not_generated=False):
+        if not_generated:
+            return other in (cls.TEXT_DOCUMENT, cls.HTML_DOCUMENT, )
+        else:
+            return other in (cls.TEXT_DOCUMENT, cls.GENERATED_TEXT_DOCUMENT, cls.HTML_DOCUMENT, cls.GENERATED_HTML_DOCUMENT)
 
     @classmethod
-    def is_html(cls, other):
-        return other in (cls.HTML_DOCUMENT, cls.GENERATED_HTML_DOCUMENT)
+    def is_html(cls, other, not_generated=False):
+        if not_generated:
+            return other in (cls.HTML_DOCUMENT, )
+        else:
+            return other in (cls.HTML_DOCUMENT, cls.GENERATED_HTML_DOCUMENT)
 
     @classmethod
-    def is_file(cls, other):
-        return cls.is_text(other) or cls.is_binary(other)
+    def is_file(cls, other, not_generated=False):
+        return cls.is_text(other, not_generated=not_generated) or cls.is_binary(other, not_generated=not_generated)
+
+    @classmethod
+    def is_generated(cls, other):
+        return other in (cls.GENERATED_HTML_DOCUMENT, cls.GENERATED_TEXT_DOCUMENT, cls.GENERATED_BINARY_DOCUMENT)
 
 
 class ContentContract(metaclass=abc.ABCMeta):
@@ -65,6 +78,16 @@ class ContentContract(metaclass=abc.ABCMeta):
         """
         This is a path object associated with the file (for static the path, for dynamic the path to things like .md
          and for auxiliary - i need to think about that :p )
+        """
+        pass
+
+    @property
+    @abc.abstractmethod
+    def url_object(self):
+        """
+        Generated contents will have to implement this method themselves,
+        Markdown and static content can call object manager method from inside to get it.
+        <A content should know what it's url is - that's why I re-added this method to the interface.>
         """
         pass
 

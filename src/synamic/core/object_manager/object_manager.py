@@ -28,6 +28,9 @@ class ObjectManager:
         # syd cachemap
         self.__cpath_to_syd_cachemap = defaultdict(dict)
 
+        # generated content cachemap
+        self.__generated_content_cachemap = defaultdict(dict)
+
         self.__is_loaded = False
 
     def get_manager_for_site(self, site):
@@ -71,8 +74,8 @@ class ObjectManager:
                     front_matter, body = content_splitter(file_path, text)
                     del body
                     fields_syd = self.make_syd(front_matter)
-                    content_meta = content_service.make_content_fields(fields_syd, file_path)
-                    self.__content_fields_cachemap[site.id][file_path.id] = content_meta
+                    content_fields = content_service.build_content_fields(fields_syd, file_path)
+                    self.__content_fields_cachemap[site.id][file_path.id] = content_fields
                 else:
                     # No need to cache anything about static file.
                     pass
@@ -148,41 +151,14 @@ class ObjectManager:
         )
         return url_object
 
-    def cpath_to_url(self, site, cpath):
-        assert self.get_path_tree(site).is_cpath_type(cpath)
-        if cpath.exists():
-            if cpath.id in self.__content_fields_cachemap[site.id]:
-                content_fields = self.__content_fields_cachemap[site.id].get(cpath.id, None)
-                if content_fields is not None:
-                    return self.content_fields_to_url(content_fields)
-            else:
-                # try STATIC FILE
-                url_object = self.__synamic.router.make_url(
-                    site,
-                    cpath.path_comps,
-                    for_document_type=DocumentType.NONE  # TODO: these should not be NONE, there should be a better way.
-                )
-                return url_object
-        return None
-
-    def to_url(self, site, param):
-        if self.get_path_tree(site).is_cpath_type(param):
-            return self.cpath_to_url(site, param)
-        elif site.get_service('contents').is_type_content_fields(param):
-            return self.content_fields_to_url(site, param)
-        elif isinstance(param, ContentContract):
-            if DocumentType.is_text(param.document_type):
-                url_object = self.content_fields_to_url(site, param.fields)
-            else:
-                # For STATIC Files
-                assert DocumentType.is_binary(param.document_type)
-                url_object = self.__synamic.router.make_url(
-                    site,
-                    param.path_object.path_comps,
-                    for_document_type=param.document_type
-                )
-        else:
-            raise Exception('Invalid type of param for getting url.')
+    def static_content_cpath_to_url(self, site, cpath, for_document_type):
+        assert DocumentType.is_binary(for_document_type, not_generated=True)
+        # For STATIC Files
+        url_object = self.__synamic.router.make_url(
+            site,
+            cpath.path_comps,
+            for_document_type=for_document_type
+        )
         return url_object
 
     #  @loaded
@@ -208,7 +184,7 @@ class ObjectManager:
             file_cpath = path
         if not file_cpath.exists():
             return None
-        md_content = content_service.make_md_content(file_cpath)
+        md_content = content_service.build_md_content(file_cpath)
         return md_content
 
     def get_binary_content(self, site, path):
@@ -217,7 +193,7 @@ class ObjectManager:
             return None
         else:
             content_service = site.get_service('contents')
-            return content_service.make_static_content(path)
+            return content_service.build_static_content(path)
 
     def get_static_file_paths(self, site):
         pass
@@ -240,7 +216,7 @@ class ObjectManager:
 
     def get_raw_data(self, site, path) -> str:
         path_tree = self.get_path_tree(site)
-        if not path_tree.is_cpath_type(path):
+        if not path_tree.is_type_cpath(path):
             path = path_tree.create_file_cpath(path)
         with path.open('r', encoding='utf-8') as f:
             text = f.read()
@@ -248,7 +224,7 @@ class ObjectManager:
 
     def get_syd(self, site, path):
         path_tree = self.get_path_tree(site)
-        if not path_tree.is_cpath_type(path):
+        if not path_tree.is_type_cpath(path):
             path = path_tree.create_file_cpath(path)
 
         if path in self.__cpath_to_syd_cachemap:
@@ -425,3 +401,8 @@ class ObjectManager:
         def get_text_cpath_by_curl(self, url_object, default=None):
             return self.__object_manager.get_text_cpath_by_curl(self.site, url_object, default=None)
 
+        def static_content_cpath_to_url(self, cpath, for_document_type):
+            return self.__object_manager.static_content_cpath_to_url(self.site, cpath, for_document_type)
+
+        def content_fields_to_url(self, fields):
+            return self.__object_manager.content_fields_to_url(self.site, fields)

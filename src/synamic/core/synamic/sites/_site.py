@@ -104,6 +104,9 @@ class _Site:
     def is_root(self):
         return self.__root_site is None
 
+    # def __getattr__(self, key):
+    #     return self.get_service(key, error_out=True)
+
     def get_service(self, service_name, default=None, error_out=True):
         service = self.__services_container.get(service_name, None)
         if error_out:

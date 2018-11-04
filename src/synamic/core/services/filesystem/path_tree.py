@@ -297,7 +297,7 @@ class PathTree(object):
         dirs, _ = self.list_cpaths(initial_path_comps, directories_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker)
         return dirs
 
-    def is_cpath_type(self, other):
+    def is_type_cpath(self, other):
         return type(other) is self.__CPath
 
     class __CPath:

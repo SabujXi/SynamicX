@@ -3,9 +3,11 @@ from synamic.core.contracts import ContentContract, DocumentType
 
 
 class MarkedContentImplementation(ContentContract):
-    def __init__(self, site, file_cpath, body, content_fields, toc, content_id, document_type, mime_type='text/plain'):
+    def __init__(self, site, file_cpath, url_object, body, content_fields, toc, content_id, document_type, mime_type='text/plain'):
+        assert site.get_service('contents').is_type_content_id(content_id)
         self.__site = site
         self.__file_cpath = file_cpath
+        self.__url_object = url_object
         self.__body = body
         self.__content_fields = content_fields
         self.__model = content_fields.get_model()
@@ -32,6 +34,10 @@ class MarkedContentImplementation(ContentContract):
     @property
     def path_object(self):
         return self.__file_cpath
+
+    @property
+    def url_object(self):
+        return self.__url_object
 
     def get_stream(self):
         template_name = self.__content_fields.get('template', 'default.html')
