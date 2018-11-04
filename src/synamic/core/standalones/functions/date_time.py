@@ -12,14 +12,20 @@
 import re
 import datetime
 
-_datetime_pattern = re.compile(r"^(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<date>\d{1,2})(\s+"
+_datetime_pattern = re.compile(r"^(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<date>\d{1,2})\s*(\s+"
                                r"(?P<hour>\d{1,2}):(?P<minute>\d{1,2})(:(?P<second>\d{1,2}))?\s*"
                                r"(?P<am_pm>AM|PM)?)?$"
                                , re.I)  # format: YEAR-MONTH-DATE HOUR:MIN:SECOND AM/PM
 
 _date_pattern = re.compile(r"^(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<date>\d{1,2})$", re.I)  # format: YEAR-MONTH-DATE
 
-_time_pattern = re.compile(r"(?P<hour>\d{1,2}):(?P<minute>\d{1,2})(:(?P<second>\d{1,2}))?(?P<am_pm>AM|PM)?$", re.I)  # HOUR:MIN:SECOND AM/PM
+_time_pattern = re.compile(r"(?P<hour>\d{1,2}):(?P<minute>\d{1,2})(:(?P<second>\d{1,2}))?\s*(?P<am_pm>AM|PM)?$", re.I)  # HOUR:MIN:SECOND AM/PM
+
+
+class DtPatterns:
+    datetime = _datetime_pattern
+    date = _date_pattern
+    time = _time_pattern
 
 
 def _s2int(txt):
@@ -44,6 +50,7 @@ def parse_datetime(txt):
 
     # 24 hour conversion
     if am_pm:
+        assert hour < 13, 'Hour cannot be greater than 12 when am/pm specified: %s' % txt
         if am_pm == "PM":
             hour = 12 + hour
 

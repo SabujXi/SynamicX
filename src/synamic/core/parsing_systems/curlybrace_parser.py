@@ -155,8 +155,8 @@ key4: {
 import re
 import enum
 import pprint
-import collections
-# from synamic.core.object_manager import ObjectId
+from synamic.core.standalones.functions.date_time import DtPatterns, parse_date, parse_time, parse_datetime
+
 
 # patterns
 class _Patterns:
@@ -174,17 +174,20 @@ class _Patterns:
     #         [ \t]*(?P<is_multiline>~{1,3})[ \t]* # is multi line
     # ''', re.X)
 
-    number = re.compile(r'^[ \t]*(?P<number>[0-9]?[1-9]+(\.[0-9]+)?)[ \t]*$')
-    date = re.compile(r'''
-        ^[ \t]*(?P<number>[0-9]?[1-9]+(\.[0-9]+)?)[ \t]*$
-    ''', re.X)
-    time = re.compile(r'''
-        ^(?P<time>\d{1,2}:\d{1,2})[ \t]*(?P<AM_PM>AM|PM)[ \t]*$
-    ''', re.X | re.I)
-    datetime = re.compile(r'''
-        ^[ \t]*(?P<number>[0-9]?[1-9]+(\.[0-9]+)?)[ \t]+
-        (?P<time>\d{1,2}:\d{1,2})[ \t]*(?P<AM_PM>AM|PM)?[ \t]*$
-    ''', re.I | re.X)
+    number = re.compile(r'^[ \t]*(?P<number>[+-]?[0-9]?[1-9]+(\.[0-9]+)?)[ \t]*$')
+    # date = re.compile(r'''
+    #     ^[ \t]*(?P<date>\d{4}-\d{1,2}-\d{1,2})[ \t]*$
+    # ''', re.X)
+    # time = re.compile(r'''
+    #     ^(?P<time>\d{1,2}:\d{1,2}(:\d{1,2})?)[ \t]*(?P<AM_PM>AM|PM)[ \t]*$
+    # ''', re.X | re.I)
+    # datetime = re.compile(r'''
+    #     ^[ \t]*(?P<date>\d{4}-\d{1,2}-\d{1,2})[ \t]+
+    #     (?P<time>\d{1,2}:\d{1,2}(:\d{1,2})?)[ \t]*(?P<AM_PM>AM|PM)?[ \t]*$
+    # ''', re.I | re.X)
+    date = DtPatterns.date
+    time = DtPatterns.time
+    datetime = DtPatterns.datetime
 
     inline_list_separator = re.compile(r'(?<!\\),')
 
@@ -963,25 +966,38 @@ class SydParser:
 
                 # number
                 if number_match:
+                    num_str = number_match.group('number')
+                    if num_str.startswith(('+', '-')):
+                        sign = num_str[0]
+                        num_str = num_str[0:]
+                        sign_mul = 1 if sign == '+' else -1
+                    else:
+                        sign_mul = 1
                     if data_part.isdigit():
                         number = int(data_part)
                     else:
                         number = float(data_part)
+                    number = number * sign_mul
                     data = SydScalar(key, number, SydDataType.number)
                 # date match
                 elif date_match:
                     date_string = data_part
-                    data = SydScalar(key, date_string, SydDataType.date)
+                    # TODO: double parsing happening, fix it
+                    date_instance = parse_date(date_string)
+                    data = SydScalar(key, date_instance, SydDataType.date)
 
                 # time match
                 elif time_match:
                     time_string = data_part
-                    data = SydScalar(key, time_string, SydDataType.time)
+                    # TODO: double parsing happening, fix it
+                    time_instance = parse_time(time_string)
+                    data = SydScalar(key, time_instance, SydDataType.time)
                 # date-time match
                 elif datetime_match:
                     dt_string = data_part
-                    dt = dt_string  # convert first
-                    data = SydScalar(key, dt, SydDataType.datetime)
+                    # TODO: double parsing happening, fix it
+                    dt_instance = parse_datetime(dt_string)
+                    data = SydScalar(key, dt_instance, SydDataType.datetime)
                 # bare string : last resort
                 else:
                     bare_string = data_part
