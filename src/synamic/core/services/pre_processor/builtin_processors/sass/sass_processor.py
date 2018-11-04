@@ -59,6 +59,9 @@ class SASSProcessor:
                 content_objects.append(content_obj)
         return content_objects
 
+    def make_cpath(self, *path_comps, is_file=True):
+        return self.__processor_cpath.join(*path_comps, is_file=is_file)
+
     def get_css_url_object(self, scss_file_path):
         url_path_comps = self.__processor_cpath.parent_cpath.get_comps_after(scss_file_path)
         assert len(url_path_comps) > 0

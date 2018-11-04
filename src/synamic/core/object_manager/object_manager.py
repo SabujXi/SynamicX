@@ -274,8 +274,10 @@ class ObjectManager:
                 result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
         elif url_for == 'sass':
             # pre-processor stuff. Must be in pre processed content.
-            # TODO: implement this
-            raise NotImplemented
+            scss_cpath = site.get_service('pre_processor').make_cpath(for_value)
+            scss_content = self.__cache.get_pre_processed_content_by_cpath(site, scss_cpath, None)
+            if scss_content is not None:
+                result_url = scss_content.url_object
         else:  # content
             raise NotImplemented
 
@@ -465,6 +467,13 @@ class ObjectManager:
 
         def get_marked_content_fields_by_cpath(self, site, cpath, default=None):
             return self.__cpath_to_content_fields[site.id].get(cpath, default)
+
+        def get_pre_processed_content_by_cpath(self, site, cpath, default=None):
+            value_tuple = self.__contents_cachemap[site.id].get(cpath, None)
+            if value_tuple is not None:
+                if value_tuple.type == self.TYPE_PRE_PROCESSED_CONTENT:
+                    return value_tuple.value
+            return default
 
         def add_marker(self, site, marker_id, marker):
             self.__marker_by_id_cachemap[site.id][marker_id] = marker
