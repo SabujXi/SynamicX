@@ -70,15 +70,6 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def id(self):
-        """
-            Content id will not be of type int, it will be kept as string because there may be string id many time in our program.
-            Warning: Unlike other things in Synamic, content ids are case sensitive.
-        """
-        pass
-
-    @property
-    @abc.abstractmethod
     def path_object(self):
         """
         This is a path object associated with the file (for static the path, for dynamic the path to things like .md

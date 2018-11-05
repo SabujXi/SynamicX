@@ -41,10 +41,6 @@ class ContentService:
     def is_type_content_fields(cls, other):
         return type(other) is cls.__ContentFields
 
-    @classmethod
-    def is_type_content_id(cls, other):
-        return type(other) is cls.__ContentID
-
     def build_content_fields(self, fields_syd, file_cpath):
         # get dir meta syd
         # """It should not live here as it is compile time dependency"""
@@ -70,7 +66,7 @@ class ContentService:
             file_cpath, path=fields_syd.get('path', None), slug=fields_syd.get('slug', None), for_document_type=document_type
         )
 
-        content_fields = self.make_content_fields(file_cpath, url_object, model, self.make_content_id(file_cpath), document_type, fields_syd)
+        content_fields = self.make_content_fields(file_cpath, url_object, model, document_type, fields_syd)
         return content_fields
 
     def build_md_content(self, file_path):
@@ -114,7 +110,6 @@ class ContentService:
         # #
         # url_object = content_construct_url_object(site, file_path, url_construction_dict)
 
-        content_id = self.make_content_id(file_path.id)
         # mime type guess
         mime_type = 'text/html'
         url_object = content_fields.get_url_object()
@@ -124,7 +119,6 @@ class ContentService:
                                               body,
                                               content_fields,
                                               toc,
-                                              content_id,
                                               document_type,
                                               mime_type=mime_type)
         return content
@@ -136,7 +130,6 @@ class ContentService:
     def build_static_content(self, path):
         path_tree = self.__site.get_service('path_tree')
         path_obj = path_tree.create_file_cpath(path)
-        content_id = self.make_content_id(path_obj.id)
         file_content = None
         mime_type = 'octet/stream'  # TODO: guess the content type here.
         document_type = DocumentType.BINARY_DOCUMENT
@@ -147,36 +140,25 @@ class ContentService:
             self.__site,
             path_obj,
             url_object,
-            content_id,
             file_content=file_content,
             document_type=document_type,
             mime_type=mime_type)
 
     def build_generated_content(
-            self, url_object, content_id, file_content,
+            self, url_object, file_content,
             document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
-        return GeneratedContent(self.__site, url_object, content_id, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath, **kwargs)
+        return GeneratedContent(self.__site, url_object, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath, **kwargs)
 
-    def make_content_fields(self, content_file_path, url_object, model, content_id, document_type, raw_fileds, *a, **kwa):
+    def make_content_fields(self, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa):
         """Just makes an instance"""
-        return self.__ContentFields(self.__site, content_file_path, url_object, model, content_id, document_type, raw_fileds, *a, **kwa)
-
-    def make_content_id(self, param):
-        path_tree = self.__site.get_service('path_tree')
-        if path_tree.is_type_cpath(param):
-            str_id = param.id
-        else:
-            str_id = param
-        return self.__ContentID(str_id)
+        return self.__ContentFields(self.__site, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa)
 
     class __ContentFields:
-        def __init__(self, site, content_file_path, url_object, model, content_id, document_type, raw_fileds, *a, **kwa):
-            assert ContentService.is_type_content_id(content_id)
+        def __init__(self, site, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa):
             self.__site = site
             self.__content_file_path = content_file_path
             self.__url_object = url_object
             self.__model = model
-            self.__content_id = content_id
             self.__document_type = document_type
             self.__raw_fields = raw_fileds
             self.__converted_values = OrderedDict()
@@ -220,9 +202,6 @@ class ContentService:
         def get_model(self):
             return self.__model
 
-        def get_content_id(self):
-            return self.__content_id
-
         def get_document_type(self):
             return self.__document_type
 
@@ -231,25 +210,3 @@ class ContentService:
 
         def get_url_object(self):
             return self.__url_object
-
-    class __ContentID:
-        def __init__(self, str_id):
-            assert isinstance(str_id, str)
-            self.__str_id = str_id
-
-        @property
-        def str_id(self):
-            return self.__str_id
-
-        def __eq__(self, other):
-            return self.__str_id == other.str_id
-
-        def __hash__(self):
-            return hash(self.__str_id)
-
-        def __str__(self):
-            return "ContentID: %s" % self.str_id
-
-        def __repr__(self):
-            return repr(self.__str__())
-

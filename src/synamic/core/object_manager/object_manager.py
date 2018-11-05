@@ -60,10 +60,7 @@ class ObjectManager:
                     del body
                     fields_syd = self.make_syd(front_matter)
                     content_fields = content_service.build_content_fields(fields_syd, file_path)
-                    # TODO: now content id is considered url - what to do with content id?
-                    content_id = content_service.make_content_id(file_path)
                     self.__cache.add_marked_content_fields(site, content_fields)
-                    # self.__marked_content_fields_cachemap[site.id][content_id] = content_fields
                 else:
                     # No need to cache anything about static file.
                     pass
@@ -156,9 +153,7 @@ class ObjectManager:
             raise NotImplemented
         else:
             # file backend
-            content_id = content_service.make_content_id(path)
             return self.__cache.get_marked_content_fields_by_cpath(site, path, default=default)
-            # return self.__marked_content_fields_cachemap[site.id][content_id]
 
     #  @loaded
     def get_marked_content(self, site, path):
@@ -282,7 +277,6 @@ class ObjectManager:
         assert url_for in ('file', 'sass', 'id')
         if url_for == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
-            content_id = site.get_service('contents').make_content_id(file_cpath)
             marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
             if marked_content_fields is not None:
                 result_url = marked_content_fields.get_url_object()

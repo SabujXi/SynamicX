@@ -12,15 +12,13 @@ from synamic.core.contracts.content import ContentContract, DocumentType
 
 
 class GeneratedContent(ContentContract):
-    def __init__(self, site, url_object, content_id, file_content,
+    def __init__(self, site, url_object, file_content,
                  document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
         if file_content is None:
             assert source_cpath is not None
 
-        assert site.get_service('contents').is_type_content_id(content_id)
         self.__site = site
         self.__url_object = url_object
-        self.__content_id = content_id
         self.__file_content = file_content
         self.__document_type = document_type
         self.__mime_type = mime_type
@@ -32,11 +30,6 @@ class GeneratedContent(ContentContract):
         # validation
         assert DocumentType.is_generated(self.__document_type)
         assert type(self.__file_content) in (type(None), bytes, bytearray)
-        assert bool(content_id) or content_id == 0
-
-    @property
-    def id(self):
-        return self.__content_id
 
     @property
     def site(self):

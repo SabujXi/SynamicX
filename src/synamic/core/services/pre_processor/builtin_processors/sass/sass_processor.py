@@ -37,22 +37,20 @@ class SASSProcessor:
                 if not scss_basename.lower().startswith('_'):
                     # partial file in not not condition, ignore it.
                     url_object = self.get_css_url_object(file_cpath)
-                    content_id = content_service.make_content_id('/'.join(url_object.path_components))
                     file_content = None
                     document_type = DocumentType.GENERATED_TEXT_DOCUMENT
                     mime_type = 'text/css'
 
-                    content_obj = SCSS_CSSContent(self.__site, url_object, content_id, file_content,
+                    content_obj = SCSS_CSSContent(self.__site, url_object, file_content,
                                                   document_type=document_type,
                                                   mime_type=mime_type,
                                                   source_cpath=file_cpath)
                     content_objects.append(content_obj)
             else:
                 url_object = self.get_static_file_url_object(file_cpath)
-                content_id = content_service.make_content_id('/'.join(url_object.path_components))
                 file_content = None
                 content_obj = content_service.build_generated_content(
-                    url_object, content_id, file_content,
+                    url_object, file_content,
                     document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream',
                     source_cpath=file_cpath
                 )

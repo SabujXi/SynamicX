@@ -12,12 +12,10 @@ from synamic.core.contracts.content import ContentContract, DocumentType
 
 
 class StaticContent(ContentContract):
-    def __init__(self, site, file_cpath, url_object, content_id, file_content=None, document_type=DocumentType.BINARY_DOCUMENT, mime_type='octet/stream'):
-        assert site.get_service('contents').is_type_content_id(content_id)
+    def __init__(self, site, file_cpath, url_object, file_content=None, document_type=DocumentType.BINARY_DOCUMENT, mime_type='octet/stream'):
         self.__site = site
         self.__file_cpath = file_cpath
         self.__url_object = url_object
-        self.__content_id = content_id
         self.__file_content = file_content
         self.__document_type = document_type
         self.__mime_type = mime_type
@@ -27,11 +25,6 @@ class StaticContent(ContentContract):
         assert type(self.__file_content) in (type(None), bytes, bytearray)
         if self.__file_cpath is None:
             assert file_content is not None
-        assert bool(content_id) or content_id == 0
-
-    @property
-    def id(self):
-        return self.__content_id
 
     @property
     def site(self):
