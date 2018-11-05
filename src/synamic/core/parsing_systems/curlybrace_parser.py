@@ -981,22 +981,16 @@ class SydParser:
                     data = SydScalar(key, number, SydDataType.number)
                 # date match
                 elif date_match:
-                    date_string = data_part
-                    # TODO: double parsing happening, fix it
-                    date_instance = parse_date(date_string)
+                    date_instance = parse_date(date_match)
                     data = SydScalar(key, date_instance, SydDataType.date)
 
                 # time match
                 elif time_match:
-                    time_string = data_part
-                    # TODO: double parsing happening, fix it
-                    time_instance = parse_time(time_string)
+                    time_instance = parse_time(time_match)
                     data = SydScalar(key, time_instance, SydDataType.time)
                 # date-time match
                 elif datetime_match:
-                    dt_string = data_part
-                    # TODO: double parsing happening, fix it
-                    dt_instance = parse_datetime(dt_string)
+                    dt_instance = parse_datetime(datetime_match)
                     data = SydScalar(key, dt_instance, SydDataType.datetime)
                 # bare string : last resort
                 else:

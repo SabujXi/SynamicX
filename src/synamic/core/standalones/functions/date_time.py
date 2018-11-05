@@ -21,6 +21,8 @@ _date_pattern = re.compile(r"^(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<date>\d{1,2
 
 _time_pattern = re.compile(r"(?P<hour>\d{1,2}):(?P<minute>\d{1,2})(:(?P<second>\d{1,2}))?\s*(?P<am_pm>AM|PM)?$", re.I)  # HOUR:MIN:SECOND AM/PM
 
+ReMatchType = type(re.match('', ''))
+
 
 class DtPatterns:
     datetime = _datetime_pattern
@@ -36,10 +38,14 @@ def _s2int(txt):
     return int(txt)
 
 
-def parse_datetime(txt):
-    txt = txt.strip()
-    m = _datetime_pattern.match(txt)
-    assert m, "Datetime format did not match"
+def parse_datetime(txt) -> datetime.datetime:
+    if type(txt) is not ReMatchType:
+        txt = txt.strip()
+        m = _datetime_pattern.match(txt)
+        assert m, "Datetime format did not match"
+    else:
+        m = txt
+        assert m.re is DtPatterns.datetime
     year = _s2int(m.group('year'))
     month = _s2int(m.group('month'))
     date = _s2int(m.group('date'))
@@ -58,10 +64,14 @@ def parse_datetime(txt):
     return dt
 
 
-def parse_date(txt):
-    txt = txt.strip()
-    m = _date_pattern.match(txt)
-    assert m, "Date format did not match"
+def parse_date(txt) -> datetime.date:
+    if type(txt) is not ReMatchType:
+        txt = txt.strip()
+        m = _date_pattern.match(txt)
+        assert m, "Date format did not match"
+    else:
+        m = txt
+        assert m.re is DtPatterns.date
     year = _s2int(m.group('year'))
     month = _s2int(m.group('month'))
     date = _s2int(m.group('date'))
@@ -70,10 +80,14 @@ def parse_date(txt):
     return dt
 
 
-def parse_time(txt):
-    txt = txt.strip()
-    m = _time_pattern.match(txt)
-    assert m, "Time format did not match"
+def parse_time(txt) -> datetime.time:
+    if type(txt) is not ReMatchType:
+        txt = txt.strip()
+        m = _time_pattern.match(txt)
+        assert m, "Time format did not match"
+    else:
+        m = txt
+        assert m.re is DtPatterns.time
     hour = _s2int(m.group('hour')) if m.group('hour') else 0
     minute = _s2int(m.group('minute')) if m.group('minute') else 0
     second = _s2int(m.group('second')) if m.group('second') else 0
