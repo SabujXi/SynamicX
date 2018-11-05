@@ -269,7 +269,7 @@ class ObjectManager:
         _url_str_bk = url_str
         url_str = url_str.strip()
         low_url = url_str.lower()
-        if low_url.startswith('http://') or low_url.startswith('https://') or low_url.startswith('ftp://'):
+        if low_url.startswith(('http://', 'https://', 'ftp://', 'mailto:')):
             return url_str
 
         if low_url.startswith('geturl://'):
@@ -279,7 +279,7 @@ class ObjectManager:
 
         result_url = None
         url_for, for_value = get_url_content.split(':')
-        assert url_for in ('file', 'sass')
+        assert url_for in ('file', 'sass', 'id')
         if url_for == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
             content_id = site.get_service('contents').make_content_id(file_cpath)
@@ -295,6 +295,11 @@ class ObjectManager:
             scss_content = self.__cache.get_pre_processed_content_by_cpath(site, scss_cpath, None)
             if scss_content is not None:
                 result_url = scss_content.url_object
+        elif url_for == 'id':
+            for content_fields in self.__cache.get_all_marked_content_fields(site):
+                if content_fields.id == for_value:
+                    result_url = content_fields.get_url_object()
+                    break
         else:  # content
             raise NotImplemented
 
