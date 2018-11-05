@@ -9,7 +9,7 @@
 """
 
 import re
-import mimetypes
+from collections import OrderedDict
 from synamic.core.services.content.functions.construct_url_object import content_construct_url_object
 from synamic.core.contracts.content import ContentContract, DocumentType
 from synamic.core.standalones.functions.decorators import not_loaded
@@ -71,15 +71,6 @@ class ContentService:
         )
 
         content_fields = self.make_content_fields(file_cpath, url_object, model, self.make_content_id(file_cpath), document_type, fields_syd)
-
-        # convert with type system.
-        for key in fields_syd.keys():
-            if key in model:
-                model_field = model[key]
-                value = model_field.converter(fields_syd[key])
-            else:
-                value = fields_syd[key]
-            content_fields[key] = value
         return content_fields
 
     def build_md_content(self, file_path):
@@ -178,7 +169,7 @@ class ContentService:
             str_id = param
         return self.__ContentID(str_id)
 
-    class __ContentFields(dict):
+    class __ContentFields:
         def __init__(self, site, content_file_path, url_object, model, content_id, document_type, raw_fileds, *a, **kwa):
             assert ContentService.is_type_content_id(content_id)
             self.__site = site
@@ -188,13 +179,27 @@ class ContentService:
             self.__content_id = content_id
             self.__document_type = document_type
             self.__raw_fields = raw_fileds
+            self.__converted_values = OrderedDict()
             super().__init__(*a, *kwa)
 
-        def clone(self):
-            c = self.__class__(self.__site, self.__model)
-            for key, value in self.items():
-                c[key] = value
-            return c
+        def get(self, key, default=None):
+            raw_value = self.__raw_fields.get(key, None)
+            if raw_value is None:
+                return default
+
+            value = self.__converted_values.get(key, None)
+            if value is None:
+                # convert with type system.
+                if key in self.__model:
+                    model_field = self.__model[key]
+                    value = model_field.converter(raw_value)
+                else:
+                    value = raw_value
+                self.__converted_values[key] = value
+            return value
+
+        def __getitem__(self, key):
+            return self.get(key, None)
 
         def __getattr__(self, key):
             return self.get(key, None)
@@ -204,6 +209,9 @@ class ContentService:
 
         def __hash__(self):
             return hash(self.__url_object)
+
+        def get_keys(self):
+            return self.__raw_fields.keys()
 
         def get_path_object(self):
             """Content file path"""

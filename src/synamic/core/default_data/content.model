@@ -20,4 +20,6 @@ meta_tags: text
 
 meta_description: text
 
+language: string
+
 __body__: markdown
