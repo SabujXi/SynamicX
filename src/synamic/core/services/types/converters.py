@@ -59,7 +59,10 @@ _default_types = frozenset({
         'string[]',
         'date[]',
         'time[]',
-        'datetime[]'
+        'datetime[]',
+
+        'pagination_#later-fix',
+        'chapters'
 })
 
 _class_map = {}
@@ -482,6 +485,34 @@ class MarkCategoriesConverter(ConverterCallableListCompareMixin):
                     mark
                 )
         return tuple(res)
+
+
+@_add_converter_type('pagination_#later-fix')
+class PaginationConverter(ConverterCallable):
+    def __call__(self, param, *args, **kwargs):
+        site = self.type_system.site
+        object_manager = site.object_manager
+        site_settings = site.get_service('site_settings')
+
+        per_page = site_settings.pagination_per_page
+        if isinstance(param, str):
+            query = str
+        else:
+            query = param.query
+            _ = param.get('per_page', None)
+            if _ is not None:
+                assert isinstance(_, int)
+                per_page = _
+        return object_manager.paginate_contents(query, per_page)
+
+
+@_add_converter_type('chapters')
+class ChaptersConverter(ConverterCallable):
+    def __call__(self, param, *args, **kwargs):
+        site = self.type_system.site
+        content_service = site.get_service('contents')
+        chapters = content_service.build_chapters(param)
+        return chapters
 
 
 # TODO: fix this

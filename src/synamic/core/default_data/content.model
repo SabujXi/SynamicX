@@ -22,4 +22,8 @@ meta_description: text
 
 language: string
 
+# pagination: pagination
+
+chapters: chapters
+
 __body__: markdown

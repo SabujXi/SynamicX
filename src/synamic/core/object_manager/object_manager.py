@@ -260,20 +260,68 @@ class ObjectManager:
     def get_path_tree(self, site):
         return site.get_service('path_tree')
 
-    def geturl(self, site, url_str):
-        _url_str_bk = url_str
+    @staticmethod
+    def __get_with_x_scheme(url_str):
         url_str = url_str.strip()
         low_url = url_str.lower()
-        if low_url.startswith(('http://', 'https://', 'ftp://', 'mailto:')):
+        if '://' in low_url:
+            scheme, url_content = url_str.split('://', 1)
+        else:
+            scheme = None
+            url_content = url_str
+
+        if scheme is not None:
+            if scheme.lower() not in ('geturl', 'getfields', 'getcontent'):
+                ordinary_url = True
+            else:
+                scheme = scheme.lower()
+                ordinary_url = False
+        else:
+            ordinary_url = True
+
+        return ordinary_url, scheme, url_content
+
+    def getfields(self, site, url_str):
+        ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
+        if ordinary_url:
             return url_str
 
-        if low_url.startswith('geturl://'):
-            get_url_content = url_str[len('geturl://'):]
+        result_fields = None
+        fields_for, for_value = url_content.split(':')
+        assert fields_for in ('file', 'id')
+        if fields_for == 'file':
+            file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
+            marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
+            if marked_content_fields is not None:
+                result_fields = marked_content_fields
+
+        elif fields_for == 'id':
+            for marked_content_fields in self.__cache.get_all_marked_content_fields(site):
+                if marked_content_fields.id == for_value:
+                    result_fields = marked_content_fields
+                    break
+        else:  # content
+            raise NotImplemented
+
+        if result_fields is None:
+            raise Exception('Fields not found for getfields(): %s' % url_str)
         else:
-            get_url_content = url_str
+            return result_fields
+
+    def getcontent(self, site, url_str):
+        ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
+        if ordinary_url:
+            return url_str
+        result_content = self.get_marked_content(site, self.getfields(site, url_str).get_path_object())
+        return result_content
+
+    def geturl(self, site, url_str):
+        ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
+        if ordinary_url:
+            return url_str
 
         result_url = None
-        url_for, for_value = get_url_content.split(':')
+        url_for, for_value = url_content.split(':')
         assert url_for in ('file', 'sass', 'id')
         if url_for == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
@@ -298,7 +346,7 @@ class ObjectManager:
             raise NotImplemented
 
         if result_url is None:
-            raise Exception('URL not found for geturl(): %s' % _url_str_bk)
+            raise Exception('URL not found for geturl(): %s' % url_str)
         else:
             return result_url.url_encoded
 
@@ -414,6 +462,12 @@ class ObjectManager:
             )
         return tuple(_)
 
+    def paginate_contents(self, site, query_str, per_page):
+        contents = self.query_contents(site, query_str)
+        ...
+        ...
+        ...
+
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
             self.__site = site
@@ -514,6 +568,9 @@ class ObjectManager:
 
         def get_marked_content_by_url(self, url_object):
             return self.__object_manager.get_marked_content_by_url(self.site, url_object)
+
+        def paginate_contents(self, query_str, per_page):
+            return self.__object_manager.paginate_contents(self.site, query_str, per_page)
 
     class __Cache:
         ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value', 'cpath'))

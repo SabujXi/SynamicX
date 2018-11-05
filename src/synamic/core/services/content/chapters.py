@@ -1,22 +1,20 @@
 class Chapter:
-    def __init__(self, config, chapter_field):
-        self.__config = config
+    def __init__(self, site, chapter_field):
+        self.__site = site
         self.__chapter_field = chapter_field
 
-        self.__title = chapter_field.get('title').value
-        self.__link = None
+        self.__title = chapter_field['title']
+        del chapter_field['title']
+        self.__raw_link = chapter_field['link']
+        del chapter_field['link']
+        self.__cached_link = None
+        # TODO: do more magic with getfields/getcontents and add property for them.
 
     @property
     def link(self):
-        if self.__link is None:
-            l = self.__chapter_field.get('link').value.strip()
-            if l.startswith('geturl://'):
-                gurl = l[len('geturl://'):]
-                link = self.__config.geturl(gurl)
-            else:
-                link = l
-            self.__link = link
-        return self.__link
+        if self.__cached_link is None:
+            self.__cached_link = self.__site.object_manager.geturl(self.__raw_link)
+        return self.__cached_link
 
     @property
     def title(self):
@@ -44,11 +42,3 @@ class Chapter:
     def __repr__(self):
         return repr(self.__str__())
 
-
-def get_chapters(config, chapters_field):
-    chapters = []
-    chapter_fields = chapters_field.get_multi('chapter')
-    for cf in chapter_fields:
-        if cf.get('title') is not None and cf.get('link') is not None:
-            chapters.append(Chapter(config, cf))
-    return tuple(chapters)

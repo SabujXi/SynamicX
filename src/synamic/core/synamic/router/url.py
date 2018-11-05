@@ -193,11 +193,11 @@ class ContentUrl:
 
     @property
     def path_as_str_encoded(self):
-        return urllib.parse.quote_plus(self.path_as_str, safe='/', encoding='utf-8')
+        return urllib.parse.quote_plus(self.path_as_str, safe='/:#', encoding='utf-8')
 
     @property
     def path_as_str_w_site_encoded(self):
-        return urllib.parse.quote_plus(self.path_as_str_w_site, safe='/', encoding='utf-8')
+        return urllib.parse.quote_plus(self.path_as_str_w_site, safe='/:#', encoding='utf-8')
 
     @property
     def url(self):
@@ -217,7 +217,7 @@ class ContentUrl:
 
     @property
     def url_encoded(self):
-        return urllib.parse.quote_plus(self.url, safe='/', encoding='utf-8')
+        return urllib.parse.quote_plus(self.url, safe='/:#', encoding='utf-8')
 
     @property
     def to_file_system_path(self):
