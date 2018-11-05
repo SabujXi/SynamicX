@@ -58,3 +58,4 @@ class StaticContent(ContentContract):
     @property
     def document_type(self):
         return self.__document_type
+

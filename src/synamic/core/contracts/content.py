@@ -133,3 +133,15 @@ class ContentContract(metaclass=abc.ABCMeta):
     @property
     def is_meta_document(self):
         return self.document_type is self.__document_types.META_DOCUMENT
+
+    def __str__(self):
+        return "Content with url -> %s" % self.url_object.path_as_str_w_site
+
+    def __repr__(self):
+        return repr(self.__str__())
+
+    def __eq__(self, other):
+        return self.url_object == other.url_object
+
+    def __hash__(self):
+        return hash(self.url_object)
