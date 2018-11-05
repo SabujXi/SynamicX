@@ -3,15 +3,30 @@ _key_pattern = re.compile(r'^[a-z0-9_]+(\.[a-z0-9_]+)*$', re.I)
 
 
 class ModelField:
-    def __init__(self, key, converter, required, unique):
+    def __init__(self, key, converter_name, required, unique):
         self.__key = key
-        self.__converter = converter
+        self.__converter_name = converter_name
         self.__required = required
         self.__unique = unique
+        self.__converter = None
+
+    def clone(self):
+        return self.__class__(self.__key, self.__converter_name, self.__required, self.__unique)
+
+    def set_converter(self, converter):
+        # TODO: Importing ConverterCallable is impossible as this module is imported from type system.
+        # Fix it or leave it.
+        # assert isinstance(converter, ConverterCallable)
+        assert self.__converter is None
+        self.__converter = converter
 
     @property
     def key(self):
         return self.__key
+
+    @property
+    def converter_name(self):
+        return self.__converter_name
 
     @property
     def converter(self):
@@ -30,17 +45,36 @@ class Model(dict):
     def __init__(self, model_name, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.__model_name = model_name
+        self.__args = tuple(args)
+        self.__kwargs = kwargs.copy()
+
+    def clone(self):
+        another = self.__class__(self.__model_name, *self.__args, **self.__kwargs)
+        for key, value in self.items():
+            another[key] = value.clone()
+        return another
 
     @property
-    def _model_name(self):
+    def model_name(self):
         return self.__model_name
 
     @property
-    def _body_field(self):
+    def body_field(self):
         return self.get('__body__', None)
+
+    def new(self, *others):
+        another = self.clone()
+        for other in others:
+            assert type(other) is self.__class__
+            another.update(other.clone())
+        return another
 
 
 class ModelParser:
+    @classmethod
+    def empty_model(cls, model_name):
+        return cls.parse(model_name, '')
+
     @staticmethod
     def parse(model_name, model_text):
         model = Model(model_name)

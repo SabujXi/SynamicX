@@ -35,7 +35,7 @@ class _SiteSettings:
         value = self.__syd.get(dotted_key, default=default)
         if value == default:
             # try in system
-            value = self.__site.default_configs.get('settings').get(dotted_key, default)
+            value = self.__site.default_data.get_syd('settings').get(dotted_key, default)
         return value
 
     def __getitem__(self, item):
@@ -75,9 +75,9 @@ class SiteSettingsService:
         self.__is_loaded = True
 
     def make_site_settings(self):
-        system_settings_syd = self.__site.default_configs.get('settings')
-        dirs_syd = self.__site.default_configs.get('dirs')
-        configs_syd = self.__site.default_configs.get('configs')
+        system_settings_syd = self.__site.default_data.get_syd('settings')
+        dirs_syd = self.__site.default_data.get_syd('dirs')
+        configs_syd = self.__site.default_data.get_syd('configs')
 
         site_om = self.__site.object_manager
         settings_fn = 'settings.syd'

@@ -11,7 +11,7 @@ import os
 from synamic.core.contracts import SynamicContract
 from synamic.core.synamic.sites.sites import Sites
 from synamic.core.synamic.router import RouterService
-from synamic.core.configs import DefaultConfigManager
+from synamic.core.default_data import DefaultDataManager
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.object_manager import ObjectManager
 
@@ -23,7 +23,7 @@ class Synamic(SynamicContract):
         self.__root_site_root = root_site_root
 
         # Default Config Manager
-        self.__default_configs = DefaultConfigManager()
+        self.__default_data = DefaultDataManager()
 
         # Object Manager
         self.__object_manager = ObjectManager(self)
@@ -52,8 +52,8 @@ class Synamic(SynamicContract):
         self.__is_loaded = True
 
     @property
-    def default_configs(self):
-        return self.__default_configs
+    def default_data(self):
+        return self.__default_data
 
     @property
     def object_manager(self):

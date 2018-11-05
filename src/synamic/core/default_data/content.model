@@ -1,0 +1,16 @@
+title: text|required
+
+created_on: datetime
+
+updated_on: datetime
+
+tags: marker#tags
+
+categories: marker#categories
+
+type: marker#type
+
+path: string
+slug: string
+
+__body__: markdown

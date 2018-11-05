@@ -32,6 +32,15 @@ class _Mark:
         paths.reverse()
         return root, tuple(paths)
 
+    @staticmethod
+    def title_to_id(title):
+        title = title.lower()
+        # replace consecutive space chars with single one
+        title = ' '.join(title.split())
+        # replace no alpha-numeric-dash-underscore chars with a single underscore.
+        _id = _mark_title2id_sub_pat.sub('_', title)
+        return _id
+
     @property
     def marker(self):
         return self.__marker
@@ -45,11 +54,7 @@ class _Mark:
         # TODO: create id from title in a better way
         _id = self.__mark_map.get('id', None)
         if _id is None:
-            title = self.title.lower()
-            # replace consecutive space chars with single one
-            title = ' '.join(title.split())
-            # replace no alpha-numeric-dash-underscore chars with a single underscore.
-            _id = _mark_title2id_sub_pat.sub('_', title)
+            _id = self.title_to_id(self.title)
         return _id
 
     @property
@@ -59,6 +64,12 @@ class _Mark:
     @property
     def marks(self):
         return self.__mark_map.get('marks', None)
+
+    def __eq__(self, other):
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.id)
 
     def __getattr__(self, key):
         return self.__mark_map.get(key, '')
@@ -95,10 +106,10 @@ class Marker:
     def add_mark(self, mark):
         assert type(mark) is _Mark
         self.__marks.append(mark)
-        self.__marks_by_title[mark.title] = mark
+        self.__marks_by_title[_Mark.title_to_id(mark.title)] = mark
         self.__marks_by_id[mark.id] = mark
 
-    def add_mark_by_title(self, title):
+    def create_n_add_mark_by_title(self, title):
         mark = self.get_mark_by_title(title, None)
         if mark is None:
             mark_map = {
@@ -140,7 +151,7 @@ class Marker:
         return self.__marks_by_id.get(id, default)
 
     def get_mark_by_title(self, title, default=None):
-        return self.__marks_by_title.get(title, default)
+        return self.__marks_by_title.get(_Mark.title_to_id(title), default)
 
     def __process_marks_list(self, mark_maps, res_mark_objs, parent):
         _marks = []

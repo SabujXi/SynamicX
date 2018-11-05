@@ -1,30 +1,57 @@
 import re
+import operator
 from synamic.core.parsing_systems.curlybrace_parser import SydParser  #covert_one_value
 from collections import OrderedDict, namedtuple
-_operators_map = OrderedDict([
-    ('contains', 'CONTAINS'),
-    ('!contains', 'NOT_CONTAINS'),
-    ('in', 'IN'),
-    ('!in', 'NOT_IN'),
-    ('==', 'EQ'),
-    ('!=', 'NOT_EQ'),
-    ('>=', 'GTE'),
-    ('<=', 'LTE'),
-    ('>', 'GT'),
-    ('<', 'LT')
-])
 
 
-class Parser:
-    __OPERATORS_MAP = _operators_map.copy()
-    __LOGICAL_OPS = {'|', '&'}
+class SimpleQueryParser:
+    COMPARE_OPERATORS = tuple([
+        'contains',
+        '!contains',
+        'in',
+        '!in',
+        '==',
+        '!=',
+        '>=',
+        '<=',
+        '>',
+        '<'
+    ])
+
+    COMPARE_OPERATORS_SET = frozenset(COMPARE_OPERATORS)
+
+    COMPARE_OPERATOR_2_PY_OPERATOR_FUN = {
+        'contains': operator.contains,
+        '!contains': lambda a, b: not operator.contains(a, b),
+        'in': lambda a, b: operator.contains(b, a),
+        '!in': lambda a, b: not operator.contains(b, a),
+        '==': operator.eq,
+        '!=': operator.ne,
+        '>=': operator.ge,
+        '<=': operator.le,
+        '>': operator.gt,
+        '<': operator.lt
+    }
 
     Section = namedtuple('Section', ('id', 'op', 'value', 'logic'))
 
     class Pattern:
-        identifier = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*')
+        identifier = re.compile(r'[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)?')
         ws = re.compile(r'\s+')
         before_and_or = re.compile(r'[^&|]*')
+
+    @classmethod
+    def validate_op_value(cls, op, left_value, right_value):
+        assert op in cls.COMPARE_OPERATORS_SET
+        if op in ('in', '!in'):
+            assert isinstance(right_value, (list, tuple))
+            assert not isinstance(left_value, (list, tuple))
+        elif op in ('contains', '!contains'):
+            assert isinstance(left_value, (list, tuple))
+            assert not isinstance(right_value, (list, tuple))
+        else:
+            assert not isinstance(left_value, (list, tuple))
+            assert not isinstance(right_value, (list, tuple))
 
     def __init__(self, txt):
         self.__txt = txt
@@ -32,7 +59,7 @@ class Parser:
         self.__sections = []
         self.__current_section = []
 
-    def reset_current_section(self):
+    def __reset_current_section(self):
         current_section = list(self.__current_section)
         if len(current_section) == 3:
             current_section.append(None)
@@ -40,17 +67,17 @@ class Parser:
         self.__sections.append(section)
         self.__current_section.clear()
 
-    def on_error(self):
+    def __on_error(self):
         err_before_txt = '_' * self.__pos
         err_after_txt = '^' * (len(self.__txt) - self.__pos - 1)
         err_txt = '\n' + self.__txt + '\n' + err_before_txt + err_after_txt
 
         raise Exception("Error at %s: %s" % (self.__pos, err_txt))
 
-    def expect_id(self):
+    def __expect_id(self):
         match = self.Pattern.identifier.match(self.__txt, self.__pos)
         if not match:
-            self.on_error()
+            self.__on_error()
         else:
             identifier = match.group()
             self.__pos = match.end()
@@ -58,50 +85,50 @@ class Parser:
             return True
         return False
 
-    def skip_ws(self):
+    def __skip_ws(self):
         match = self.Pattern.ws.match(self.__txt, self.__pos)
         if match:
             self.__pos = match.end()
 
-    def expect_ws(self):
+    def __expect_ws(self):
         match = self.Pattern.ws.match(self.__txt, self.__pos)
         if match:
-            self.skip_ws()
+            self.__skip_ws()
             return True
         else:
-            self.on_error()
+            self.__on_error()
         return False
 
-    def expect_operator(self):
+    def __expect_operator(self):
         matched_op = None
-        for op in self.__OPERATORS_MAP.keys():
+        for op in self.COMPARE_OPERATORS:
             if self.__txt[self.__pos:].startswith(op):
                 matched_op = op
                 break
         if matched_op is None:
-            self.on_error()
+            self.__on_error()
         else:
             self.__pos += len(matched_op)
             self.__current_section.append(matched_op)
             return True
         return False
 
-    def expect_or_and_end(self):
+    def __expect_or_and_end(self):
         if self.__pos + 1 >= len(self.__txt):
-            self.reset_current_section()
+            self.__reset_current_section()
             return True
         elif self.__txt[self.__pos:].startswith(('&', '|')):
             value = self.__txt[self.__pos:self.__pos+1]
             # and_or = 'OR' if value == '|' else 'AND'
             self.__current_section.append(value)
-            self.reset_current_section()
+            self.__reset_current_section()
             self.__pos += 1
             return True
         else:
-            self.on_error()
+            self.__on_error()
         return False
 
-    def grab_value_until_and_or(self):
+    def __grab_value_until_and_or(self):
         match = self.Pattern.before_and_or.match(self.__txt, self.__pos)
         if match:
             value = match.group().strip()
@@ -110,12 +137,12 @@ class Parser:
                 self.__current_section.append(value)
                 return True
             else:
-                self.on_error()
+                self.__on_error()
         else:
-            self.on_error()
+            self.__on_error()
         return False
 
-    def parse(self):
+    def parse(self) -> tuple:
         """
         title == something | type in go, yes & age > 6
         """
@@ -124,18 +151,18 @@ class Parser:
 
         while self.__pos < len(self.__txt) - 1:
             # print(self.__sections)
-            self.skip_ws()
+            self.__skip_ws()
 
-            self.expect_id()
-            self.expect_ws()
+            self.__expect_id()
+            self.__expect_ws()
 
-            self.expect_operator()
-            self.expect_ws()
+            self.__expect_operator()
+            self.__expect_ws()
 
-            self.grab_value_until_and_or()
+            self.__grab_value_until_and_or()
 
-            self.expect_or_and_end()
-            self.skip_ws()
+            self.__expect_or_and_end()
+            self.__skip_ws()
         sections = tuple(self.__sections)
         self.__pos = 0
         self.__sections.clear()
@@ -160,7 +187,7 @@ class Parser:
 
 
 def test(query):
-    tokens = Parser(query).parse()
+    tokens = SimpleQueryParser(query).parse()
     for token in tokens:
         print(token)
 

@@ -11,7 +11,7 @@ from synamic.core.services.types.type_system import TypeSystem
 from synamic.core.services.pre_processor import PreProcessorService
 from synamic.core.services.tasks import TasksService
 from synamic.core.services.marker import MarkerService
-from synamic.core.configs import DefaultConfigManager
+from synamic.core.default_data import DefaultDataManager
 
 
 def _install_default_services(site):
@@ -139,8 +139,8 @@ class _Site:
         return self
 
     @property
-    def default_configs(self) -> DefaultConfigManager:
-        return self.__synamic.default_configs
+    def default_data(self) -> DefaultDataManager:
+        return self.__synamic.default_data
 
     @property
     def event_bus(self) -> EventSystem:
@@ -177,7 +177,7 @@ class _SiteWrapper:
     def __init__(self, site):
         self.__site = site
         self.__blacklisted_attrs = {'load', 'add_service', 'get_service', 'synamic', 'parent', 'root',
-                                    'default_configs', 'object_manager', 'parent', 'sites', 'router', 'builder',
+                                    'default_data', 'object_manager', 'parent', 'sites', 'router', 'builder',
                                     'site_wrapper'}
 
     def __getattr__(self, key):

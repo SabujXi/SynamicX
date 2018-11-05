@@ -49,7 +49,7 @@ class ContentService:
         # get dir meta syd
         # """It should not live here as it is compile time dependency"""
         # each field from meta syd will be converted with individual content model and site type system.
-        dir_meta_file_name = self.__site.default_configs.get('configs')['dir_meta_file_name']
+        dir_meta_file_name = self.__site.default_data.get_syd('configs')['dir_meta_file_name']
         _syd = self.__site.object_manager.empty_syd()
         parent_cpaths = file_cpath.parent_cpaths
         for dir_cpath in parent_cpaths:
@@ -60,20 +60,23 @@ class ContentService:
         else:  # for else when loop ended normally without using break.
             fields_syd = _syd.new(fields_syd)
 
-        types = self.__site.get_service('types')
         # TODO: what is the document type???
         document_type = DocumentType.HTML_DOCUMENT
-        model_name = fields_syd.get('model', 'content')  # TODO: default model is 'content' not 'default'
+        model_name = 'content'  # model name for contents is 'content' - a builtin model exists with this name.
+                                # User can only override no existing field creating another model with the same name
+                                # under site's meta model directory.
         model = self.__site.object_manager.get_model(model_name)
-        content_fields = self.make_content_fields(file_cpath, model, self.make_content_id(file_cpath.id), document_type, fields_syd)
+        url_object = self.__site.object_manager.make_url_for_marked_content(
+            file_cpath, path=fields_syd.get('path', None), slug=fields_syd.get('slug', None), for_document_type=document_type
+        )
+
+        content_fields = self.make_content_fields(file_cpath, url_object, model, self.make_content_id(file_cpath), document_type, fields_syd)
 
         # convert with type system.
         for key in fields_syd.keys():
             if key in model:
                 model_field = model[key]
-                converter_name = model_field.converter
-                converter = types.get_converter(converter_name)
-                value = converter(fields_syd[key])
+                value = model_field.converter(fields_syd[key])
             else:
                 value = fields_syd[key]
             content_fields[key] = value
@@ -163,9 +166,9 @@ class ContentService:
             document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
         return GeneratedContent(self.__site, url_object, content_id, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath, **kwargs)
 
-    def make_content_fields(self, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa):
+    def make_content_fields(self, content_file_path, url_object, model, content_id, document_type, raw_fileds, *a, **kwa):
         """Just makes an instance"""
-        return self.__ContentFields(self.__site, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa)
+        return self.__ContentFields(self.__site, content_file_path, url_object, model, content_id, document_type, raw_fileds, *a, **kwa)
 
     def make_content_id(self, param):
         path_tree = self.__site.get_service('path_tree')
@@ -176,10 +179,11 @@ class ContentService:
         return self.__ContentID(str_id)
 
     class __ContentFields(dict):
-        def __init__(self, site, content_file_path, model, content_id, document_type, raw_fileds, *a, **kwa):
+        def __init__(self, site, content_file_path, url_object, model, content_id, document_type, raw_fileds, *a, **kwa):
             assert ContentService.is_type_content_id(content_id)
             self.__site = site
             self.__content_file_path = content_file_path
+            self.__url_object = url_object
             self.__model = model
             self.__content_id = content_id
             self.__document_type = document_type
@@ -194,6 +198,12 @@ class ContentService:
 
         def __getattr__(self, key):
             return self.get(key, None)
+
+        def __eq__(self, other):
+            return self.__url_object == other.get_url_object()
+
+        def __hash__(self):
+            return hash(self.__url_object)
 
         def get_content_path(self):
             """Content file path"""
@@ -210,6 +220,9 @@ class ContentService:
 
         def get_raw_fields(self):
             return self.__raw_fields
+
+        def get_url_object(self):
+            return self.__url_object
 
     class __ContentID:
         def __init__(self, str_id):

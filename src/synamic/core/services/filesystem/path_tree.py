@@ -27,7 +27,7 @@ class PathTree(object):
         #  % site.site_root
 
         # default configs
-        _dc = site.default_configs.get('configs')
+        _dc = site.default_data.get_syd('configs')
         self.__ignore_dirs_sw = _dc.get('ignore_dirs_sw', None)
         self.__ignore_files_sw = _dc.get('ignore_files_sw', None)
         self.__is_loaded = False

@@ -6,7 +6,7 @@ import os
 import re
 from collections import OrderedDict
 from synamic.core.synamic.sites._site import _Site
-from synamic.core.configs._manager import DefaultConfigManager
+from synamic.core.default_data._manager import DefaultDataManager
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 
 
@@ -17,7 +17,7 @@ class Sites:
         """
         self.__synamic = synamic
         self.__root_site_path = root_site_path
-        self.__default_configs = None
+        self.__default_data = None
         self.__sites_map = OrderedDict({
             #  site_id: site
         })  # must be ordered dict to keep serial of adding intact.
@@ -61,12 +61,12 @@ class Sites:
     def load(self):
         assert os.path.exists(self.__root_site_path)
         # default configs
-        self.__default_configs = DefaultConfigManager()
+        self.__default_data = DefaultDataManager()
 
         # list all the site id components paths
         # this implements the default sites dire mechanism - externally located site is not implemented yet.
         children_site_comps_ids = []
-        _subsites_dirname = self.__default_configs.get('configs')['subsites_dir']
+        _subsites_dirname = self.__default_data.get_syd('configs')['subsites_dir']
         self.__list_site_paths(children_site_comps_ids, tuple(), '')
         __sites_id_comps = tuple(children_site_comps_ids)
         for site_id_comps in __sites_id_comps:
@@ -103,7 +103,7 @@ class Sites:
     def __get_real_site_path_comps(self, site_virtual_comps: tuple):
         """Adds `sites` in between"""
         assert not isinstance(site_virtual_comps, str)
-        subsites_dirname = self.__default_configs.get('configs')['subsites_dir']
+        subsites_dirname = self.__default_data.get_syd('configs')['subsites_dir']
         real_comps = []
         for i in range(len(site_virtual_comps)):
             assert site_virtual_comps[i] != ''
@@ -116,7 +116,7 @@ class Sites:
         virtual_site_comps = [*v_path_comps_2_parent]
         virtual_site_comps.append(start_with) if start_with != '' else None
         real_site_comps = self.__get_real_site_path_comps(tuple(virtual_site_comps))
-        real_site_comps += (self.__default_configs.get('configs')['subsites_dir'], )
+        real_site_comps += (self.__default_data.get_syd('configs')['subsites_dir'], )
         subsites_dir_abs = os.path.join(self.__root_site_path, *real_site_comps)
         if os.path.exists(subsites_dir_abs):
             subsite_ids = []

@@ -272,7 +272,7 @@ class ContentUrl:
 
         # partition at special url comp
         site_ids_comps = [site_id.components for site_id in synamic.sites.ids]
-        url_partition_comp = synamic.default_configs.get('settings')['url_partition_comp']
+        url_partition_comp = synamic.default_data.get_syd('settings')['url_partition_comp']
 
         site_id_components, path_components, special_components = [], [], []
 

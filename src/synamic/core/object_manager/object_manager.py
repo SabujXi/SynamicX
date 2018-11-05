@@ -5,6 +5,7 @@ from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import ContentContract, DocumentType
+from .query import SimpleQueryParser
 
 
 class ObjectManager:
@@ -48,7 +49,7 @@ class ObjectManager:
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
             content_service = site.get_service('contents')
             path_tree = self.get_path_tree(site)
-            content_dir = site.synamic.default_configs.get('dirs')['contents.contents']
+            content_dir = site.synamic.default_data.get_syd('dirs')['contents.contents']
 
             # for content
             file_paths = path_tree.list_file_cpaths(content_dir)
@@ -95,24 +96,13 @@ class ObjectManager:
             menu = menu_service.make_menu(menu_name)
             self.__cache.add_menu(site, menu_name, menu)
 
-    def content_fields_to_url(self, site, fields):
-        assert site.get_service('contents').is_type_content_fields(fields)
-        content_fields = fields
-        # TODO: convert permalink to path and slug along with dir based url
-        path = content_fields.get('path', None)
-        slug = content_fields.get('slug', None)
-        permalink = content_fields.get('permalink', None)  # Temporarily keeping it for backward compatibility.
-        # TODO: remove it and keep path only
-        if permalink is not None:
-            path = permalink
-
+    def make_url_for_marked_content(self, site, file_cpath, path=None, slug=None, for_document_type=DocumentType.TEXT_DOCUMENT):
         if path is not None:
             #  discard everything and keep it. No processing needed.
             pass
         elif slug is not None:
             # calculate through file system.
-            cpath = content_fields.get_content_path()
-            cpath_comps = cpath.path_comps
+            cpath_comps = file_cpath.path_comps
             basename = cpath_comps[-1]
             # TODO: what to do to basename? unused!
             cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
@@ -127,8 +117,7 @@ class ObjectManager:
             path = cpath_comps
         else:
             # calculate through file system.
-            cpath = content_fields.get_content_path()
-            cpath_comps = cpath.path_comps
+            cpath_comps = file_cpath.path_comps
             basename = cpath_comps[-1]
             cpath_comps = cpath_comps[1:-1]  # ignoring `contents` dir  TODO: make it more logical and dynamic
             # instead of hard coded.
@@ -145,9 +134,18 @@ class ObjectManager:
         url_object = self.__synamic.router.make_url(
             site,
             url_path_comps,
-            for_document_type=content_fields.get_document_type()
+            for_document_type=for_document_type
         )
         return url_object
+
+    def content_fields_to_url(self, site, fields):
+        assert site.get_service('contents').is_type_content_fields(fields)
+        content_fields = fields
+        path = content_fields.get('path', None)
+        slug = content_fields.get('slug', None)
+        content_cpath = content_fields.get_content_path()
+        for_document_type = content_fields.get_document_type()
+        return self.make_url_for_marked_content(site, content_cpath, path=path, slug=slug, for_document_type=for_document_type)
 
     def static_content_cpath_to_url(self, site, cpath, for_document_type):
         assert DocumentType.is_binary(for_document_type, not_generated=True)
@@ -178,7 +176,7 @@ class ObjectManager:
         # TODO: other type of contents besides md contents.
         content_service = site.get_service('contents')
         path_tree = self.get_path_tree(site)
-        contents_dir = site.default_configs.get('dirs')['contents.contents']
+        contents_dir = site.default_data.get_syd('dirs')['contents.contents']
         if isinstance(path, str):
             file_cpath = path_tree.create_file_cpath(contents_dir + '/' + path)
         else:
@@ -202,8 +200,8 @@ class ObjectManager:
     def all_static_paths(self, site):
         paths = []
         path_tree = site.get_service('path_tree')
-        statics_dir = site.default_configs.get('dirs')['contents.statics']
-        contents_dir = site.default_configs.get('dirs')['contents.contents']
+        statics_dir = site.default_data.get_syd('dirs')['contents.statics']
+        contents_dir = site.default_data.get_syd('dirs')['contents.contents']
         paths.extend(path_tree.list_file_cpaths(statics_dir))
 
         for path in path_tree.list_file_cpaths(contents_dir):
@@ -239,11 +237,30 @@ class ObjectManager:
         return syd
 
     def get_model(self, site, model_name):
-        model_dir = site.synamic.default_configs.get('dirs')['metas.models']
+        """Nothing from the system model be overridden - this is opposite of system syd to user settings."""
+        types = site.get_service('types')
+
+        model_dir = site.synamic.default_data.get_syd('dirs')['metas.models']
         path_tree = site.get_service('path_tree')
-        path = path_tree.create_file_cpath(model_dir, model_name + '.model')
-        model_text = self.get_raw_data(site, path)
-        return ModelParser.parse(model_name, model_text)
+        user_model_cpath = path_tree.create_file_cpath(model_dir, model_name + '.model')
+
+        processed_model = self.__cache.get_model(site, model_name, None)
+        if processed_model is None:
+            system_model = site.default_data.get_model(model_name, None)
+            if system_model is None:
+                user_model = ModelParser.parse(model_name, self.get_raw_data(site, user_model_cpath))
+                new_model = user_model
+            else:
+                user_model = ModelParser.parse(model_name, self.get_raw_data(site, user_model_cpath))
+                new_model = user_model.new(system_model)
+            # put converters inside of the fields
+            for key, field in new_model.items():
+                converter = types.get_converter(field.converter_name)
+                field.set_converter(converter)
+            self.__cache.add_model(site, new_model)
+            return new_model
+        else:
+            return processed_model
 
     def get_content_parts(self, site, content_path):
         text = self.get_raw_data(site, content_path)
@@ -252,8 +269,7 @@ class ObjectManager:
         return front_matter_syd, body
 
     def get_path_tree(self, site):
-        path_tree = site.get_service('path_tree')
-        return path_tree
+        return site.get_service('path_tree')
 
     def geturl(self, site, url_str):
         _url_str_bk = url_str
@@ -328,6 +344,73 @@ class ObjectManager:
 
     def get_menu(self, site, menu_name, default=None):
         return self.__cache.get_menu(site, menu_name, default=default)
+
+    @staticmethod
+    def __convert_section_values(sections, content_model):
+        _ = []
+        for section in sections:
+            converted_value = content_model[section.id].converter(section.value)
+            _.append(
+                SimpleQueryParser.Section(id=section.id, op=section.op, value=converted_value, logic=section.logic)
+            )
+        return _
+
+    def query_fields(self, site, query_str):
+        content_model = site.object_manager.get_model('content')
+        converted_sections = self.__convert_section_values(SimpleQueryParser(query_str).parse(), content_model)
+
+        all_contents_fields = self.__cache.get_all_marked_content_fields(site)
+        result = set(all_contents_fields)
+
+        while converted_sections:
+            # &'s first
+            and_idx = None
+            for and_idx, section in enumerate(converted_sections):
+                if section.logic == '&':
+                    break
+                else:
+                    and_idx = None
+
+            # for &
+            if and_idx is not None:
+                section_left = converted_sections.pop(and_idx)
+                section_right = converted_sections.pop(and_idx)  # +1
+            # for | or end of sections
+            else:
+                section_left = converted_sections.pop(0)
+                if section_left.logic is not None:
+                    section_right = converted_sections.pop(0)  # +1
+                else:
+                    assert len(converted_sections) == 0
+                    section_right = None
+
+            matched_result_left = set()
+            matched_result_right = set()
+
+            for matched_result, section, left in ([matched_result_left, section_left, True], [matched_result_right, section_right, False]):
+                right = not left
+                for content_fields in result:
+                    if left or section is not None:
+                        field_value = content_fields.get(section.id, None)
+                        if field_value is not None:
+                            converter = content_model[section.id].converter
+                            if converter.compare(section.op, field_value, section.value):
+                                matched_result.add(content_fields)
+                        # else:
+                        #     print(content_model)
+                        #     raise Exception("Section field name %s does not exist on fields for: %s" % (section.id, str(content_fields.get_url_object())))
+            matched_result = set()
+            if section_right is not None:
+                if section_left.logic == '|':
+                    matched_result.update(matched_result_left)
+                    matched_result.update(matched_result_right)
+                else:
+                    matched_result = matched_result_left.intersection(matched_result_right)
+            else:
+                matched_result = matched_result_left
+
+            result = matched_result
+        return result
 
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
@@ -415,11 +498,17 @@ class ObjectManager:
         def static_content_cpath_to_url(self, cpath, for_document_type):
             return self.__object_manager.static_content_cpath_to_url(self.site, cpath, for_document_type)
 
+        def make_url_for_marked_content(self, file_cpath, path=None, slug=None, for_document_type=DocumentType.TEXT_DOCUMENT):
+            return self.__object_manager.make_url_for_marked_content(self.site, file_cpath, path=path, slug=slug, for_document_type=for_document_type)
+
         def content_fields_to_url(self, fields):
             return self.__object_manager.content_fields_to_url(self.site, fields)
 
         def get_menu(self, menu_name, default=None):
             return self.__object_manager.get_menu(self.site, menu_name, default=default)
+
+        def query_fields(self, query_str):
+            return self.__object_manager.query_fields(self.site, query_str)
 
     class __Cache:
         ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value', 'cpath'))
@@ -436,6 +525,9 @@ class ObjectManager:
 
             # menus
             self.__menus_cachemap = defaultdict(dict)
+
+            # models
+            self.__models_cachemap = defaultdict(dict)
 
             self.__contents_cachemap = defaultdict(dict)
             # key is url object value is a named tuple of
@@ -480,7 +572,7 @@ class ObjectManager:
 
         def get_all_marked_content_fields(self, site):
             all_fields = []
-            for value_tuple in self.__contents_cachemap[site.id]:
+            for value_tuple in self.__contents_cachemap[site.id].values():
                 if value_tuple.type == self.TYPE_CONTENT_FIELDS:
                     all_fields.append(value_tuple.value)
             return tuple(all_fields)
@@ -521,6 +613,13 @@ class ObjectManager:
         def get_menus(self, site):
             return tuple(self.__menus_cachemap[site.id].values())
 
+        def add_model(self, site, model):
+            self.__models_cachemap[site.id][model.model_name] = model
+            return model
+
+        def get_model(self, site, model_name, default=None):
+            return self.__models_cachemap[site.id].get(model_name, default)
+
         def clear_content_cache(self, site):
             self.__contents_cachemap[site.id].clear()
             self.__cpath_to_content_fields[site.id].clear()
@@ -535,9 +634,13 @@ class ObjectManager:
         def clear_menus_cache(self, site):
             self.__menus_cachemap[site.id].clear()
 
+        def clear_model(self, site):
+            self.__models_cachemap[site.id].clear()
+
         def clear_cache(self, site):
             """Clear all"""
             self.clear_content_cache(site)
             self.clear_marker_cache(site)
             self.clear_syd_cache(site)
             self.clear_menus_cache(site)
+            self.clear_model(site)

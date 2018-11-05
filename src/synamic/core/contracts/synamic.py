@@ -23,7 +23,7 @@ class SynamicContract(metaclass=ABCMeta):
 
     @property
     @abstractmethod
-    def default_configs(self):
+    def default_data(self):
         pass
 
     @property

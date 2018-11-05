@@ -1,3 +1,4 @@
+from synamic.core.object_manager.query import SimpleQueryParser
 from synamic.core.standalones.functions.date_time import parse_datetime, parse_date, parse_time
 from .types import Html, Markdown
 import re
@@ -43,9 +44,9 @@ _default_types = frozenset({
         'markdown',
         'html',
 
-        'mark#type',
-        'mark#tags',
-        'mark#categories',
+        'marker#type',
+        'marker#tags',
+        'marker#categories',
         'user',
 
         # TODO: add the following __document_types
@@ -74,9 +75,13 @@ def _add_converter_type(name):
 
 
 class ConverterCallable:
-    def __init__(self, type_system, name):
+    def __init__(self, type_system, name, supported_compare_ops=frozenset()):
         self.__type_system = type_system
         self.__name = name
+        self.__supported_compare_ops = frozenset(supported_compare_ops)
+        # validation
+        for op in self.__supported_compare_ops:
+            assert op in SimpleQueryParser.COMPARE_OPERATORS_SET
 
     @property
     def type_system(self):
@@ -86,12 +91,55 @@ class ConverterCallable:
     def name(self):
         return self.__name
 
+    @property
+    def supported_compare_ops(self):
+        return self.__supported_compare_ops
+
+    def supports_compare_op(self, op):
+        return op in self.supported_compare_ops
+
+    def compare(self, op, left_value, right_value):
+        assert op in self.supported_compare_ops
+        SimpleQueryParser.validate_op_value(op, left_value, right_value)
+        return SimpleQueryParser.COMPARE_OPERATOR_2_PY_OPERATOR_FUN[op](left_value, right_value)
+
     def __call__(self, value, *args, **kwargs):
         raise NotImplemented
 
 
+class ConverterCallableListCompareMixin(ConverterCallable):
+    def compare(self, op, left_value, right_value):
+        assert op in self.supported_compare_ops
+        if op in ('contains', '!contains'):
+            right_value = right_value[0]
+            SimpleQueryParser.validate_op_value(op, left_value, right_value)
+            return SimpleQueryParser.COMPARE_OPERATOR_2_PY_OPERATOR_FUN[op](left_value, right_value)
+        else:
+            assert op in ('in', '!in')
+            assert isinstance(left_value, (list, tuple))
+            assert isinstance(right_value, (list, tuple))
+            for single_value in left_value:
+                if single_value not in right_value:
+                    return False
+            return True
+
+
 @_add_converter_type('number')
-def number_converter(txt, *args, **kwargs):
+class NumberConverter(ConverterCallable):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            '>',
+            '<',
+            '>=',
+            '<=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
+    def __call__(self, txt, *args, **kwargs):
         if isinstance(txt, (int, float)):
             return txt
         m_number = _Pat.number_pat.match(txt)
@@ -116,6 +164,19 @@ def number_converter(txt, *args, **kwargs):
 @_add_converter_type('date')
 class DateConverter(ConverterCallable):
     """May include locale in future"""
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            '>',
+            '<',
+            '>=',
+            '<=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         if isinstance(txt, datetime.date):
             return txt
@@ -125,6 +186,19 @@ class DateConverter(ConverterCallable):
 @_add_converter_type('time')
 class TimeConverter(ConverterCallable):
     """May include locale in future"""
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            '>',
+            '<',
+            '>=',
+            '<=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         if isinstance(txt, datetime.time):
             return txt
@@ -134,6 +208,19 @@ class TimeConverter(ConverterCallable):
 @_add_converter_type('datetime')
 class DateTimeConverter(ConverterCallable):
     """May include locale in future"""
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            '>',
+            '<',
+            '>=',
+            '<=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         if isinstance(txt, datetime.datetime):
             return txt
@@ -141,14 +228,34 @@ class DateTimeConverter(ConverterCallable):
 
 
 @_add_converter_type('string')
-def _string_converter(txt, *args, **kwargs):
+class StringConverter(ConverterCallable):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
+    def __call__(self, txt, *args, **kwargs):
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
         txts = _Pat.newline_pat.split(txt)
         return txts[0]
 
 
 @_add_converter_type('text')
-def text_converter(txt, *args, **kwargs):
+class TextConverter(ConverterCallable):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
+    def __call__(self, txt, *args, **kwargs):
         """return as is"""
         return txt
 
@@ -172,7 +279,16 @@ class HtmlConverter(ConverterCallable):
 
 
 @_add_converter_type('number[]')
-class NumberListConverter(ConverterCallable):
+class NumberListConverter(ConverterCallableListCompareMixin):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            'contains',
+            '!contains',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         number_converter = self.type_system.get_converter('number')
         txts = txt.split(',')
@@ -185,7 +301,16 @@ class NumberListConverter(ConverterCallable):
 
 
 @_add_converter_type('string[]')
-class StringListConverter(ConverterCallable):
+class StringListConverter(ConverterCallableListCompareMixin):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            'contains',
+            '!contains',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         """
         Separator for string is comma (,) - so what if someone want to put a comma inside their string?
@@ -202,7 +327,16 @@ class StringListConverter(ConverterCallable):
 
 
 @_add_converter_type('date[]')
-class DateListConverter(ConverterCallable):
+class DateListConverter(ConverterCallableListCompareMixin):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            'contains',
+            '!contains',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         date_converter = self.type_system.get_converter('date')
         res = []
@@ -217,7 +351,16 @@ class DateListConverter(ConverterCallable):
 
 
 @_add_converter_type('time[]')
-class TimeListConverter(ConverterCallable):
+class TimeListConverter(ConverterCallableListCompareMixin):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            'contains',
+            '!contains',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         time_converter = self.type_system.get_converter('time')
         res = []
@@ -232,7 +375,16 @@ class TimeListConverter(ConverterCallable):
 
 
 @_add_converter_type('datetime[]')
-class DateTimeListConverter(ConverterCallable):
+class DateTimeListConverter(ConverterCallableListCompareMixin):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            'contains',
+            '!contains',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         datetime_converter = self.type_system.get_converter('datetime')
         res = []
@@ -246,8 +398,17 @@ class DateTimeListConverter(ConverterCallable):
         return tuple(res)
 
 
-@_add_converter_type('mark#type')
+@_add_converter_type('marker#type')
 class MarkTypeConverter(ConverterCallable):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         object_manager = self.type_system.site.object_manager
         type_marker = object_manager.get_marker('type')
@@ -258,8 +419,17 @@ class MarkTypeConverter(ConverterCallable):
         return mark
 
 
-@_add_converter_type('mark#tags')
-class MarkTagsConverter(ConverterCallable):
+@_add_converter_type('marker#tags')
+class MarkTagsConverter(ConverterCallableListCompareMixin):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            'contains',
+            '!contains',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
         object_manager = self.type_system.site.object_manager
@@ -272,7 +442,7 @@ class MarkTagsConverter(ConverterCallable):
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
                 mark = tag_marker.get_mark_by_title(title, None)
                 if mark is None:
-                    mark = tag_marker.add_mark_by_title(title)
+                    mark = tag_marker.create_n_add_mark_by_title(title)
                     # raise Exception('Mark does not exist: %s' % title)
                 res.append(
                     mark
@@ -280,8 +450,17 @@ class MarkTagsConverter(ConverterCallable):
         return tuple(res)
 
 
-@_add_converter_type('mark#categories')
-class MarkCategoriesConverter(ConverterCallable):
+@_add_converter_type('marker#categories')
+class MarkCategoriesConverter(ConverterCallableListCompareMixin):
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            'contains',
+            '!contains',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
     def __call__(self, txt, *args, **kwargs):
         object_manager = self.type_system.site.object_manager
         categories_marker = object_manager.get_marker('categories')
@@ -293,7 +472,7 @@ class MarkCategoriesConverter(ConverterCallable):
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
                 mark = categories_marker.get_mark_by_title(title, None)
                 if mark is None:
-                    mark = categories_marker.add_mark_by_title(title)
+                    mark = categories_marker.create_n_add_mark_by_title(title)
                     # raise Exception('Mark does not exist: %s' % title)
                 res.append(
                     mark

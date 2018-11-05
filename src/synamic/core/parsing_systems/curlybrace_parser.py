@@ -960,9 +960,9 @@ class SydParser:
                 data_part = data_part.strip()
 
                 number_match = _Patterns.number.match(data_part)
+                datetime_match = _Patterns.datetime.match(data_part)
                 date_match = _Patterns.date.match(data_part)
                 time_match = _Patterns.time.match(data_part)
-                datetime_match = _Patterns.datetime.match(data_part)
 
                 # number
                 if number_match:
@@ -979,6 +979,10 @@ class SydParser:
                         number = float(data_part)
                     number = number * sign_mul
                     data = SydScalar(key, number, SydDataType.number)
+                # date-time match
+                elif datetime_match:
+                    dt_instance = parse_datetime(datetime_match)
+                    data = SydScalar(key, dt_instance, SydDataType.datetime)
                 # date match
                 elif date_match:
                     date_instance = parse_date(date_match)
@@ -988,10 +992,6 @@ class SydParser:
                 elif time_match:
                     time_instance = parse_time(time_match)
                     data = SydScalar(key, time_instance, SydDataType.time)
-                # date-time match
-                elif datetime_match:
-                    dt_instance = parse_datetime(datetime_match)
-                    data = SydScalar(key, dt_instance, SydDataType.datetime)
                 # bare string : last resort
                 else:
                     bare_string = data_part
