@@ -126,7 +126,7 @@ class ContentService:
         content_id = self.make_content_id(file_path.id)
         # mime type guess
         mime_type = 'text/html'
-        url_object = self.__site.object_manager.content_fields_to_url(content_fields)
+        url_object = content_fields.get_url_object()
         content = MarkedContentImplementation(self.__site,
                                               file_path,
                                               url_object,
@@ -205,7 +205,7 @@ class ContentService:
         def __hash__(self):
             return hash(self.__url_object)
 
-        def get_content_path(self):
+        def get_path_object(self):
             """Content file path"""
             return self.__content_file_path
 

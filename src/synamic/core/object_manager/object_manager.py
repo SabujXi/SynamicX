@@ -62,8 +62,7 @@ class ObjectManager:
                     content_fields = content_service.build_content_fields(fields_syd, file_path)
                     # TODO: now content id is considered url - what to do with content id?
                     content_id = content_service.make_content_id(file_path)
-                    url_object = self.content_fields_to_url(site, content_fields)
-                    self.__cache.add_marked_content_fields(site, content_fields, url_object)
+                    self.__cache.add_marked_content_fields(site, content_fields)
                     # self.__marked_content_fields_cachemap[site.id][content_id] = content_fields
                 else:
                     # No need to cache anything about static file.
@@ -138,15 +137,6 @@ class ObjectManager:
         )
         return url_object
 
-    def content_fields_to_url(self, site, fields):
-        assert site.get_service('contents').is_type_content_fields(fields)
-        content_fields = fields
-        path = content_fields.get('path', None)
-        slug = content_fields.get('slug', None)
-        content_cpath = content_fields.get_content_path()
-        for_document_type = content_fields.get_document_type()
-        return self.make_url_for_marked_content(site, content_cpath, path=path, slug=slug, for_document_type=for_document_type)
-
     def static_content_cpath_to_url(self, site, cpath, for_document_type):
         assert DocumentType.is_binary(for_document_type, not_generated=True)
         # For STATIC Files
@@ -185,6 +175,10 @@ class ObjectManager:
             return None
         md_content = content_service.build_md_content(file_cpath)
         return md_content
+
+    def get_marked_content_by_url(self, site, url_object):
+        cpath = url_object.get_path_object()
+        return self.get_marked_content(site, cpath)
 
     def get_binary_content(self, site, path):
         path_tree = site.get_service('path_tree')
@@ -291,7 +285,7 @@ class ObjectManager:
             content_id = site.get_service('contents').make_content_id(file_cpath)
             marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
             if marked_content_fields is not None:
-                result_url = self.content_fields_to_url(site, marked_content_fields)
+                result_url = marked_content_fields.get_url_object()
             else:
                 # try STATIC
                 result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
@@ -412,6 +406,15 @@ class ObjectManager:
             result = matched_result
         return result
 
+    def query_contents(self, site, query_str):
+        contents_fields = self.query_fields(site, query_str)
+        _ = []
+        for content_fields in contents_fields:
+            _.append(
+                self.get_marked_content(site, content_fields.get_path_object())
+            )
+        return tuple(_)
+
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
             self.__site = site
@@ -501,14 +504,17 @@ class ObjectManager:
         def make_url_for_marked_content(self, file_cpath, path=None, slug=None, for_document_type=DocumentType.TEXT_DOCUMENT):
             return self.__object_manager.make_url_for_marked_content(self.site, file_cpath, path=path, slug=slug, for_document_type=for_document_type)
 
-        def content_fields_to_url(self, fields):
-            return self.__object_manager.content_fields_to_url(self.site, fields)
-
         def get_menu(self, menu_name, default=None):
             return self.__object_manager.get_menu(self.site, menu_name, default=default)
 
         def query_fields(self, query_str):
             return self.__object_manager.query_fields(self.site, query_str)
+
+        def query_contents(self, query_str):
+            return self.__object_manager.query_contents(self.site, query_str)
+
+        def get_marked_content_by_url(self, url_object):
+            return self.__object_manager.get_marked_content_by_url(self.site, url_object)
 
     class __Cache:
         ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value', 'cpath'))
@@ -548,10 +554,11 @@ class ObjectManager:
             if path_object is not None:
                 self.__cpath_to_pre_processed_contents[site.id][path_object] = pre_processed_content
 
-        def add_marked_content_fields(self, site, content_fields, url_object):
+        def add_marked_content_fields(self, site, content_fields):
             value = content_fields
-            self.__add_content(site, value, url_object, content_fields.get_content_path(), self.TYPE_CONTENT_FIELDS)
-            self.__cpath_to_content_fields[site.id][content_fields.get_content_path()] = content_fields
+            url_object = content_fields.get_url_object()
+            self.__add_content(site, value, url_object, content_fields.get_path_object(), self.TYPE_CONTENT_FIELDS)
+            self.__cpath_to_content_fields[site.id][content_fields.get_path_object()] = content_fields
 
         def get_marked_value_tuple_by_url(self, site, url_object, default=None):
             return self.__contents_cachemap[site.id].get(url_object, default)
@@ -568,7 +575,7 @@ class ObjectManager:
             if cfs is None:
                 return default
             else:
-                return cfs.get_content_path()
+                return cfs.get_path_object()
 
         def get_all_marked_content_fields(self, site):
             all_fields = []

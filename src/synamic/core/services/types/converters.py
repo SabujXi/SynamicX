@@ -240,6 +240,9 @@ class StringConverter(ConverterCallable):
 
     def __call__(self, txt, *args, **kwargs):
         """Strings are single line things, so, any multi-line will be skipped and the first line will be taken"""
+        if isinstance(txt, (int, float)):
+            txt = str(txt)
+        assert isinstance(txt, str)
         txts = _Pat.newline_pat.split(txt)
         return txts[0]
 
@@ -257,6 +260,7 @@ class TextConverter(ConverterCallable):
 
     def __call__(self, txt, *args, **kwargs):
         """return as is"""
+        assert isinstance(txt, str)
         return txt
 
 

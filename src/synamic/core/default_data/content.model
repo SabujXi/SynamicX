@@ -11,6 +11,13 @@ categories: marker#categories
 type: marker#type
 
 path: string
+
 slug: string
+
+id: string
+
+meta_tags: text
+
+meta_description: text
 
 __body__: markdown
