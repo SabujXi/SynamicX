@@ -1,5 +1,5 @@
+import types
 from collections import defaultdict, OrderedDict, namedtuple
-from synamic.core.contracts import DocumentType
 from synamic.core.services.content.functions.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
@@ -221,7 +221,8 @@ class ObjectManager:
             self.__cache.add_syd(site, path, syd)
         return syd
 
-    def make_syd(self, raw_data):
+    @staticmethod
+    def make_syd(raw_data):
         syd = SydParser(raw_data).parse()
         return syd
 
@@ -474,6 +475,24 @@ class ObjectManager:
             self.__object_manager = object_manager
             self.__is_loaded = False
 
+            # real object manager methods.
+            self.__cached_om_methods = {}
+
+        def __getattr__(self, key):
+            res = self.__cached_om_methods.get(key, None)
+            if res is None:
+                attr = getattr(self.__object_manager, key)
+                if not isinstance(attr, types.MethodType):  # or key.startswith('_')
+                    res = attr
+                else:
+                    om_method = attr
+
+                    def call_om_method(*args, **kwargs):
+                        return om_method(self.__site, *args, **kwargs)
+                    self.__cached_om_methods[key] = call_om_method
+                    res = call_om_method
+            return res
+
         @property
         def is_loaded(self):
             return self.__is_loaded
@@ -492,85 +511,6 @@ class ObjectManager:
         @property
         def site(self):
             return self.__site
-
-        def get_content_fields(self, path):
-            return self.__object_manager.get_content_fields(self.site, path)
-
-        def get_marked_content(self, path):
-            return self.__object_manager.get_marked_content(self.site, path)
-
-        def get_binary_content(self, path):
-            return self.__object_manager.get_binary_content(self.site, path)
-
-        def get_static_file_paths(self):
-            return self.__object_manager.get_static_file_paths(self.site)
-
-        def all_static_paths(self):
-            self.__object_manager.all_static_paths(self.site)
-
-        def empty_syd(self):
-            return self.__object_manager.empty_syd()
-
-        def get_raw_data(self, path) -> str:
-            return self.__object_manager.get_raw_data(self.site, path)
-
-        def get_syd(self, path):
-            return self.__object_manager.get_syd(self.site, path)
-
-        def make_syd(self, raw_data):
-            return self.__object_manager.make_syd(raw_data)
-
-        def get_model(self, model_name):
-            return self.__object_manager.get_model(self.site, model_name)
-
-        def get_content_parts(self, content_path):
-            return self.__object_manager.get_content_parts(self.site, content_path)
-
-        def get_path_tree(self):
-            return self.__object_manager.get_path_tree(self.site)
-
-        def geturl(self, url_str):
-            return self.__object_manager.geturl(self.site, url_str)
-
-        def get_site_settings(self):
-            return self.__object_manager.get_site_settings(self.site)
-
-        def get_content_by_segments(self, path_segments, pagination_segments):
-            return self.__object_manager.get_content_by_segments(self.site, path_segments, pagination_segments)
-
-        def get_marker(self, marker_id):
-            return self.__object_manager.get_marker(self.site, marker_id)
-
-        def get_markers(self, marker_type):
-            return self.__object_manager.get_markers(self.site, marker_type)
-
-        @property
-        def get_all_cached_marked_fields(self):
-            return self.__object_manager.get_all_cached_marked_fields(self.site)
-
-        def get_marked_cpath_by_curl(self, url_object, default=None):
-            return self.__object_manager.get_marked_cpath_by_curl(self.site, url_object, default=None)
-
-        def static_content_cpath_to_url(self, cpath, for_document_type):
-            return self.__object_manager.static_content_cpath_to_url(self.site, cpath, for_document_type)
-
-        def make_url_for_marked_content(self, file_cpath, path=None, slug=None, for_document_type=DocumentType.TEXT_DOCUMENT):
-            return self.__object_manager.make_url_for_marked_content(self.site, file_cpath, path=path, slug=slug, for_document_type=for_document_type)
-
-        def get_menu(self, menu_name, default=None):
-            return self.__object_manager.get_menu(self.site, menu_name, default=default)
-
-        def query_fields(self, query_str):
-            return self.__object_manager.query_fields(self.site, query_str)
-
-        def query_contents(self, query_str):
-            return self.__object_manager.query_contents(self.site, query_str)
-
-        def get_marked_content_by_url(self, url_object):
-            return self.__object_manager.get_marked_content_by_url(self.site, url_object)
-
-        def paginate_contents(self, query_str, per_page):
-            return self.__object_manager.paginate_contents(self.site, query_str, per_page)
 
     class __Cache:
         ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value', 'cpath'))
