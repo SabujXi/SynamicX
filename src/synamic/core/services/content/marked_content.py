@@ -2,7 +2,7 @@ import io
 from synamic.core.contracts import ContentContract, DocumentType
 
 
-class MarkedContentImplementation(ContentContract):
+class MarkedContent(ContentContract):
     def __init__(self, site, file_cpath, url_object, body, content_fields, toc, document_type, mime_type='text/plain'):
         self.__site = site
         self.__file_cpath = file_cpath

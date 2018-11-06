@@ -15,7 +15,7 @@ from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static_content import StaticContent
 from synamic.core.services.content.generated_content import GeneratedContent
 from synamic.core.services.content.toc import Toc
-from synamic.core.services.content.marked_content import MarkedContentImplementation
+from synamic.core.services.content.marked_content import MarkedContent
 from .chapters import Chapter
 
 
@@ -93,14 +93,14 @@ class ContentService:
         # mime type guess
         mime_type = 'text/html'
         url_object = content_fields.get_url_object()
-        content = MarkedContentImplementation(self.__site,
-                                              file_path,
-                                              url_object,
-                                              body,
-                                              content_fields,
-                                              toc,
-                                              document_type,
-                                              mime_type=mime_type)
+        content = MarkedContent(self.__site,
+                                file_path,
+                                url_object,
+                                body,
+                                content_fields,
+                                toc,
+                                document_type,
+                                mime_type=mime_type)
         return content
 
     def build_paginated_md_content(self):
