@@ -1,10 +1,10 @@
 import types
 from collections import defaultdict, OrderedDict, namedtuple
-from synamic.core.services.content.functions.content_splitter import content_splitter
+from synamic.core.services.content.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
-from synamic.core.contracts import ContentContract, DocumentType
+from synamic.core.contracts import DocumentType
 from .query import SimpleQueryParser
 
 
