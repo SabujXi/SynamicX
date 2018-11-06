@@ -2,6 +2,8 @@ import re
 
 _mark_title2id_sub_pat = re.compile(r'[^a-zA-Z0-9_-]')
 
+separator_comma_pat = re.compile(r',[^,]?')
+
 
 class _Mark:
     def __init__(self, parent, site, mark_map, marker):
@@ -34,6 +36,7 @@ class _Mark:
 
     @staticmethod
     def title_to_id(title):
+        title = title.strip()
         title = title.lower()
         # replace consecutive space chars with single one
         title = ' '.join(title.split())
@@ -105,21 +108,19 @@ class Marker:
     def make_mark(self, mark_map, parent=None):
         return _Mark(parent, self.__site, mark_map, self)
 
+    def make_mark_by_title(self, title_str, parent=None):
+        # TODO: should be empty syd?
+        mark_map = {}
+        title_str = title_str.strip()
+        mark_map['title'] = title_str
+        return self.make_mark(mark_map, parent=parent)
+
     def add_mark(self, mark):
         assert type(mark) is _Mark
+        assert mark.id not in self.__marks_by_id
         self.__marks.append(mark)
         self.__marks_by_title[_Mark.title_to_id(mark.title)] = mark
         self.__marks_by_id[mark.id] = mark
-
-    def create_n_add_mark_by_title(self, title):
-        mark = self.get_mark_by_title(title, None)
-        if mark is None:
-            mark_map = {
-                'title': title
-            }
-            mark = self.make_mark(mark_map, parent=None)
-        self.add_mark(mark)
-        return mark
 
     @property
     def id(self):

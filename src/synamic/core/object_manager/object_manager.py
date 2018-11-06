@@ -436,8 +436,12 @@ class ObjectManager:
                     if left or section is not None:
                         field_value = content_fields.get(section.id, None)
                         converter = content_model[section.id].converter
-                        if converter.compare(section.op, field_value, section.value):
-                            matched_result.add(content_fields)
+                        if field_value is not None:
+                            if converter.compare(section.op, field_value, section.value):
+                                matched_result.add(content_fields)
+                        else:
+                            if section.op in ('!=', '!in'):
+                                matched_result.add(content_fields)
             matched_result = set()
             if section_right is not None:
                 if section_left.logic == '|':

@@ -67,6 +67,17 @@ class ContentService:
         )
 
         content_fields = self.make_content_fields(file_cpath, url_object, model, document_type, fields_syd)
+
+        # TODO: can the following be more systematic and agile.
+        # create markers that exists in fields/contents but not in the system
+        for marker_id in ('tags', 'categories'):
+            if marker_id in fields_syd:
+                marker = self.__site.object_manager.get_marker(marker_id)
+                marks = self.__site.get_service('types').get_converter('marker#' + marker_id)(fields_syd[marker_id])
+                for mark in marks:
+                    if marker.get_mark_by_id(mark.id, None) is None:
+                        marker.add_mark(mark)
+
         return content_fields
 
     def build_md_content(self, file_path):

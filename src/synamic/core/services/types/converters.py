@@ -133,8 +133,8 @@ class ConverterCallableListCompareMixin(ConverterCallable):
             return SimpleQueryParser.COMPARE_OPERATOR_2_PY_OPERATOR_FUN[op](left_value, right_value)
         else:
             assert op in ('in', '!in')
-            assert isinstance(left_value, (list, tuple))
-            assert isinstance(right_value, (list, tuple))
+            assert isinstance(left_value, (list, tuple)), '%s : %s' % (str(type(left_value)), str(left_value))
+            assert isinstance(right_value, (list, tuple)), '%s : %s' % (str(type(right_value)), str(right_value))
             for single_value in left_value:
                 if single_value not in right_value:
                     return False
@@ -463,8 +463,7 @@ class MarkTagsConverter(ConverterCallableListCompareMixin):
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
                 mark = tag_marker.get_mark_by_title(title, None)
                 if mark is None:
-                    mark = tag_marker.create_n_add_mark_by_title(title)
-                    # raise Exception('Mark does not exist: %s' % title)
+                    mark = tag_marker.make_mark_by_title(title)
                 res.append(
                     mark
                 )
@@ -493,8 +492,7 @@ class MarkCategoriesConverter(ConverterCallableListCompareMixin):
                 title = _Pat.multiple_commas_pat.sub(_Pat.multiple_commas_repl_fun, title)
                 mark = categories_marker.get_mark_by_title(title, None)
                 if mark is None:
-                    mark = categories_marker.create_n_add_mark_by_title(title)
-                    # raise Exception('Mark does not exist: %s' % title)
+                    mark = categories_marker.make_mark_by_title(title)
                 res.append(
                     mark
                 )
