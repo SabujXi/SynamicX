@@ -435,13 +435,9 @@ class ObjectManager:
                 for content_fields in result:
                     if left or section is not None:
                         field_value = content_fields.get(section.id, None)
-                        if field_value is not None:
-                            converter = content_model[section.id].converter
-                            if converter.compare(section.op, field_value, section.value):
-                                matched_result.add(content_fields)
-                        # else:
-                        #     print(content_model)
-                        #     raise Exception("Section field name %s does not exist on fields for: %s" % (section.id, str(content_fields.get_url_object())))
+                        converter = content_model[section.id].converter
+                        if converter.compare(section.op, field_value, section.value):
+                            matched_result.add(content_fields)
             matched_result = set()
             if section_right is not None:
                 if section_left.logic == '|':
@@ -636,10 +632,10 @@ class ObjectManager:
             return self.__models_cachemap[site.id].get(model_name, default)
 
         def add_user(self, site, user):
-            self.__users_cachemap[site.id][user.id.lower()] = user
+            self.__users_cachemap[site.id][user.id] = user
 
         def get_user(self, site, user_id, default=None):
-            return self.__users_cachemap[site.id].get(user_id.lower(), default)
+            return self.__users_cachemap[site.id].get(user_id, default)
 
         def clear_content_cache(self, site):
             self.__contents_cachemap[site.id].clear()

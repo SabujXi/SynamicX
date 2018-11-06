@@ -49,6 +49,8 @@ class ResizedImageContent(ContentContract):
         return self.__new_file_path
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return self.__original_image_path == other.original_image_path and self.__width == other.width and self.__height == other.height
 
     def __hash__(self):

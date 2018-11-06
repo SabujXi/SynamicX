@@ -53,7 +53,7 @@ class UserService:
     class __User:
         def __init__(self, site, user_id, user_fields=None):
             self.__site = site
-            self.__user_id = user_id
+            self.__user_id = user_id.lower()
             self.__user_fields = user_fields
 
             # validation
@@ -80,6 +80,8 @@ class UserService:
             return self.__user_fields.get(item, None)
 
         def __eq__(self, other):
+            if not isinstance(other, self.__class__):
+                return False
             return self.id == other.id
 
         def __hash__(self):

@@ -252,6 +252,8 @@ class ContentUrl:
         return repr(self.__str__())
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return self.path_components_w_site == other.path_components_w_site
 
     def __hash__(self):

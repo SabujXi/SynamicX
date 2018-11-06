@@ -141,6 +141,8 @@ class ContentContract(metaclass=abc.ABCMeta):
         return repr(self.__str__())
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return self.url_object == other.url_object
 
     def __hash__(self):

@@ -165,6 +165,8 @@ class ContentService:
             return self.get(key, None)
 
         def __eq__(self, other):
+            if not isinstance(other, self.__class__):
+                return False
             return self.__url_object == other.get_url_object()
 
         def __hash__(self):

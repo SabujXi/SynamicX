@@ -18,6 +18,8 @@ class Hashable:
         return self.__obj
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return self.__id == other.id
 
     def __hash__(self):

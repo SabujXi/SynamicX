@@ -174,6 +174,8 @@ class _Site:
         return hash(self.id)
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return other.id == other.id
 
 

@@ -517,9 +517,9 @@ class PathTree(object):
             return '/'.join(self.path_comps)
 
         def __eq__(self, other):
-            if self.path_comps == other.path_comps:
-                return True
-            return False
+            if not isinstance(other, self.__class__):
+                return False
+            return self.path_comps == other.path_comps
 
         def __hash__(self):
             return hash(self.path_comps)

@@ -226,6 +226,8 @@ class _SiteId:
         return len(self.components)
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
         return self.components == other.components
 
     def __hash__(self):
