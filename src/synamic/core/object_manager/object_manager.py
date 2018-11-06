@@ -389,6 +389,7 @@ class ObjectManager:
 
     @staticmethod
     def __convert_section_values(sections, content_model):
+        # TODO: for converter that returns single value implement mechanism that will help use in !in for them.
         _ = []
         for section in sections:
             converted_value = content_model[section.id].converter(section.value)
@@ -463,6 +464,14 @@ class ObjectManager:
             )
         return tuple(_)
 
+    def get_user(self, site, user_id):
+        user = self.__cache.get_user(site, user_id, None)
+        if user is None:
+            user_service = site.get_service('users')
+            user = user_service.make_user(user_id)
+            self.__cache.add_user(site, user)
+        return user
+
     def paginate_contents(self, site, query_str, per_page):
         contents = self.query_contents(site, query_str)
         ...
@@ -530,6 +539,9 @@ class ObjectManager:
 
             # models
             self.__models_cachemap = defaultdict(dict)
+
+            # users
+            self.__users_cachemap = defaultdict(dict)
 
             self.__contents_cachemap = defaultdict(dict)
             # key is url object value is a named tuple of
@@ -623,6 +635,12 @@ class ObjectManager:
         def get_model(self, site, model_name, default=None):
             return self.__models_cachemap[site.id].get(model_name, default)
 
+        def add_user(self, site, user):
+            self.__users_cachemap[site.id][user.id.lower()] = user
+
+        def get_user(self, site, user_id, default=None):
+            return self.__users_cachemap[site.id].get(user_id.lower(), default)
+
         def clear_content_cache(self, site):
             self.__contents_cachemap[site.id].clear()
             self.__cpath_to_content_fields[site.id].clear()
@@ -640,6 +658,9 @@ class ObjectManager:
         def clear_model(self, site):
             self.__models_cachemap[site.id].clear()
 
+        def clear_users(self, site):
+            self.__users_cachemap[site.id].clear()
+
         def clear_cache(self, site):
             """Clear all"""
             self.clear_content_cache(site)
@@ -647,3 +668,4 @@ class ObjectManager:
             self.clear_syd_cache(site)
             self.clear_menus_cache(site)
             self.clear_model(site)
+            self.clear_users(site)

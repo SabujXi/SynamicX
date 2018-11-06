@@ -26,4 +26,6 @@ language: string
 
 chapters: chapters
 
+author: user
+
 __body__: markdown

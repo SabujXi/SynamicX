@@ -170,6 +170,10 @@ class ContentService:
         def __hash__(self):
             return hash(self.__url_object)
 
+        @property
+        def raw(self):
+            return self.__raw_fields
+
         def get_keys(self):
             return self.__raw_fields.keys()
 
@@ -182,9 +186,6 @@ class ContentService:
 
         def get_document_type(self):
             return self.__document_type
-
-        def get_raw_fields(self):
-            return self.__raw_fields
 
         def get_url_object(self):
             return self.__url_object

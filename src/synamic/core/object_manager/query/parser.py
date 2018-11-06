@@ -40,19 +40,6 @@ class SimpleQueryParser:
         ws = re.compile(r'\s+')
         before_and_or = re.compile(r'[^&|]*')
 
-    @classmethod
-    def validate_op_value(cls, op, left_value, right_value):
-        assert op in cls.COMPARE_OPERATORS_SET
-        if op in ('in', '!in'):
-            assert isinstance(right_value, (list, tuple))
-            assert not isinstance(left_value, (list, tuple))
-        elif op in ('contains', '!contains'):
-            assert isinstance(left_value, (list, tuple))
-            assert not isinstance(right_value, (list, tuple))
-        else:
-            assert not isinstance(left_value, (list, tuple))
-            assert not isinstance(right_value, (list, tuple))
-
     def __init__(self, txt):
         self.__txt = txt
         self.__pos = 0

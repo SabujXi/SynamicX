@@ -72,6 +72,7 @@ def _add_converter_type(name):
     assert name in _default_types
 
     def class_or_fun_decorator(cls_or_fun):
+        assert name not in _class_map
         _class_map[name] = cls_or_fun
         return cls_or_fun
     return class_or_fun_decorator
@@ -101,9 +102,22 @@ class ConverterCallable:
     def supports_compare_op(self, op):
         return op in self.supported_compare_ops
 
+    @classmethod
+    def validate_op_value(cls, op, left_value, right_value):
+        assert op in SimpleQueryParser.COMPARE_OPERATORS_SET
+        if op in ('in', '!in'):
+            assert isinstance(right_value, (list, tuple))
+            assert not isinstance(left_value, (list, tuple))
+        elif op in ('contains', '!contains'):
+            assert isinstance(left_value, (list, tuple))
+            assert not isinstance(right_value, (list, tuple))
+        else:
+            assert not isinstance(left_value, (list, tuple))
+            assert not isinstance(right_value, (list, tuple))
+
     def compare(self, op, left_value, right_value):
         assert op in self.supported_compare_ops
-        SimpleQueryParser.validate_op_value(op, left_value, right_value)
+        self.validate_op_value(op, left_value, right_value)
         return SimpleQueryParser.COMPARE_OPERATOR_2_PY_OPERATOR_FUN[op](left_value, right_value)
 
     def __call__(self, value, *args, **kwargs):
@@ -115,7 +129,7 @@ class ConverterCallableListCompareMixin(ConverterCallable):
         assert op in self.supported_compare_ops
         if op in ('contains', '!contains'):
             right_value = right_value[0]
-            SimpleQueryParser.validate_op_value(op, left_value, right_value)
+            self.validate_op_value(op, left_value, right_value)
             return SimpleQueryParser.COMPARE_OPERATOR_2_PY_OPERATOR_FUN[op](left_value, right_value)
         else:
             assert op in ('in', '!in')
@@ -515,16 +529,19 @@ class ChaptersConverter(ConverterCallable):
         return chapters
 
 
-# TODO: fix this
+# TODO: implement in !in for all the converter that returns single value - currently it does not work.
 @_add_converter_type('user')
 class UserConverter(ConverterCallable):
-    def __call__(self, txt, *args, **kwargs):
-        raise NotImplemented
-        content_obj = None
-        for cnt in site.content_service.users:
-            print(txt)
-            print(cnt.user_id)
-            if txt == cnt.user_id:
-                content_obj = cnt
-                break
-        return content_obj
+    def __init__(self, type_system, name):
+        supported_ops = frozenset([
+            '==',
+            '!=',
+            'in',
+            '!in'
+        ])
+        super().__init__(type_system, name, supported_ops)
+
+    def __call__(self, user_id, *args, **kwargs):
+        object_manager = self.type_system.site.object_manager
+        user = object_manager.get_user(user_id)
+        return user

@@ -155,6 +155,8 @@ key4: {
 import re
 import enum
 import pprint
+import datetime
+import numbers
 from synamic.core.standalones.functions.date_time import DtPatterns, parse_date, parse_time, parse_datetime
 
 
@@ -222,6 +224,20 @@ class SydDataType(enum.Enum):
     # inline_list = 8
 
 
+syd_to_py_types = {
+    SydDataType.time: (datetime.time, ),
+    SydDataType.date: (datetime.date, ),
+    SydDataType.datetime: (datetime.datetime, ),
+    SydDataType.number: (numbers.Number, int, float),
+    SydDataType.string: (str, )
+}
+
+py_to_syd_types = {}
+for syd_type, py_types in syd_to_py_types.items():
+    for py_type in py_types:
+        py_to_syd_types[py_type] = syd_type
+
+
 class __SydData:
     @property
     def is_scalar(self):
@@ -237,13 +253,20 @@ class __SydData:
 
 class SydScalar(__SydData):
     def __init__(self, key, value, datatype, parent_container=None):  # TODO: remove none
+        assert '.' not in key
+        assert isinstance(value, syd_to_py_types[datatype])
         self.__key = key
         self.__value = value
         self.__datatype = datatype
         self.__parent_container = None
 
         self.__cached_interpolated_str = None
-        self._set_parent(parent_container)
+        self.syd_set_parent(parent_container)
+
+    @classmethod
+    def create_from_py_value(cls, key, value, parent_container=None):
+        assert isinstance(value, tuple(py_to_syd_types.keys()))
+        return cls(key, value, py_to_syd_types[type(value)], parent_container=parent_container)
 
     def clone(self, parent_container=None):
         return self.__class__(self.__key, self.__value, self.__datatype, parent_container)
@@ -290,7 +313,7 @@ class SydScalar(__SydData):
     def __repr__(self):
         return repr(self.__str__())
 
-    def _set_parent(self, p):
+    def syd_set_parent(self, p):
         assert type(p) in (SydContainer, type(None))
         self.__parent_container = p
 
@@ -305,7 +328,7 @@ class SydContainer(__SydData):
         self.__parent = None
 
         self.__converters = {}
-        self._set_parent(parent)
+        self.syd_set_parent(parent)
 
     def clone(self, parent=None):
         cln = self.__class__(self.__key, self.__is_list, parent)
@@ -313,11 +336,53 @@ class SydContainer(__SydData):
             cln.add(e)
         return cln
 
-    def _clone_original_contents(self):
+    # methods prefixed with syd_ are considered private functions or functions should not be used by users.
+    def syd_clone_original_contents(self):
         l = []
         for e in self.__list:
             l.append(e.clone())
         return tuple(l)
+
+    def syd_get_original(self, key, multi=False):
+        assert type(key) in (int, str), 'Only integer and string keys are accepted, you provide key of type: %s' % str(
+            type(key))
+        key = int(key) if type(key) is str and key.isdigit() else key
+
+        if type(key) is int:
+            assert self.is_list, "Index %d provided for a block collection. Use numeric index only for list collections" % key
+            try:
+                d = self.__list[key]
+                if multi:
+                    d = (d, )
+
+            except IndexError:
+                raise IndexError('%d does not exist')
+        else:
+            keys = key.split('.')
+            try:
+                first_key = keys[0]
+                cont_tuple = tuple(t[1] for t in self.__map[first_key])
+                keys = keys[1:]
+                last_idx = len(keys) - 1
+                for idx, _key in enumerate(keys):
+                    if last_idx == idx:
+                        if not cont_tuple[-1].is_container:
+                            # print('Found value is not a block - it is a scalar')
+                            raise KeyError('Found value is not a block - it is a scalar')
+                    _ = cont_tuple[-1].syd_get_original(_key, multi=multi)
+
+                    if multi:
+                        cont_tuple = _
+                    else:
+                        cont_tuple = (_, )
+
+                if multi:
+                    d = cont_tuple
+                else:
+                    d = cont_tuple[-1]
+            except KeyError:
+                raise KeyError('Key `%s` was not found' % key)
+        return d
 
     # def copy_
 
@@ -357,47 +422,6 @@ class SydContainer(__SydData):
             i += 1
         return tuple(l)
 
-    def _get_original(self, key, multi=False):
-        assert type(key) in (int, str), 'Only integer and string keys are accepted, you provide key of type: %s' % str(
-            type(key))
-        key = int(key) if type(key) is str and key.isdigit() else key
-
-        if type(key) is int:
-            assert self.is_list, "Index %d provided for a block collection. Use numeric index only for list collections" % key
-            try:
-                d = self.__list[key]
-                if multi:
-                    d = (d, )
-
-            except IndexError:
-                raise IndexError('%d does not exist')
-        else:
-            keys = key.split('.')
-            try:
-                first_key = keys[0]
-                cont_tuple = tuple(t[1] for t in self.__map[first_key])
-                keys = keys[1:]
-                last_idx = len(keys) - 1
-                for idx, _key in enumerate(keys):
-                    if last_idx == idx:
-                        if not cont_tuple[-1].is_container:
-                            # print('Found value is not a block - it is a scalar')
-                            raise KeyError('Found value is not a block - it is a scalar')
-                    _ = cont_tuple[-1]._get_original(_key, multi=multi)
-
-                    if multi:
-                        cont_tuple = _
-                    else:
-                        cont_tuple = (_, )
-
-                if multi:
-                    d = cont_tuple
-                else:
-                    d = cont_tuple[-1]
-            except KeyError:
-                raise KeyError('Key `%s` was not found' % key)
-        return d
-
     def __getitem__(self, key):
         value = self.get(key, default=None, multi=False)
         if value is None:
@@ -422,7 +446,7 @@ class SydContainer(__SydData):
 
     def get(self, key, default=None, multi=False):
         try:
-            value = self._get_original(key, multi=multi)
+            value = self.syd_get_original(key, multi=multi)
             if not multi:
                 value = self.__converted_value(key, value.value)
                 # value = value.value
@@ -449,7 +473,14 @@ class SydContainer(__SydData):
             else:
                 l = self.__map[key]
             l.append((idx, syd))
-        syd._set_parent(self)
+        syd.syd_set_parent(self)
+
+    def set(self, key, py_value):
+        """Limited set capability - only current level and only scalar value."""
+        self.add(SydScalar.create_from_py_value(key, py_value))
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
 
     def __remove__from__self(self, key):
         key = int(key) if type(key) is str and key.isdigit() else key
@@ -487,7 +518,7 @@ class SydContainer(__SydData):
             else:
                 k = ks[0]
                 ks = ks[1:]
-                cont = self._get_original(k)
+                cont = self.syd_get_original(k)
                 for k in ks:
                     cont = cont._get_original(k)
             cont.__remove__from__self(key2del)
@@ -526,7 +557,7 @@ class SydContainer(__SydData):
         self_clone = self.clone()
         for other in others:
             assert not other.is_list, 'Cannot create new with list, need block'
-            for oe in other._clone_original_contents():
+            for oe in other.syd_clone_original_contents():
                 if oe.key in self_clone:
                     del self_clone[oe.key]
                 self_clone.add(oe)
@@ -549,7 +580,7 @@ class SydContainer(__SydData):
     def __repr__(self):
         return repr(self.__str__())
 
-    def _set_parent(self, p):
+    def syd_set_parent(self, p):
         assert type(p) in (type(None), self.__class__), 'Invalid type: %s' % str(type(p))
         self.__parent = p
 
@@ -1017,7 +1048,7 @@ class SydParser:
 
     @classmethod
     def covert_one_value(cls, text):
-        syd_scalar = cls.convert_to_scalar_values(text, None, processing_inline_list=False)
+        syd_scalar = cls.convert_to_scalar_values(text, '__null__', processing_inline_list=False)
         return syd_scalar.value
 
 

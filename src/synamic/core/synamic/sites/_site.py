@@ -11,6 +11,7 @@ from synamic.core.services.types.type_system import TypeSystem
 from synamic.core.services.pre_processor import PreProcessorService
 from synamic.core.services.tasks import TasksService
 from synamic.core.services.marker import MarkerService
+from synamic.core.services.user import UserService
 from synamic.core.default_data import DefaultDataManager
 
 
@@ -25,6 +26,10 @@ def _install_default_services(site):
     self.add_service('markers', MarkerService)
     # menus
     self.add_service('menus', MenuService)
+
+    # user
+    self.add_service('users', UserService)
+
     # templates service
     self.add_service('templates', SynamicTemplateService)
     # type system

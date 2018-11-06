@@ -60,10 +60,6 @@ class MarkedContentImplementation(ContentContract):
         return self.__content_fields
 
     @property
-    def raw_fields(self):
-        raise NotImplemented
-
-    @property
     def toc(self):
         return self.__toc
 
