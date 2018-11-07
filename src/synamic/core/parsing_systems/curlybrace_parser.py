@@ -176,7 +176,7 @@ class _Patterns:
     #         [ \t]*(?P<is_multiline>~{1,3})[ \t]* # is multi line
     # ''', re.X)
 
-    number = re.compile(r'^[ \t]*(?P<number>[+-]?[0-9]?[1-9]+(\.[0-9]+)?)[ \t]*$')
+    number = re.compile(r'^[ \t]*(?P<number>[+-]?[0-9]+(\.[0-9]+)?)[ \t]*$')
     # date = re.compile(r'''
     #     ^[ \t]*(?P<date>\d{4}-\d{1,2}-\d{1,2})[ \t]*$
     # ''', re.X)
@@ -335,6 +335,7 @@ class SydContainer(__SydData):
         for e in self.__list:
             cln.add(e)
         return cln
+    copy = clone
 
     # methods prefixed with syd_ are considered private functions or functions should not be used by users.
     def syd_clone_original_contents(self):

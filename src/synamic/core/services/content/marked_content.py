@@ -9,13 +9,10 @@ class MarkedContent(ContentContract):
         self.__url_object = url_object
         self.__body = body
         self.__content_fields = content_fields
-        self.__model = content_fields.get_model()
+        self.__model = content_fields.model_object
         self.__document_type = document_type
         self.__mime_type = mime_type
         self.__toc = toc
-
-        # Objects like: Url, Pagination, etc.
-        self.__objects = {}
 
         # validation
         assert self.__toc is not None
@@ -64,10 +61,7 @@ class MarkedContent(ContentContract):
         return self.__toc
 
     def __get(self, key):
-        value = self.__objects.get(key, None)
-        if value is None:
-            value = self.__content_fields.get(key, None)
-        return value
+        return self.__content_fields.get(key, None)
 
     def __getitem__(self, key):
         return self.__get(key)

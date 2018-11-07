@@ -39,7 +39,7 @@ class ContentService:
 
     @classmethod
     def is_type_content_fields(cls, other):
-        return type(other) is cls.__ContentFields
+        return type(other) is _ContentFields
 
     def build_content_fields(self, fields_syd, file_cpath):
         # get dir meta syd
@@ -83,8 +83,10 @@ class ContentService:
     def build_md_content(self, file_path):
         markdown_renderer = self.__site.get_service('types').get_converter('markdown')
         document_type = DocumentType.HTML_DOCUMENT
-        fields_syd, body_text = self.__site.object_manager.get_content_parts(file_path)
-        content_fields = self.build_content_fields(fields_syd, file_path)
+        _, body_text = self.__site.object_manager.get_content_parts(file_path)
+        del _
+        content_fields = self.__site.object_manager.get_content_fields(file_path, None)
+        assert content_fields is not None
         toc = Toc()
         body = markdown_renderer(body_text, value_pack={
             'toc': toc
@@ -92,7 +94,7 @@ class ContentService:
 
         # mime type guess
         mime_type = 'text/html'
-        url_object = content_fields.get_url_object()
+        url_object = content_fields.curl_object
         content = MarkedContent(self.__site,
                                 file_path,
                                 url_object,
@@ -131,7 +133,7 @@ class ContentService:
 
     def make_content_fields(self, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa):
         """Just makes an instance"""
-        return self.__ContentFields(self.__site, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa)
+        return _ContentFields(self.__site, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa)
 
     def build_chapters(self, chapters_fields):
         chapters = []
@@ -139,66 +141,146 @@ class ContentService:
             chapters.append(Chapter(self.__site, cfs))
         return tuple(chapters)
 
-    class __ContentFields:
-        def __init__(self, site, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa):
-            self.__site = site
-            self.__content_file_path = content_file_path
-            self.__url_object = url_object
-            self.__model = model
-            self.__document_type = document_type
-            self.__raw_fields = raw_fileds
-            self.__converted_values = OrderedDict()
-            super().__init__(*a, *kwa)
 
-        # def clone(self):
-        #     return self.__class__(self.__site, self.__content_file_path)
+class _ContentFields:
+    def __init__(self, site, content_file_path, url_object, model, document_type, raw_fileds):
+        self.__site = site
+        self.__content_file_path = content_file_path
+        self.__url_object = url_object
+        self.__model = model
+        self.__document_type = document_type
+        self.__raw_fields = raw_fileds
+        self.__converted_values = OrderedDict()
 
-        def get(self, key, default=None):
-            raw_value = self.__raw_fields.get(key, None)
-            if raw_value is None:
-                return default
+    def as_generated(self, url_object, document_type=DocumentType.GENERATED_HTML_DOCUMENT):
+        """With fields will use .set() and thus it will only affect converted values."""
+        return _GeneratedContentFields(self.__site, url_object, self.__model, document_type, self)
 
-            value = self.__converted_values.get(key, None)
-            if value is None:
-                # convert with type system.
-                if key in self.__model:
-                    model_field = self.__model[key]
-                    value = model_field.converter(raw_value)
+    def get(self, key, default=None):
+        raw_value = self.__raw_fields.get(key, None)
+        if raw_value is None:
+            return default
+
+        value = self.__converted_values.get(key, None)
+        if value is None:
+            # convert with type system.
+            if key in self.__model:
+                model_field = self.__model[key]
+                # special handling
+                if key == 'pagination':
+                    starting_content = self.__site.object_manager.get_marked_content_by_url(self.__url_object)
+                    value = model_field.converter(raw_value, starting_content)
                 else:
-                    value = raw_value
+                    value = model_field.converter(raw_value)
+                if key != 'pagination':
+                    # ... because pagination is set with set method during conversion through paginate fields method
+                    # from object manager through pagination...
+                    self.__converted_values[key] = value
+            else:
+                value = raw_value
                 self.__converted_values[key] = value
-            return value
+        return value
 
-        def __getitem__(self, key):
-            return self.get(key, None)
+    def set(self, key, value):
+        """Converted fields will be affected only.
+        Raw fields will stay intact."""
+        self.__converted_values[key] = value
 
-        def __getattr__(self, key):
-            return self.get(key, None)
+    @property
+    def raw(self):
+        return self.__raw_fields
 
-        def __eq__(self, other):
-            if not isinstance(other, self.__class__):
-                return False
-            return self.__url_object == other.get_url_object()
+    @property
+    def keys(self):
+        return tuple(set(self.__converted_values.keys()).union(set(self.__raw_fields.keys())))
 
-        def __hash__(self):
-            return hash(self.__url_object)
+    @property
+    def document_type(self):
+        return self.__document_type
 
-        @property
-        def raw(self):
-            return self.__raw_fields
+    @property
+    def model_object(self):
+        return self.__model
 
-        def get_keys(self):
-            return self.__raw_fields.keys()
+    @property
+    def curl_object(self):
+        return self.__url_object
 
-        def get_path_object(self):
-            """Content file path"""
-            return self.__content_file_path
+    @property
+    def cpath_object(self):
+        """Content file path"""
+        return self.__content_file_path
 
-        def get_model(self):
-            return self.__model
+    def __getitem__(self, key):
+        return self.get(key, None)
 
-        def get_document_type(self):
-            return self.__document_type
+    def __getattr__(self, key):
+        return self.get(key, None)
 
-        def get_url_object(self):
-            return self.__url_object
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return self.__url_object == other.curl_object
+
+    def __hash__(self):
+        return hash(self.__url_object)
+
+
+class _GeneratedContentFields:
+    def __init__(self, site, url_object, model, document_type, origin_content_fields):
+        self.__site = site
+        self.__url_object = url_object
+        self.__model = model
+        self.__document_type = document_type
+        self.__origin_content_fields = origin_content_fields
+
+        self.__overridden_fields = {}
+
+    def get(self, key, default=None):
+        value = self.__overridden_fields.get(key, None)
+        if value is None:
+            value = self.__origin_content_fields.get(key, default)
+        return value
+
+    def set(self, key, value):
+        """Converted fields will be affected only.
+        Raw fields will stay intact."""
+        self.__overridden_fields[key] = value
+
+    @property
+    def raw(self):
+        return self.__origin_content_fields.raw
+
+    @property
+    def keys(self):
+        return tuple(set(self.__origin_content_fields.keys()).union(set(self.__overridden_fields.keys())))
+
+    @property
+    def document_type(self):
+        return self.__document_type
+
+    @property
+    def model_object(self):
+        return self.__model
+
+    @property
+    def curl_object(self):
+        return self.__url_object
+
+    @property
+    def cpath_object(self):
+        raise NotImplemented
+
+    def __getitem__(self, key):
+        return self.get(key, None)
+
+    def __getattr__(self, key):
+        return self.get(key, None)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return self.__url_object == other.curl_object
+
+    def __hash__(self):
+        return hash(self.__url_object)

@@ -22,7 +22,7 @@ meta_description: text
 
 language: string
 
-# pagination: pagination
+pagination: pagination
 
 chapters: chapters
 

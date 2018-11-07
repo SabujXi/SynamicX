@@ -6,6 +6,7 @@ from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import DocumentType
 from .query import SimpleQueryParser
+from synamic.core.services.content.paginated_content import Pagination
 
 
 class ObjectManager:
@@ -147,7 +148,6 @@ class ObjectManager:
     #  @loaded
     def get_content_fields(self, site, path, default=None):
         path_tree = site.get_service('path_tree')
-        content_service = site.get_service('contents')
         path = path_tree.create_cpath(path)
         if site.synamic.env['backend'] == 'database':
             raise NotImplemented
@@ -172,8 +172,15 @@ class ObjectManager:
         return md_content
 
     def get_marked_content_by_url(self, site, url_object):
-        cpath = url_object.get_path_object()
+        cpath = self.__cache.get_marked_cpath_by_curl(site, url_object)
         return self.get_marked_content(site, cpath)
+
+    def get_marked_contents_by_urls(self, site, url_objects):
+        contents = []
+        for url_object in url_objects:
+            cpath = self.__cache.get_marked_cpath_by_curl(site, url_object)
+            contents.append(self.get_marked_content(site, cpath))
+        return contents
 
     def get_binary_content(self, site, path):
         path_tree = site.get_service('path_tree')
@@ -328,7 +335,7 @@ class ObjectManager:
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
             marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
             if marked_content_fields is not None:
-                result_url = marked_content_fields.get_url_object()
+                result_url = marked_content_fields.curl_object
             else:
                 # try STATIC
                 result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
@@ -341,7 +348,7 @@ class ObjectManager:
         elif url_for == 'id':
             for content_fields in self.__cache.get_all_marked_content_fields(site):
                 if content_fields.id == for_value:
-                    result_url = content_fields.get_url_object()
+                    result_url = content_fields.curl_object
                     break
         else:  # content
             raise NotImplemented
@@ -453,14 +460,14 @@ class ObjectManager:
                 matched_result = matched_result_left
 
             result = matched_result
-        return result
+        return tuple(result)
 
     def query_contents(self, site, query_str):
         contents_fields = self.query_fields(site, query_str)
         _ = []
         for content_fields in contents_fields:
             _.append(
-                self.get_marked_content(site, content_fields.get_path_object())
+                self.get_marked_content(site, content_fields.cpath_object)
             )
         return tuple(_)
 
@@ -472,11 +479,10 @@ class ObjectManager:
             self.__cache.add_user(site, user)
         return user
 
-    def paginate_contents(self, site, query_str, per_page):
-        contents = self.query_contents(site, query_str)
-        ...
-        ...
-        ...
+    def paginate_content_fields(self, site, starting_content, query_str, per_page):
+        fields = self.query_fields(site, query_str)
+        paginations, paginated_contents = Pagination.paginate_content_fields(site, starting_content, fields, per_page)
+        return paginations, paginated_contents
 
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
@@ -564,9 +570,9 @@ class ObjectManager:
 
         def add_marked_content_fields(self, site, content_fields):
             value = content_fields
-            url_object = content_fields.get_url_object()
-            self.__add_content(site, value, url_object, content_fields.get_path_object(), self.TYPE_CONTENT_FIELDS)
-            self.__cpath_to_content_fields[site.id][content_fields.get_path_object()] = content_fields
+            url_object = content_fields.curl_object
+            self.__add_content(site, value, url_object, content_fields.cpath_object, self.TYPE_CONTENT_FIELDS)
+            self.__cpath_to_content_fields[site.id][content_fields.cpath_object] = content_fields
 
         def get_marked_value_tuple_by_url(self, site, url_object, default=None):
             return self.__contents_cachemap[site.id].get(url_object, default)
@@ -583,7 +589,7 @@ class ObjectManager:
             if cfs is None:
                 return default
             else:
-                return cfs.get_path_object()
+                return cfs.cpath_object
 
         def get_all_marked_content_fields(self, site):
             all_fields = []
