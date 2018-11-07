@@ -166,10 +166,17 @@ class ObjectManager:
             file_cpath = path_tree.create_file_cpath(contents_dir + '/' + path)
         else:
             file_cpath = path
+
+        marked_content = self.__cache.get_marked_content_by_cpath(site, file_cpath, None)
+        if marked_content is not None:
+            return marked_content
+
         if not file_cpath.exists():
             return None
-        md_content = content_service.build_md_content(file_cpath)
-        return md_content
+        else:
+            marked_content = content_service.build_md_content(file_cpath)
+            self.__cache.add_marked_content(site, marked_content)
+            return marked_content
 
     def get_marked_content_by_url(self, site, url_object):
         cpath = self.__cache.get_marked_cpath_by_curl(site, url_object)
@@ -528,10 +535,6 @@ class ObjectManager:
             return self.__site
 
     class __Cache:
-        ContentCacheTuple = namedtuple('ContentCacheTuple', ('type', 'value', 'cpath'))
-        TYPE_CONTENT_FIELDS = 'f'
-        TYPE_PRE_PROCESSED_CONTENT = 'p'
-
         def __init__(self, synamic):
             self.__synamic = synamic
 
@@ -549,63 +552,58 @@ class ObjectManager:
             # users
             self.__users_cachemap = defaultdict(dict)
 
-            self.__contents_cachemap = defaultdict(dict)
-            # key is url object value is a named tuple of
-            # ContentCacheTuple
+            # >>>>>>>>
+            # CONTENTS
+            self.__pre_processed_cachemap = defaultdict(dict)  # curl to content
+            self.__marked_contents_cachemap = defaultdict(dict)  # curl to content: default limit 100 per site. < limit not yet implemented
+            self.__marked_content_fields_cachemap = defaultdict(dict)  # curl to content
 
-            self.__cpath_to_content_fields = defaultdict(dict)
             self.__cpath_to_pre_processed_contents = defaultdict(dict)
-
-        def __add_content(self, site, value, url_object, path_object, value_type):
-            assert url_object not in self.__contents_cachemap[site.id]
-            content_cache_tuple = self.ContentCacheTuple(type=value_type, value=value, cpath=path_object)
-            self.__contents_cachemap[site.id][url_object] = content_cache_tuple
+            self.__cpath_to_marked_content = defaultdict(dict)
+            self.__cpath_to_marked_content_fields = defaultdict(dict)
+            # <<<<<<<<
 
         def add_pre_processed_content(self, site, pre_processed_content, path_object=None):
-            value = pre_processed_content
-            url_object = value.url_object
-            self.__add_content(site, value, url_object, path_object, self.TYPE_PRE_PROCESSED_CONTENT)
+            self.__pre_processed_cachemap[site.id][pre_processed_content.url_object] = pre_processed_content
             if path_object is not None:
                 self.__cpath_to_pre_processed_contents[site.id][path_object] = pre_processed_content
 
+        def get_pre_processed_content_by_curl(self, site, curl, default=None):
+            return self.__pre_processed_cachemap[site.id].get(curl, default)
+
+        def get_pre_processed_content_by_cpath(self, site, cpath, default=None):
+            return self.__cpath_to_pre_processed_contents[site.id].get(cpath, default)
+
+        def add_marked_content(self, site, marked_content):
+            # TODO: set limit to 100 or so
+            self.__marked_contents_cachemap[site.id][marked_content.url_object] = marked_content
+            self.__cpath_to_marked_content[site.id][marked_content.path_object] = marked_content
+
+        def get_marked_content_by_curl(self, site, curl, default=None):
+            return self.__marked_contents_cachemap[site.id].get(curl, default)
+
+        def get_marked_content_by_cpath(self, site, cpath, default=None):
+            return self.__cpath_to_marked_content[site.id].get(cpath, default)
+
         def add_marked_content_fields(self, site, content_fields):
-            value = content_fields
-            url_object = content_fields.curl_object
-            self.__add_content(site, value, url_object, content_fields.cpath_object, self.TYPE_CONTENT_FIELDS)
-            self.__cpath_to_content_fields[site.id][content_fields.cpath_object] = content_fields
+            self.__marked_content_fields_cachemap[site.id][content_fields.curl_object] = content_fields
+            self.__cpath_to_marked_content_fields[site.id][content_fields.cpath_object] = content_fields
 
-        def get_marked_value_tuple_by_url(self, site, url_object, default=None):
-            return self.__contents_cachemap[site.id].get(url_object, default)
+        def get_marked_content_fields_by_curl(self, site, curl, default=None):
+            return self.__marked_content_fields_cachemap[site.id].get(curl, default)
 
-        def get_marked_content_fields_by_url(self, site, url_object, default=None):
-            value_tuple = self.get_marked_value_tuple_by_url(site, url_object, default=None)
-            if value_tuple is not None:
-                if value_tuple.type == self.TYPE_CONTENT_FIELDS:
-                    return value_tuple.value
-            return default
+        def get_marked_content_fields_by_cpath(self, site, curl, default=None):
+            return self.__cpath_to_marked_content_fields[site.id].get(curl, default)
 
         def get_marked_cpath_by_curl(self, site, curl, default=None):
-            cfs = self.get_marked_content_fields_by_url(site, curl, None)
+            cfs = self.get_marked_content_fields_by_curl(site, curl, None)
             if cfs is None:
                 return default
             else:
                 return cfs.cpath_object
 
         def get_all_marked_content_fields(self, site):
-            all_fields = []
-            for value_tuple in self.__contents_cachemap[site.id].values():
-                if value_tuple.type == self.TYPE_CONTENT_FIELDS:
-                    all_fields.append(value_tuple.value)
-            return tuple(all_fields)
-
-        def get_marked_content_fields_by_cpath(self, site, cpath, default=None):
-            return self.__cpath_to_content_fields[site.id].get(cpath, default)
-
-        def get_pre_processed_content_by_cpath(self, site, cpath, default=None):
-            pc = self.__cpath_to_pre_processed_contents[site.id].get(cpath, None)
-            if pc is None:
-                return default
-            return pc
+            return tuple(self.__marked_content_fields_cachemap[site.id].values())
 
         def add_marker(self, site, marker_id, marker):
             self.__marker_by_id_cachemap[site.id][marker_id] = marker
@@ -648,9 +646,12 @@ class ObjectManager:
             return self.__users_cachemap[site.id].get(user_id, default)
 
         def clear_content_cache(self, site):
-            self.__contents_cachemap[site.id].clear()
-            self.__cpath_to_content_fields[site.id].clear()
+            self.__pre_processed_cachemap[site.id].clear()
+            self.__marked_contents_cachemap[site.id].clear()
+            self.__marked_content_fields_cachemap[site.id].clear()
             self.__cpath_to_pre_processed_contents[site.id].clear()
+            self.__cpath_to_marked_content[site.id].clear()
+            self.__cpath_to_marked_content_fields[site.id].clear()
 
         def clear_marker_cache(self, site):
             self.__marker_by_id_cachemap[site.id].clear()
