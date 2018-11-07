@@ -5,7 +5,7 @@ from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import DocumentType
-from .query import SimpleQueryParser
+from .query import QueryNode, SimpleQueryParser
 from synamic.core.services.content.paginated_content import PaginationPage
 
 
@@ -402,71 +402,70 @@ class ObjectManager:
         return self.__cache.get_menu(site, menu_name, default=default)
 
     @staticmethod
-    def __convert_section_values(sections, content_model):
+    def __convert_section_value(section, content_model):
         # TODO: for converter that returns single value implement mechanism that will help use in !in for them.
-        _ = []
-        for section in sections:
-            converted_value = content_model[section.id].converter(section.value)
-            _.append(
-                SimpleQueryParser.Section(id=section.id, op=section.op, value=converted_value, logic=section.logic)
-            )
-        return _
+        converted_value = content_model[section.key].converter(section.value)
+        return SimpleQueryParser.QuerySection(key=section.key, comp_op=section.comp_op, value=converted_value)
+
+    def __query_fields_left_right(self, section, result_set, content_model):
+        matched_result = set()
+        for content_fields in result_set:
+            field_value = content_fields.get(section.key, None)
+            converter = content_model[section.key].converter
+            if field_value is not None:
+                if converter.compare(section.comp_op, field_value, section.value):
+                    matched_result.add(content_fields)
+            else:
+                if section.comp_op in ('!=', '!in'):
+                    matched_result.add(content_fields)
+        return matched_result
+
+    def __query_fields_by_node(self, node, result_set, content_model):
+        if isinstance(node, SimpleQueryParser.QuerySection):
+            # only one section here.
+            left_section = node
+            right_section = None
+            logic_op = None
+        else:
+            assert isinstance(node, QueryNode)
+            logic_op = node.logic_op
+            if isinstance(node.left, QueryNode):
+                return self.__query_fields_by_node(node.left, result_set, content_model)
+            else:
+                left_section = node.left
+                right_section = None
+
+            if isinstance(node.right, QueryNode):
+                return self.__query_fields_by_node(node.left, result_set, content_model)
+            else:
+                right_section = node.right
+
+        left_section = self.__convert_section_value(left_section, content_model)
+        left_result = self.__query_fields_left_right(left_section, result_set, content_model)
+        if right_section is not None:
+            right_section = self.__convert_section_value(right_section, content_model)
+            right_result = self.__query_fields_left_right(right_section, result_set, content_model)
+        else:
+            right_result = None
+
+        if logic_op == '|':
+            left_result.update(right_result)
+        elif logic_op == '&':
+            left_result.intersection_update(right_result)
+        else:
+            # keep as is
+            pass
+        result_set.clear()
+        result_set.update(left_result)
+        return result_set
 
     def query_fields(self, site, query_str):
         content_model = site.object_manager.get_model('content')
-        converted_sections = self.__convert_section_values(SimpleQueryParser(query_str).parse(), content_model)
-
+        node = SimpleQueryParser(query_str).parse()
         all_contents_fields = self.__cache.get_all_marked_content_fields(site)
         result = set(all_contents_fields)
-
-        while converted_sections:
-            # &'s first
-            and_idx = None
-            for and_idx, section in enumerate(converted_sections):
-                if section.logic == '&':
-                    break
-                else:
-                    and_idx = None
-
-            # for &
-            if and_idx is not None:
-                section_left = converted_sections.pop(and_idx)
-                section_right = converted_sections.pop(and_idx)  # +1
-            # for | or end of sections
-            else:
-                section_left = converted_sections.pop(0)
-                if section_left.logic is not None:
-                    section_right = converted_sections.pop(0)  # +1
-                else:
-                    assert len(converted_sections) == 0
-                    section_right = None
-
-            matched_result_left = set()
-            matched_result_right = set()
-
-            for matched_result, section, left in ([matched_result_left, section_left, True], [matched_result_right, section_right, False]):
-                right = not left
-                for content_fields in result:
-                    if left or section is not None:
-                        field_value = content_fields.get(section.id, None)
-                        converter = content_model[section.id].converter
-                        if field_value is not None:
-                            if converter.compare(section.op, field_value, section.value):
-                                matched_result.add(content_fields)
-                        else:
-                            if section.op in ('!=', '!in'):
-                                matched_result.add(content_fields)
-            matched_result = set()
-            if section_right is not None:
-                if section_left.logic == '|':
-                    matched_result.update(matched_result_left)
-                    matched_result.update(matched_result_right)
-                else:
-                    matched_result = matched_result_left.intersection(matched_result_right)
-            else:
-                matched_result = matched_result_left
-
-            result = matched_result
+        result = self.__query_fields_by_node(node, result, content_model)
+        # TODO: sort
         return tuple(result)
 
     def query_contents(self, site, query_str):
@@ -485,14 +484,6 @@ class ObjectManager:
             user = user_service.make_user(user_id)
             self.__cache.add_user(site, user)
         return user
-
-    def paginate_content_fields(self, site, starting_content, query_str, per_page):
-
-
-
-        fields = self.query_fields(site, query_str)
-        paginations, paginated_contents = PaginationPage.paginate_content_fields(site, starting_content, fields, per_page)
-        return paginations, paginated_contents
 
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
