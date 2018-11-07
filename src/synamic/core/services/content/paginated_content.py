@@ -77,15 +77,21 @@ class PaginatedContent(ContentContract):
 
 class PaginationPage:
     def __init__(self, site, total_pagination, contents_fields, position, per_page):
-        assert len(contents_fields) != 0
+        # assert len(contents_fields) != 0
         self.__site = site
         self.__total_pagination = total_pagination
         self.__contents_fields = contents_fields
         self.__position = position
         self.__per_page = per_page
-        self.__hosting_content = None
-        self.__next_page = None
-        self.__prev_page = None
+
+        assert position < total_pagination
+        # settable once.
+        self.__host_content = None
+        self.__next_content = None
+        self.__prev_content = None
+
+        # only available to root page/pagination
+        self.__sub_pages = None
 
     @property
     def total_pagination(self):
@@ -116,13 +122,13 @@ class PaginationPage:
         return self.__per_page
 
     @property
-    def host_page(self):
-        return self.__hosting_content
+    def host_content(self):
+        return self.__host_content
 
-    @host_page.setter
-    def host_page(self, hos_con):
-        assert self.__hosting_content is None
-        self.__hosting_content = hos_con
+    @host_content.setter
+    def host_content(self, hos_con):
+        assert self.__host_content is None
+        self.__host_content = hos_con
 
     # Synthetic ones
 
@@ -152,13 +158,13 @@ class PaginationPage:
         return False
 
     @property
-    def next_page(self):
-        return self.__next_page
+    def next_content(self):
+        return self.__next_content
 
-    @next_page.setter
-    def next_page(self, np):
-        assert self.__next_page is None
-        self.__next_page = np
+    @next_content.setter
+    def next_content(self, np):
+        assert self.__next_content is None
+        self.__next_content = np
 
     @property
     def has_previous(self):
@@ -167,13 +173,48 @@ class PaginationPage:
         return False
 
     @property
-    def previous_page(self):
-        return self.__prev_page
+    def previous_content(self):
+        return self.__prev_content
+    prev_content = previous_content
 
-    @previous_page.setter
-    def previous_page(self, pp):
-        assert self.__prev_page is None
-        self.__prev_page = pp
+    @previous_content.setter
+    def previous_content(self, pp):
+        assert self.__prev_content is None
+        self.__prev_content = pp
+
+    @property
+    def sub_pages(self):
+        assert self.is_start, "Cannot use this method for non root pages"
+
+        sub_pages = self.__sub_pages
+        if sub_pages is None:
+            assert self.__per_page == 0, "Sub pages was not set after creation or per_page was set to wrong value"
+            return tuple()
+        else:
+            return sub_pages
+
+    @sub_pages.setter
+    def sub_pages(self, sub_pages):
+        assert self.is_start, "Cannot use this method for non root pages"
+
+        assert self.__sub_pages is None
+        assert isinstance(sub_pages, (list, tuple))
+        self.__sub_pages = sub_pages
+
+    def get_sub_page(self, idx, default=None):
+        assert idx > 0, "Root/start pagination is considered 0 and this method is only available on root"
+        sub_pages = self.sub_pages
+        if idx >= len(sub_pages):
+            return default
+        else:
+            return sub_pages[idx - 1]
+
+    @property
+    def is_empty(self):
+        return self.__bool__()
+
+    def __bool__(self):
+        return self.__per_page > 0
 
     def __str__(self):
         return "Pagination Page: %d" % self.__position
@@ -183,7 +224,9 @@ class PaginationPage:
 
     @classmethod
     def paginate_content_fields(cls, site, origin_content, queried_contents_fieldS, per_page):
-        url_partition_comp = site.object_manager.get_site_settings()['url_partition_comp']
+        site_settings = site.object_manager.get_site_settings()
+        url_partition_comp = site_settings['url_partition_comp']
+        pagination_url_comp = site_settings['pagination_url_comp']
 
         paginated_contents_fieldS_divisions = []
 
@@ -223,21 +266,21 @@ class PaginationPage:
                     # setting pagination to the host content
                     origin_content.fields.set('pagination', pagination)
 
-                    pagination.host_page = origin_content
+                    pagination.host_content = origin_content
                     prev_page = origin_content
 
                 else:
                     # creating paginated content
                     document_type = DocumentType.GENERATED_HTML_DOCUMENT
                     url_object = origin_content.url_object.join(
-                        "/%s/%d/" % (url_partition_comp, division_idx_i),
+                        "/%s/%s/%d/" % (url_partition_comp, pagination_url_comp, division_idx_i + 1),
                         for_document_type=document_type)
                     paginated_content_fields = origin_content.fields.as_generated(
                         url_object, document_type=document_type
                     )
                     paginated_content_fields.set(
                         'title',
-                        origin_content.fields.get('title') + " - %s %d" % ('page', division_idx_i)
+                        origin_content.fields.get('title') + " - %s %d" % (pagination_url_comp.title(), division_idx_i + 1)
                     )
                     paginated_content = PaginatedContent(
                         site,
@@ -249,12 +292,23 @@ class PaginationPage:
 
                     # setting pagination to an aux content
                     paginated_content.fields.set('pagination', pagination)
-                    pagination.host_page = paginated_content
+                    pagination.host_content = paginated_content
 
-                    pagination.previous_page = prev_page
-                    # TODO: content wrapper for prev/next page : done but it is still not in contract
-                    prev_page.pagination.next_page = paginated_content
+                    pagination.previous_content = prev_page
+                    # TODO: content wrapper for prev/next page
+                    prev_page.pagination.next_content = paginated_content
                     prev_page = paginated_content
 
                     paginated_contents.append(paginated_content)
+
+        if not paginations:
+            pagination = PaginationPage(
+                site,
+                1,
+                tuple(),
+                0,
+                0
+            )
+            origin_content.fields.set('pagination', pagination)
+        paginations[0].sub_pages = paginations[1:]
         return tuple(paginations), tuple(paginated_contents)

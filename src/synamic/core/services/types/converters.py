@@ -60,9 +60,6 @@ _default_types = frozenset({
         'date[]',
         'time[]',
         'datetime[]',
-
-        'pagination',
-        'chapters'
 })
 
 _class_map = {}
@@ -497,38 +494,6 @@ class MarkCategoriesConverter(ConverterCallableListCompareMixin):
                     mark
                 )
         return tuple(res)
-
-
-@_add_converter_type('pagination')
-class PaginationConverter(ConverterCallable):
-    def __call__(self, param, starting_content, *args, **kwargs):
-        site = self.type_system.site
-        object_manager = site.object_manager
-        site_settings = object_manager.get_site_settings()
-
-        per_page = site_settings['pagination_per_page']
-        if isinstance(param, str):
-            query = param
-        else:
-            query = param['query']
-            per_page = param.get('per_page', None)
-            if per_page is not None:
-                assert isinstance(per_page, int)
-                per_page = per_page
-        paginations, paginated_contents = object_manager.paginate_content_fields(starting_content, query, per_page)
-        if len(paginations) > 0:
-            return paginations[0]
-        else:
-            return None
-
-
-@_add_converter_type('chapters')
-class ChaptersConverter(ConverterCallable):
-    def __call__(self, param, *args, **kwargs):
-        site = self.type_system.site
-        content_service = site.get_service('contents')
-        chapters = content_service.build_chapters(param)
-        return chapters
 
 
 # TODO: implement in !in for all the converter that returns single value - currently it does not work.

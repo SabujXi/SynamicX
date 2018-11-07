@@ -22,10 +22,8 @@ meta_description: text
 
 language: string
 
-pagination: pagination
-
-chapters: chapters
-
 author: user
 
 __body__: markdown
+# TODO: make marked content take converter from here - make it changeable from markdown to other
+# TODO: so make it swappable at runtime without the real model being changed or database type being changed?

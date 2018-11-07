@@ -487,6 +487,9 @@ class ObjectManager:
         return user
 
     def paginate_content_fields(self, site, starting_content, query_str, per_page):
+
+
+
         fields = self.query_fields(site, query_str)
         paginations, paginated_contents = PaginationPage.paginate_content_fields(site, starting_content, fields, per_page)
         return paginations, paginated_contents

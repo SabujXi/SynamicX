@@ -15,6 +15,7 @@ from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static_content import StaticContent
 from synamic.core.services.content.generated_content import GeneratedContent
 from synamic.core.services.content.marked_content import MarkedContent
+from synamic.core.services.content.paginated_content import PaginationPage
 from .chapters import Chapter
 
 
@@ -146,6 +147,35 @@ class _ContentFields:
         """With fields will use .set() and thus it will only affect converted values."""
         return _GeneratedContentFields(self.__site, url_object, self.__model, document_type, self)
 
+    def __convert_pagination(self, pagination_field):
+        object_manager = self.__site.object_manager
+        site_settings = object_manager.get_site_settings()
+        per_page = site_settings['pagination_per_page']
+
+        if isinstance(pagination_field, str):
+            query_str = pagination_field
+        else:
+            query_str = pagination_field['query']
+            per_page = pagination_field.get('per_page', None)
+            if per_page is not None:
+                assert isinstance(per_page, int)
+                per_page = per_page
+        fields = object_manager.query_fields(query_str)
+        origin_content = object_manager.get_marked_content(self.cpath_object)
+        assert self is origin_content.fields
+        paginations, paginated_contents = PaginationPage.paginate_content_fields(
+            self.__site,
+            origin_content,
+            fields,
+            per_page
+        )
+        return paginations, paginated_contents
+
+    def __convert_chapters(self, param):
+        content_service = self.__site.get_service('contents')
+        chapters = content_service.build_chapters(param)
+        return chapters
+
     def get(self, key, default=None):
         raw_value = self.__raw_fields.get(key, None)
         if raw_value is None:
@@ -153,22 +183,24 @@ class _ContentFields:
 
         value = self.__converted_values.get(key, None)
         if value is None:
-            # convert with type system.
-            if key in self.__model:
-                model_field = self.__model[key]
-                # special handling
+            # special conversions
+            if key in ('pagination', 'chapters'):
                 if key == 'pagination':
-                    starting_content = self.__site.object_manager.get_marked_content_by_url(self.__url_object)
-                    value = model_field.converter(raw_value, starting_content)
-                else:
-                    value = model_field.converter(raw_value)
-                if key != 'pagination':
-                    # ... because pagination is set with set method during conversion through paginate fields method
-                    # from object manager through pagination...
-                    self.__converted_values[key] = value
+                    pagination_field = raw_value
+                    paginations, paginated_contents = self.__convert_pagination(pagination_field)
+                    value = paginations[0]
+                elif key == 'chapters':
+                    content_service = self.__site.get_service('contents')
+                    chapters = content_service.build_chapters(raw_value)
+                    value = chapters
+            # normal conversions through converter or else raw value
             else:
-                value = raw_value
-                self.__converted_values[key] = value
+                model_field = self.__model.get(key, None)
+                if model_field is not None:
+                    value = model_field.converter(raw_value)
+                else:
+                    value = raw_value
+            self.__converted_values[key] = value
         return value
 
     def set(self, key, value):
