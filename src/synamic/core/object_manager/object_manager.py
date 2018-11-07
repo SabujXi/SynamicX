@@ -1,12 +1,12 @@
 import types
-from collections import defaultdict, OrderedDict, namedtuple
+from collections import defaultdict, OrderedDict
 from synamic.core.services.content.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import DocumentType
 from .query import SimpleQueryParser
-from synamic.core.services.content.paginated_content import Pagination
+from synamic.core.services.content.paginated_content import PaginationPage
 
 
 class ObjectManager:
@@ -160,13 +160,14 @@ class ObjectManager:
         # create content, meta, set meta with converters. Setting it from here will help caching.
         # TODO: other type of contents besides md contents.
         content_service = site.get_service('contents')
-        path_tree = self.get_path_tree(site)
-        contents_dir = site.default_data.get_syd('dirs')['contents.contents']
         if isinstance(path, str):
-            file_cpath = path_tree.create_file_cpath(contents_dir + '/' + path)
+            path_tree = self.get_path_tree(site)
+            contents_cdir = path_tree.create_dir_cpath(site.default_data.get_syd('dirs')['contents.contents'])
+            file_cpath = contents_cdir.join(path, is_file=True)
         else:
             file_cpath = path
 
+        # check cache
         marked_content = self.__cache.get_marked_content_by_cpath(site, file_cpath, None)
         if marked_content is not None:
             return marked_content
@@ -174,7 +175,10 @@ class ObjectManager:
         if not file_cpath.exists():
             return None
         else:
-            marked_content = content_service.build_md_content(file_cpath)
+            cached_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath)
+            assert cached_content_fields is not None
+            marked_content = content_service.build_md_content(file_cpath, cached_content_fields)
+            # cache it.
             self.__cache.add_marked_content(site, marked_content)
             return marked_content
 
@@ -182,10 +186,9 @@ class ObjectManager:
         cpath = self.__cache.get_marked_cpath_by_curl(site, url_object)
         return self.get_marked_content(site, cpath)
 
-    def get_marked_contents_by_urls(self, site, url_objects):
+    def get_marked_contents_by_cpaths(self, site, cpaths):
         contents = []
-        for url_object in url_objects:
-            cpath = self.__cache.get_marked_cpath_by_curl(site, url_object)
+        for cpath in cpaths:
             contents.append(self.get_marked_content(site, cpath))
         return contents
 
@@ -198,9 +201,6 @@ class ObjectManager:
             return content_service.build_static_content(path)
 
     def get_static_file_paths(self, site):
-        pass
-
-    def all_static_paths(self, site):
         paths = []
         path_tree = site.get_service('path_tree')
         statics_dir = site.default_data.get_syd('dirs')['contents.statics']
@@ -327,7 +327,7 @@ class ObjectManager:
         ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
         if ordinary_url:
             return url_str
-        result_content = self.get_marked_content(site, self.getfields(site, url_str).get_path_object())
+        result_content = self.get_marked_content(site, self.getfields(site, url_str).cpath_object)
         return result_content
 
     def geturl(self, site, url_str):
@@ -488,7 +488,7 @@ class ObjectManager:
 
     def paginate_content_fields(self, site, starting_content, query_str, per_page):
         fields = self.query_fields(site, query_str)
-        paginations, paginated_contents = Pagination.paginate_content_fields(site, starting_content, fields, per_page)
+        paginations, paginated_contents = PaginationPage.paginate_content_fields(site, starting_content, fields, per_page)
         return paginations, paginated_contents
 
     class __ObjectManagerForSite:
@@ -592,8 +592,8 @@ class ObjectManager:
         def get_marked_content_fields_by_curl(self, site, curl, default=None):
             return self.__marked_content_fields_cachemap[site.id].get(curl, default)
 
-        def get_marked_content_fields_by_cpath(self, site, curl, default=None):
-            return self.__cpath_to_marked_content_fields[site.id].get(curl, default)
+        def get_marked_content_fields_by_cpath(self, site, cpath, default=None):
+            return self.__cpath_to_marked_content_fields[site.id].get(cpath, default)
 
         def get_marked_cpath_by_curl(self, site, curl, default=None):
             cfs = self.get_marked_content_fields_by_curl(site, curl, None)

@@ -1,22 +1,24 @@
 import io
 from synamic.core.contracts import ContentContract, DocumentType
+from synamic.core.services.content.toc import Toc
 
 
 class MarkedContent(ContentContract):
-    def __init__(self, site, file_cpath, url_object, body, content_fields, toc, document_type, mime_type='text/plain'):
+    def __init__(self, site, file_cpath, url_object, body_text, content_fields, document_type, mime_type='text/plain'):
         self.__site = site
         self.__file_cpath = file_cpath
         self.__url_object = url_object
-        self.__body = body
+        self.__body_text = body_text
         self.__content_fields = content_fields
         self.__model = content_fields.model_object
         self.__document_type = document_type
         self.__mime_type = mime_type
-        self.__toc = toc
 
         # validation
-        assert self.__toc is not None
         assert DocumentType.is_text(self.__document_type)
+
+        self.__toc = None
+        self.__body = None
 
     @property
     def site(self):
@@ -48,8 +50,20 @@ class MarkedContent(ContentContract):
     def mime_type(self):
         return self.__mime_type
 
+    def __render_body(self):
+        body = self.__body
+        if body is None:
+            markdown_renderer = self.__site.get_service('types').get_converter('markdown')
+            toc = Toc()
+            body = markdown_renderer(self.__body_text, value_pack={
+                'toc': toc
+            }).rendered_markdown
+            self.__toc = toc
+            self.__body = body
+
     @property
     def body(self):
+        self.__render_body()
         return self.__body
 
     @property
@@ -58,6 +72,7 @@ class MarkedContent(ContentContract):
 
     @property
     def toc(self):
+        self.__render_body()
         return self.__toc
 
     def __get(self, key):

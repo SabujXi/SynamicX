@@ -14,7 +14,6 @@ from synamic.core.contracts.content import DocumentType
 from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static_content import StaticContent
 from synamic.core.services.content.generated_content import GeneratedContent
-from synamic.core.services.content.toc import Toc
 from synamic.core.services.content.marked_content import MarkedContent
 from .chapters import Chapter
 
@@ -80,27 +79,18 @@ class ContentService:
 
         return content_fields
 
-    def build_md_content(self, file_path):
-        markdown_renderer = self.__site.get_service('types').get_converter('markdown')
-        document_type = DocumentType.HTML_DOCUMENT
-        _, body_text = self.__site.object_manager.get_content_parts(file_path)
-        del _
-        content_fields = self.__site.object_manager.get_content_fields(file_path, None)
-        assert content_fields is not None
-        toc = Toc()
-        body = markdown_renderer(body_text, value_pack={
-            'toc': toc
-        }).rendered_markdown
-
-        # mime type guess
+    def build_md_content(self, file_path, cached_content_fields):
         mime_type = 'text/html'
-        url_object = content_fields.curl_object
+        document_type = DocumentType.HTML_DOCUMENT
+
+        _, body_text = self.__site.object_manager.get_content_parts(file_path)
+        # mime type guess
+        url_object = cached_content_fields.curl_object
         content = MarkedContent(self.__site,
                                 file_path,
                                 url_object,
-                                body,
-                                content_fields,
-                                toc,
+                                body_text,
+                                cached_content_fields,
                                 document_type,
                                 mime_type=mime_type)
         return content

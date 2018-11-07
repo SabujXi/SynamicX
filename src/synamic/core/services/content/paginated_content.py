@@ -3,9 +3,9 @@ from synamic.core.contracts import ContentContract, DocumentType
 
 
 class PaginatedContent(ContentContract):
-    def __init__(self, site, original_content_fields, url_object, paginated_content_fields, document_type):
+    def __init__(self, site, origin_content_fields, url_object, paginated_content_fields, document_type):
         self.__site = site
-        self.__original_content_fields = original_content_fields
+        self.__origin_content_fields = origin_content_fields
         self.__url_object = url_object
         self.__content_fields = paginated_content_fields
         self.__model = paginated_content_fields.model_object
@@ -47,7 +47,9 @@ class PaginatedContent(ContentContract):
 
     @property
     def body(self):
-        return self.__site.object_manager.get_marked_content_by_url(self.__original_content_fields.url_object).body
+        content = self.__site.object_manager.get_marked_content(self.__origin_content_fields.cpath_object)
+        assert content is not None
+        return content.body
 
     @property
     def fields(self):
@@ -73,7 +75,7 @@ class PaginatedContent(ContentContract):
         return str(self)
 
 
-class Pagination:
+class PaginationPage:
     def __init__(self, site, total_pagination, contents_fields, position, per_page):
         assert len(contents_fields) != 0
         self.__site = site
@@ -95,9 +97,15 @@ class Pagination:
 
     @property
     def contents(self):
-        return self.__site.object_manager.get_marked_contents_by_urls(
-            content_fields.url_object for content_fields in self.__contents_fields
-        )
+        if self.__contents_fields:
+            contents = self.__site.object_manager.get_marked_contents_by_cpaths(
+                content_fields.cpath_object for content_fields in self.__contents_fields
+            )
+            assert contents
+        else:
+            contents = tuple()
+
+        return contents
 
     @property
     def position(self):
@@ -167,6 +175,12 @@ class Pagination:
         assert self.__prev_page is None
         self.__prev_page = pp
 
+    def __str__(self):
+        return "Pagination Page: %d" % self.__position
+
+    def __repr__(self):
+        return repr(self.__str__())
+
     @classmethod
     def paginate_content_fields(cls, site, origin_content, queried_contents_fieldS, per_page):
         url_partition_comp = site.object_manager.get_site_settings()['url_partition_comp']
@@ -196,7 +210,7 @@ class Pagination:
         if paginated_contents_fieldS_divisions:
             prev_page = None
             for division_idx_i, division_contents_fieldS in enumerate(paginated_contents_fieldS_divisions):
-                pagination = Pagination(
+                pagination = PaginationPage(
                     site,
                     len(paginated_contents_fieldS_divisions),
                     division_contents_fieldS,
