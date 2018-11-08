@@ -10,7 +10,6 @@
 
 import configparser, json, toml
 from synamic.core.standalones.functions.yaml_processor import load_yaml
-from synamic.core.parsing_systems.document_parser import FieldParser
 from synamic.core.standalones.functions.decorators import not_loaded
 
 
@@ -62,7 +61,6 @@ class IniData(Data):
         except configparser.NoOptionError:
             return default
         return value
-
 
 
 def get_from_dict(dict_map, dotted_keys, default):
