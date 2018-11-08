@@ -227,14 +227,11 @@ for syd_type, py_types in syd_to_py_types.items():
 class __SydData:
     @property
     def is_scalar(self):
-        if type(self) is SydScalar:
-            return True
-        else:
-            return False
+        return type(self) is SydScalar
 
     @property
     def is_container(self):
-        return not self.is_scalar
+        return type(self) is SydContainer
 
     def syd_set_parent(self, p):
         raise NotImplemented
@@ -264,12 +261,6 @@ class SydScalar(__SydData):
         self.__cached_interpolated_str = None
         self.syd_set_parent(parent_container)
 
-    @classmethod
-    def create_from_py_value(cls, key, value, parent_container=None):
-        assert isinstance(value, tuple(py_to_syd_types.keys()))
-        return cls(key, value, py_to_syd_types[type(value)], parent_container=parent_container)
-
-    # TODO: clone stuffs for converter
     def clone(self, parent_container=None, converter=None, converted_value=None):
         if converter is None:
             converter = self.__converter
@@ -280,19 +271,6 @@ class SydScalar(__SydData):
     @property
     def key(self):
         return self.__key
-
-    def __interpolation_replacer(self, match):
-        identifier = match.group('identifier')
-        assert self.__key != identifier, 'Key is being interpolated recursively: %s' % identifier
-        if self.__parent_container is not None:
-            v = self.__parent_container.get(identifier, '')
-            assert type(v) in (int, float, str), 'Only number and string data can be interpolated in' \
-                                                 'to a string. Data with' \
-                                                 ' kye `%s` is of type `%s`' % (self.key, str(type(v)))
-            v = str(v)  # convert it in case it is a number.
-            return v
-        else:
-            raise Exception('Parent for key `%s` is set to None' % str(self.__key))
 
     @property
     def value(self):
@@ -319,15 +297,6 @@ class SydScalar(__SydData):
     def type(self):
         return self.__datatype
 
-    def __str__(self):
-        if self.key is not None:
-            return "%s => %s" % (self.key, str(self.value))
-        else:
-            return str(self.value)
-
-    def __repr__(self):
-        return repr(self.__str__())
-
     def syd_set_parent(self, p):
         assert type(p) in (SydContainer, type(None))
         self.__parent_container = p
@@ -351,6 +320,28 @@ class SydScalar(__SydData):
     @property
     def converter(self):
         return self.__converter
+
+    def __str__(self):
+        if self.key is not None:
+            return "%s => %s" % (self.key, str(self.value))
+        else:
+            return str(self.value)
+
+    def __repr__(self):
+        return repr(self.__str__())
+
+    def __interpolation_replacer(self, match):
+        identifier = match.group('identifier')
+        assert self.__key != identifier, 'Key is being interpolated recursively: %s' % identifier
+        if self.__parent_container is not None:
+            v = self.__parent_container.get(identifier, '')
+            assert type(v) in (int, float, str), 'Only number and string data can be interpolated in' \
+                                                 'to a string. Data with' \
+                                                 ' kye `%s` is of type `%s`' % (self.key, str(type(v)))
+            v = str(v)  # convert it in case it is a number.
+            return v
+        else:
+            raise Exception('Parent for key `%s` is set to None' % str(self.__key))
 
 
 class SydContainer(__SydData):
@@ -388,7 +379,7 @@ class SydContainer(__SydData):
         return tuple(l)
 
     def syd_get_original(self, key, multi=False):
-        assert type(key) in (int, str), 'Only integer and string keys are accepted, you provide key of type: %s' % str(
+        assert isinstance(key, (int, str, list, tuple)), 'Only integer and string keys are accepted, you provide key of type: %s' % str(
             type(key))
         key = int(key) if type(key) is str and key.isdigit() else key
 
@@ -402,7 +393,10 @@ class SydContainer(__SydData):
             except IndexError:
                 raise IndexError('%d does not exist')
         else:
-            keys = key.split('.')
+            if isinstance(key, (list, tuple)):
+                keys = key
+            else:
+                keys = key.split('.')
             try:
                 first_key = keys[0]
                 cont_tuple = tuple(t[1] for t in self.__map[first_key])
@@ -512,8 +506,29 @@ class SydContainer(__SydData):
         syd.syd_set_parent(self)
 
     def set(self, key, py_value):
-        """Limited set capability - only current level and only scalar value."""
-        self.add(SydScalar.create_from_py_value(key, py_value))
+        """
+        Sets py value as converted to existing key
+        BUT for non existing value it creates scalar of only allowed type.
+        """
+        try:
+            syd = self.syd_get_original(key, multi=False)
+            syd.set_converted(py_value)
+        except KeyError:
+            if '.' not in key:
+                parent_container = self
+            else:
+                comps = key.split('.')[:-1]
+                parent_container = self.syd_get_original(comps, multi=False)
+                assert parent_container.is_container
+
+            syd_scalar = SydScalar(
+                key,
+                py_value,
+                py_to_syd_types[type(py_value)],
+                converter=None,
+                converted_value=py_value
+            )
+            parent_container.add(syd_scalar)
 
     def __setitem__(self, key, value):
         self.set(key, value)
