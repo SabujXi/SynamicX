@@ -1,4 +1,5 @@
 import re
+from synamic.core.contracts import DocumentType
 
 _mark_title2id_sub_pat = re.compile(r'[^a-zA-Z0-9_-]')
 
@@ -15,6 +16,10 @@ class _Mark:
         self.__site = site
         self.__mark_map = mark_map
         self.__marker = marker
+
+        # content(s)
+        self.__content = None
+        self.__synthetic_cfields = None
 
     @property
     def _parent(self):
@@ -68,13 +73,71 @@ class _Mark:
     def marks(self):
         return self.__mark_map.get('marks', None)
 
+    @property
+    def cfields(self):
+        if self.__synthetic_cfields is not None:
+            sf = self.__synthetic_cfields
+        else:
+            site_settings = self.__site.object_manager.get_site_settings()
+            content_service = self.__site.get_service('contents')
+            url_partition_comp = site_settings['url_partition_comp']
+            document_type = DocumentType.GENERATED_HTML_DOCUMENT
+            curl = self.__site.synamic.router.make_url(
+                self.__site, '/%s/marker/%s/%s' % (url_partition_comp, self.__marker.id, self.id), for_document_type=document_type
+            )
+            sf = synthetic_fields = content_service.make_synthetic_content_fields(
+                curl,
+                document_type=document_type,
+                fields_map=None)
+            sf['title'] = self.title
+            sf['mark'] = self
+            sf['marker'] = self.__marker
+            self.__synthetic_cfields = synthetic_fields
+            # TODO: create single marker.html template for all and then specific marker id based template?
+            # Add such settings to site settings.
+        return sf
+
+    @property
+    def curl(self):
+        return self.cfields.curl
+
+    @property
+    def content(self):
+        if self.__content is not None:
+            content = self.__content
+        else:
+            site_settings = self.__site.object_manager.get_site_settings()
+            template_service = self.__site.get_service('templates')
+            content_service = self.__site.get_service('contents')
+            user_template_name = site_settings['templates.mark']
+
+            content = content_service.build_generated_content(
+                self.cfields,
+                self.cfields.curl,
+                None,
+                document_type=self.cfields.document_type,
+                mime_type='text/html',
+                source_cpath=None)
+            html_text_content = template_service.render(user_template_name,
+                                                        site=self.__site,
+                                                        content=content,
+                                                        mark=self,
+                                                        marker=self.__marker)
+            content.__set_file_content__(html_text_content)
+            # TODO: fix this content setting later (2).
+            self.__content = content
+        return content
+
+    def contents(self):
+        raise NotImplemented
+
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self.id == other.id
+        return self.id == other.id and self.marker == other.marker
 
     def __hash__(self):
-        return hash(self.id)
+        return hash(self.id + self.marker.id)
 
     def __getattr__(self, key):
         return self.__mark_map.get(key, '')
@@ -169,3 +232,11 @@ class Marker:
                 _mark_maps = _mark.marks
                 if _mark_maps is not None:
                     self.__process_marks_list(_mark_maps, res_mark_objs, _mark)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return self.id == other.id
+
+    def __hash__(self):
+        return hash(self.__id)

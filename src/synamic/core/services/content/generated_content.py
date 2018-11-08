@@ -12,24 +12,21 @@ from synamic.core.contracts.content import ContentContract, DocumentType
 
 
 class GeneratedContent(ContentContract):
-    def __init__(self, site, curl, file_content,
-                 document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
-        if file_content is None:
-            assert source_cpath is not None
+    def __init__(self, site, synthetic_fields, curl, file_content,
+                 document_type=DocumentType.GENERATED_TEXT_DOCUMENT,
+                 mime_type='octet/stream', source_cpath=None):
 
         self.__site = site
+        self.__synthetic_fields = synthetic_fields
         self.__curl = curl
         self.__file_content = file_content
         self.__document_type = document_type
         self.__mime_type = mime_type
         self.__source_cpath = source_cpath
 
-        # kwargs for use in special subclasses where private variables are not accessible.
-        self.__kwargs = kwargs.copy()
-
         # validation
         assert DocumentType.is_generated(self.__document_type)
-        assert type(self.__file_content) in (type(None), bytes, bytearray)
+        assert type(self.__file_content) in (type(None), bytes, bytearray, str)
 
     @property
     def site(self):
@@ -44,6 +41,9 @@ class GeneratedContent(ContentContract):
         return self.__curl
 
     def get_stream(self):
+        if self.__file_content is None:
+            assert self.__source_cpath is not None
+
         if self.__file_content is not None:
             if isinstance(self.__file_content, (bytes, bytearray)):
                 file = io.BytesIO(self.__file_content)
@@ -55,6 +55,11 @@ class GeneratedContent(ContentContract):
         return file
 
     @property
+    def body(self):
+        body = self.__synthetic_fields.get('__body__', '')
+        return body
+
+    @property
     def mime_type(self):
         return self.__mime_type
 
@@ -62,10 +67,20 @@ class GeneratedContent(ContentContract):
     def document_type(self):
         return self.__document_type
 
-    # non content contract attrs
-    @property
-    def kwargs(self):
-        return self.__kwargs
+    def __get(self, key):
+        return self.__synthetic_fields.get(key, None)
+
+    def __getitem__(self, key):
+        return self.__get(key)
+
+    def __getattr__(self, key):
+        return self.__get(key)
+
+    def __str__(self):
+        return "Generated content: <%s>\n" % str(self.curl) + '...'
+
+    def __repr__(self):
+        return str(self)
 
     @property
     def source_cpath(self):
@@ -79,3 +94,9 @@ class GeneratedContent(ContentContract):
             with self.get_stream() as stream:
                 content = stream.read()
                 return content
+
+    def __set_file_content__(self, fc):
+        assert self.__file_content is None
+        self.__file_content = fc
+
+

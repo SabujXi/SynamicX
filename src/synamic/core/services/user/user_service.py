@@ -8,6 +8,7 @@
     status: "Development"
 """
 from synamic.core.standalones.functions.decorators import not_loaded
+from synamic.core.contracts import DocumentType
 
 
 class UserService:
@@ -65,6 +66,10 @@ class UserService:
                 self.__user_fields.set('name', self.__user_id)
             self.__name = name
 
+            # content
+            self.__synthetic_cfields = None
+            self.__content = None
+
         @property
         def id(self):
             return self.__user_id
@@ -72,6 +77,57 @@ class UserService:
         @property
         def name(self):
             return self.__name
+
+        @property
+        def cfields(self):
+            if self.__synthetic_cfields is not None:
+                sf = self.__synthetic_cfields
+            else:
+                site_settings = self.__site.object_manager.get_site_settings()
+                content_service = self.__site.get_service('contents')
+                url_partition_comp = site_settings['url_partition_comp']
+                document_type = DocumentType.GENERATED_HTML_DOCUMENT
+                curl = self.__site.synamic.router.make_url(
+                    self.__site, '/%s/user/%s' % (url_partition_comp, self.id), for_document_type=document_type
+                )
+                sf = synthetic_fields = content_service.make_synthetic_content_fields(
+                    curl,
+                    document_type=document_type,
+                    fields_map=None)
+                sf['title'] = self.title if self.title else self.name
+                sf['author'] = self
+                self.__synthetic_cfields = synthetic_fields
+            return sf
+
+        @property
+        def curl(self):
+            return self.cfields.curl
+
+        @property
+        def content(self):
+            if self.__content is not None:
+                content = self.__content
+            else:
+                site_settings = self.__site.object_manager.get_site_settings()
+                template_service = self.__site.get_service('templates')
+                content_service = self.__site.get_service('contents')
+                user_template_name = site_settings['templates.user']
+
+                content = content_service.build_generated_content(
+                    self.cfields,
+                    self.cfields.curl,
+                    None,
+                    document_type=self.cfields.document_type,
+                    mime_type='text/html',
+                    source_cpath=None)
+                html_text_content = template_service.render(user_template_name, site=self.__site, content=content, author=self)
+                content.__set_file_content__(html_text_content)
+                # TODO: fix this content setting later.
+                self.__content = content
+            return content
+
+        def contents(self):
+            raise NotImplemented
 
         def __getattr__(self, item):
             return self.__user_fields.get(item, None)

@@ -39,7 +39,11 @@ class ContentService:
 
     @classmethod
     def is_type_content_fields(cls, other):
-        return type(other) is _ContentFields
+        return isinstance(other, _ContentFields)
+
+    @classmethod
+    def is_type_synthetic_content_fields(cls, other):
+        return isinstance(other, _SyntheticContentFields)
 
     def build_content_fields(self, fields_syd, file_cpath):
         # get dir meta syd
@@ -80,6 +84,9 @@ class ContentService:
 
         return content_fields
 
+    def build_synthetic_content_fields(self, curl, document_type, fields_map):
+        return _SyntheticContentFields(self.__site, curl, document_type, fields_map)
+
     def build_md_content(self, file_path, cached_content_fields):
         mime_type = 'text/html'
         document_type = DocumentType.HTML_DOCUMENT
@@ -118,13 +125,21 @@ class ContentService:
             mime_type=mime_type)
 
     def build_generated_content(
-            self, curl, file_content,
-            document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
-        return GeneratedContent(self.__site, curl, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath, **kwargs)
+            self,
+            synthetic_fields,
+            curl,
+            file_content,
+            document_type=DocumentType.GENERATED_TEXT_DOCUMENT,
+            mime_type='octet/stream',
+            source_cpath=None):
+        return GeneratedContent(self.__site, synthetic_fields, curl, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath)
 
-    def make_content_fields(self, content_file_path, curl, model, document_type, raw_fileds, *a, **kwa):
+    def make_content_fields(self, content_file_path, curl, model, document_type, raw_fileds):
         """Just makes an instance"""
-        return _ContentFields(self.__site, content_file_path, curl, model, document_type, raw_fileds, *a, **kwa)
+        return _ContentFields(self.__site, content_file_path, curl, model, document_type, raw_fileds)
+
+    def make_synthetic_content_fields(self, curl, document_type=DocumentType.GENERATED_BINARY_DOCUMENT, fields_map=None):
+        return _SyntheticContentFields(self.__site, curl, document_type=document_type, fields_map=fields_map)
 
     def build_chapters(self, chapters_fields):
         chapters = []
@@ -295,6 +310,63 @@ class _GeneratedContentFields:
 
     def __getitem__(self, key):
         return self.get(key, None)
+
+    def __getattr__(self, key):
+        return self.get(key, None)
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            return False
+        return self.__curl == other.curl
+
+    def __hash__(self):
+        return hash(self.__curl)
+
+
+class _SyntheticContentFields:
+    def __init__(self, site, curl, document_type=DocumentType.GENERATED_BINARY_DOCUMENT, fields_map=None):
+        self.__site = site
+        self.__curl = curl
+        self.__document_type = document_type
+        self.__fields_map = {} if fields_map is None else fields_map
+
+        assert DocumentType.is_generated(document_type)
+
+    def get(self, key, default=None):
+        return self.__fields_map.get(key, default)
+
+    def set(self, key, value):
+        self.__fields_map[key] = value
+
+    @property
+    def raw(self):
+        return self.__fields_map
+
+    @property
+    def keys(self):
+        return tuple(self.__fields_map.keys())
+
+    @property
+    def document_type(self):
+        return self.__document_type
+
+    @property
+    def cmodel(self):
+        raise NotImplemented
+
+    @property
+    def curl(self):
+        return self.__curl
+
+    @property
+    def cpath(self):
+        raise NotImplemented
+
+    def __getitem__(self, key):
+        return self.get(key, None)
+
+    def __setitem__(self, key, value):
+        self.set(key, value)
 
     def __getattr__(self, key):
         return self.get(key, None)
