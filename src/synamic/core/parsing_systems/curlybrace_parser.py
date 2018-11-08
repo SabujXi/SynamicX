@@ -149,7 +149,6 @@ key4: {
     multiline~ {
     }
 }
-
 """
 
 import re
@@ -172,21 +171,8 @@ class _Patterns:
             :? # colon is optional
             (?={|\[|\s|\Z)
             ''', re.X)
-    # is_multiline = re.compile(r'''^
-    #         [ \t]*(?P<is_multiline>~{1,3})[ \t]* # is multi line
-    # ''', re.X)
 
     number = re.compile(r'^[ \t]*(?P<number>[+-]?[0-9]+(\.[0-9]+)?)[ \t]*$')
-    # date = re.compile(r'''
-    #     ^[ \t]*(?P<date>\d{4}-\d{1,2}-\d{1,2})[ \t]*$
-    # ''', re.X)
-    # time = re.compile(r'''
-    #     ^(?P<time>\d{1,2}:\d{1,2}(:\d{1,2})?)[ \t]*(?P<AM_PM>AM|PM)[ \t]*$
-    # ''', re.X | re.I)
-    # datetime = re.compile(r'''
-    #     ^[ \t]*(?P<date>\d{4}-\d{1,2}-\d{1,2})[ \t]+
-    #     (?P<time>\d{1,2}:\d{1,2}(:\d{1,2})?)[ \t]*(?P<AM_PM>AM|PM)?[ \t]*$
-    # ''', re.I | re.X)
     date = DtPatterns.date
     time = DtPatterns.time
     datetime = DtPatterns.datetime
@@ -250,14 +236,29 @@ class __SydData:
     def is_container(self):
         return not self.is_scalar
 
+    def syd_set_parent(self, p):
+        raise NotImplemented
+
+    def set_converter(self, c):
+        raise NotImplemented
+
+    def set_converted(self, v):
+        raise NotImplemented
+
+    @property
+    def converter(self):
+        raise NotImplemented
+
 
 class SydScalar(__SydData):
-    def __init__(self, key, value, datatype, parent_container=None):  # TODO: remove none
+    def __init__(self, key, value, datatype, parent_container=None, converter=None, converted_value=None):
         assert '.' not in key
         assert isinstance(value, syd_to_py_types[datatype])
         self.__key = key
         self.__value = value
         self.__datatype = datatype
+        self.__converter = converter
+        self.__converted_value = converted_value
         self.__parent_container = None
 
         self.__cached_interpolated_str = None
@@ -268,14 +269,19 @@ class SydScalar(__SydData):
         assert isinstance(value, tuple(py_to_syd_types.keys()))
         return cls(key, value, py_to_syd_types[type(value)], parent_container=parent_container)
 
-    def clone(self, parent_container=None):
-        return self.__class__(self.__key, self.__value, self.__datatype, parent_container)
+    # TODO: clone stuffs for converter
+    def clone(self, parent_container=None, converter=None, converted_value=None):
+        if converter is None:
+            converter = self.__converter
+        if converted_value is None:
+            converted_value = self.__converted_value
+        return self.__class__(self.__key, self.__value, self.__datatype, parent_container=parent_container, converter=converter, converted_value=converted_value)
 
     @property
     def key(self):
         return self.__key
 
-    def __replacer(self, match):
+    def __interpolation_replacer(self, match):
         identifier = match.group('identifier')
         assert self.__key != identifier, 'Key is being interpolated recursively: %s' % identifier
         if self.__parent_container is not None:
@@ -290,15 +296,24 @@ class SydScalar(__SydData):
 
     @property
     def value(self):
-        value = self.__value
-
-        # process interpolation for string
-        if self.__datatype is SydDataType.string:
-            if self.__cached_interpolated_str is not None:
-                value = self.__cached_interpolated_str
+        if self.__converted_value is not None:
+            value = self.__converted_value
+        else:
+            if not callable(self.__converter):
+                value = self.__value
             else:
-                value = self.__cached_interpolated_str = _Patterns.interpolation_identifier.sub(self.__replacer, value)
+                value = self.__converter(self.__value)
+                assert value is not None
+                self.__value = value
         return value
+
+    @property
+    def value_origin(self):
+        return self.__value
+
+    def set_converted(self, value):
+        assert value is not None
+        self.__converted_value = value
 
     @property
     def type(self):
@@ -317,25 +332,53 @@ class SydScalar(__SydData):
         assert type(p) in (SydContainer, type(None))
         self.__parent_container = p
 
+        # process interpolation
+        if p is not None:
+            value = self.__value
+            # process interpolation for string
+            if self.__datatype is SydDataType.string:
+                if self.__cached_interpolated_str is not None:
+                    value = self.__cached_interpolated_str
+                else:
+                    value = self.__cached_interpolated_str = _Patterns.interpolation_identifier.sub(self.__interpolation_replacer,
+                                                                                                    value)
+            self.__value = value
+
+    def set_converter(self, converter):
+        assert not callable(self.__converter)
+        self.__converter = converter
+
+    @property
+    def converter(self):
+        return self.__converter
+
 
 class SydContainer(__SydData):
-    def __init__(self, key, is_list=False, parent=None):
+    def __init__(self, key, is_list=False, parent_container=None, converter=None, converted_value=None):
         self.__key = key
         self.__is_list = is_list
         self.__map = {}
         self.__list = []
-        self.__is_root = True if key == '__root__' or key is None else False
-        self.__parent = None
+        self.__parent_container = None  # parent_container from init will be set through a method below.
+        self.__converter = converter
+        self.__converted_value = converted_value
 
-        self.__converters = {}
-        self.syd_set_parent(parent)
+        self.syd_set_parent(parent_container)
 
-    def clone(self, parent=None):
-        cln = self.__class__(self.__key, self.__is_list, parent)
+    def clone(self, parent_container=None, converter=None, converted_value=None):
+        if converter is None:
+            converter = self.__converter
+        if converted_value is None:
+            converted_value = self.__converted_value
+        cln = self.__class__(self.__key, self.__is_list, parent_container=parent_container, converter=converter, converted_value=converted_value)
         for e in self.__list:
-            cln.add(e)
+            cln.add(e.clone())
         return cln
     copy = clone
+
+    @property
+    def is_root(self):
+        return self.__parent_container is None or self.__key == '__root__' or self.__key is None
 
     # methods prefixed with syd_ are considered private functions or functions should not be used by users.
     def syd_clone_original_contents(self):
@@ -429,35 +472,27 @@ class SydContainer(__SydData):
             raise KeyError('Key `%s` was not found' % key)
         return value
 
-    def __converted_value(self, key, value):
-        # raise NotImplemented
-        converter = self.__converters.get(key, None)
-        if converter is not None:
-            value = converter(value)
-        return value
+    def set_converter(self, converter):
+        assert not callable(self.__converter)
+        assert not self.is_root
+        self.__converter = converter
 
-    def set_converter(self, key, converter):
-        raise NotImplemented
-        """
-        Converters are supposed to be used on parent containers - keys accessing through the
-        parent can provide converted value.
-        """
-        assert self.__parent is None, 'Converters can only be set to the parent containers'
-        self.__converters[key] = converter
+    def set_converter_for(self, key, converter):
+        syds = self.syd_get_original(key, multi=True)
+        for syd in syds:
+            syd.set_converter(converter)
 
     def get(self, key, default=None, multi=False):
         try:
             value = self.syd_get_original(key, multi=multi)
             if not multi:
-                value = self.__converted_value(key, value.value)
-                # value = value.value
+                value = value.value
             else:
                 values = value
-                _values = []
+                _ = []
                 for v in values:
-                    _values.append(self.__converted_value(key, v))
-                    # _values.append(v)
-                value = tuple(_values)
+                    _.append(v.value)
+                value = tuple(_)
         # except (KeyError, IndexError, AssertionError):
         except (KeyError, IndexError):
             value = default
@@ -541,6 +576,19 @@ class SydContainer(__SydData):
 
     @property
     def value(self):
+        if self.__converted_value is not None:
+            value = self.__converted_value
+        else:
+            if not callable(self.__converter):
+                value = self.value_origin
+            else:
+                value = self.__converter(self.value_origin)
+                assert value is not None
+                self.__converted_value = value
+        return value
+
+    @property
+    def value_origin(self):
         if self.is_list:
             c = []
             for a in self.__list:
@@ -552,6 +600,11 @@ class SydContainer(__SydData):
             for a in self.__list:
                 c[a.key] = a.value
         return c
+
+    def set_converted(self, value):
+        assert value is not None
+        assert not self.is_root
+        self.__converted_value = value
 
     def new(self, *others):
         assert not self.is_list, 'Cannot create new from list, it must be a block'
@@ -583,7 +636,11 @@ class SydContainer(__SydData):
 
     def syd_set_parent(self, p):
         assert type(p) in (type(None), self.__class__), 'Invalid type: %s' % str(type(p))
-        self.__parent = p
+        self.__parent_container = p
+
+    @property
+    def converter(self):
+        return self.__converter
 
 
 @enum.unique
