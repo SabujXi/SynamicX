@@ -461,11 +461,21 @@ class ObjectManager:
 
     def query_fields(self, site, query_str):
         content_model = site.object_manager.get_model('content')
-        node = SimpleQueryParser(query_str).parse()
+        node, sort = SimpleQueryParser(query_str).parse()
         all_contents_fields = self.__cache.get_all_marked_content_fields(site)
         result = set(all_contents_fields)
-        result = self.__query_fields_by_node(node, result, content_model)
-        # TODO: sort
+        if node is not None:
+            self.__query_fields_by_node(node, result, content_model)
+        if sort is not None:
+            def sorting_key_func(f):
+                value = f[sort.by_key]
+                return value
+            result = sorted(
+                result,
+                key=sorting_key_func,
+                reverse=True if sort.order == 'desc' else False
+            )
+
         return tuple(result)
 
     def query_contents(self, site, query_str):

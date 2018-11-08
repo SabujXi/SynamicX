@@ -1,7 +1,8 @@
 import operator
 from sly import Lexer, Parser
+import sly
 from synamic.core.parsing_systems.curlybrace_parser import SydParser  #covert_one_value
-from collections import OrderedDict, namedtuple
+from collections import namedtuple
 
 
 class SimpleQueryParser:
@@ -33,7 +34,9 @@ class SimpleQueryParser:
         '<': operator.lt
     }
 
+    Query = namedtuple('Query', ('node', 'sort'))
     QuerySection = namedtuple('QuerySection', ('key', 'comp_op', 'value'))
+    QuerySortBy = namedtuple('QuerySortBy', ('by_key', 'order'))
 
     def __init__(self, txt):
         self.__txt = txt
@@ -42,7 +45,38 @@ class SimpleQueryParser:
         """
         title == something | type in go, yes & age > 6
         """
-        return parser.parse(lexer.tokenize(self.__txt))
+        parser = QueryParser()
+        lexer = QueryLexer()
+        text = self.__txt.strip()
+        try:
+            if text == '':
+                res = (None, None)
+            else:
+                res = parser.parse(lexer.tokenize(text))
+            if len(res) == 1:
+                if isinstance(res[0], self.QuerySortBy):
+                    query = self.Query(node=None, sort=res[0])
+                else:
+                    query = self.Query(node=res[0], sort=None)
+            else:
+                assert len(res) > 1
+                query = self.Query(node=res[0], sort=res[1])
+
+            return query
+        except sly.lex.LexError as e:
+            txt_rest = e.text
+            err_before_txt = '_' * (len(text) - len(txt_rest))
+            err_after_txt = '^' * len(txt_rest)
+            err_txt = '\n' + text + '\n' + err_before_txt + err_after_txt
+
+            raise QueryLexingError(
+                ('Lexical error at index: %s' % e.error_index) +
+                err_txt
+            )
+
+
+class QueryLexingError(Exception):
+    pass
 
 
 class QueryNode:
@@ -69,7 +103,7 @@ class QueryNode:
         """ % (str(self.left), str(self.logic_op), str(self.right))
 
     def __repr__(self):
-        return repr(self.__str__())
+        return self.__str__()
 
 
 def test(query):
@@ -85,7 +119,7 @@ if __name__ == 'l__main__':
 class QueryValueLexer(Lexer):
     tokens = {'VALUE', }
 
-    @_(r'[^&|]+')
+    @_(r'[^&|:]+')
     def VALUE(self, t):
         self.begin(QueryLexer)
         t.value = t.value.strip()
@@ -93,8 +127,9 @@ class QueryValueLexer(Lexer):
 
 
 class QueryLexer(Lexer):
-    tokens = {'KEY', 'COMP_OP', 'AND', 'OR'}
+    tokens = {'KEY', 'COMP_OP', 'AND', 'OR', 'SORT_BY'}
     ignore_ws = r'\s'
+    SORT_BY = r':sortby\s+'
 
     @_(r'[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*')
     def KEY(self, t):
@@ -114,10 +149,6 @@ class QueryLexer(Lexer):
     def OR(self, t):
         return t
 
-    def error(self, t):
-        print("Illegal character '%s'" % t.value[0])
-        self.index += 1
-
 
 class QueryParser(Parser):
     # Get the token list from the lexer (required)
@@ -128,6 +159,27 @@ class QueryParser(Parser):
     ]
 
     # Grammar rules and actions
+    @_('expr',
+       'sort',
+       'expr sort')
+    def query(self, p):
+        if len(p) == 1:
+            return p[0],
+        else:
+            return p[0], p[1]
+
+    @_('SORT_BY KEY',
+       'SORT_BY KEY KEY')
+    def sort(self, p):
+        if len(p) == 2:
+            order = 'asc'
+        else:
+            if p[2].startswith('a'):
+                order = 'asc'
+            else:
+                order = 'desc'
+        return SimpleQueryParser.QuerySortBy(by_key=p[1], order=order)
+
     @_('KEY COMP_OP VALUE')
     def expr(self, p):
         converted_value = SydParser.covert_one_value(p[2])
@@ -140,15 +192,29 @@ class QueryParser(Parser):
         return QueryNode(p[1], left_section, right_section)
 
 
-parser = QueryParser()
-lexer = QueryLexer()
-
 if __name__ == '__main__':
     while True:
         try:
             text = input('parse > ')
         except EOFError:
             break
+        parser = QueryParser()
+        lexer = QueryLexer()
         if text:
-            result = parser.parse(lexer.tokenize(text))
-            print(result)
+            try:
+                res = parser.parse(lexer.tokenize(text))
+                # return res
+            except sly.lex.LexError as e:
+                txt_rest = e.text
+                err_before_txt = '_' * (len(text) - len(txt_rest))
+                err_after_txt = '^' * len(txt_rest)
+                err_txt = '\n' + text + '\n' + err_before_txt + err_after_txt
+
+                raise QueryLexingError(
+                    ('Lexical error at index: %s' % e.error_index) +
+                    err_txt
+                )
+            except Exception as e:
+                print("ERR: %s" % str(e.args))
+            else:
+                print(res)
