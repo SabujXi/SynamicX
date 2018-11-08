@@ -73,9 +73,15 @@ class SimpleQueryParser:
                 ('Lexical error at index: %s' % e.error_index) +
                 err_txt
             )
+        except QueryParsingError:
+            raise
 
 
 class QueryLexingError(Exception):
+    pass
+
+
+class QueryParsingError(Exception):
     pass
 
 
@@ -191,6 +197,19 @@ class QueryParser(Parser):
         left_section, right_section = p[0], p[2]
         return QueryNode(p[1], left_section, right_section)
 
+    def error(self, token):
+        self.restart()
+        if not token:
+            err = QueryParsingError(
+                "EOF before tokens could be parsed sensibly"
+            )
+        else:
+            err = QueryParsingError(
+                "Parsing error at token: %s" % token.type
+            )
+        self.restart()
+        raise err
+
 
 if __name__ == '__main__':
     while True:
@@ -214,7 +233,5 @@ if __name__ == '__main__':
                     ('Lexical error at index: %s' % e.error_index) +
                     err_txt
                 )
-            except Exception as e:
-                print("ERR: %s" % str(e.args))
             else:
                 print(res)
