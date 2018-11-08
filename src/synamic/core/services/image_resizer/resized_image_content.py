@@ -65,7 +65,7 @@ class ResizedImageContent(ContentContract):
         return self.new_file_path
 
     @property
-    def path_object(self):
+    def cpath(self):
         return self.path
 
     @property
@@ -99,7 +99,7 @@ class ResizedImageContent(ContentContract):
         return ContentContract.__document_types.AUXILIARY
 
     @property
-    def url_object(self):
+    def curl(self):
         if self.__url is None:
             self.__url = ContentUrl(self.__site, self.__new_file_path)
         return self.__url

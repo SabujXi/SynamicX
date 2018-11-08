@@ -104,7 +104,7 @@ class TaxonomyPage(ContentContract):
         return self.__module
 
     @property
-    def path_object(self):
+    def cpath(self):
         return self.__path
 
     @property

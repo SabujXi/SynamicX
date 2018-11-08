@@ -14,16 +14,16 @@ def synamic_add_document(synamic, document, content_map):
         parent_d[document.id] = document
 
     # 2. Normalized relative file path
-    if document.path_object is not None:
-        _path = document.path_object.norm_relative_path
+    if document.cpath is not None:
+        _path = document.cpath.norm_relative_path
         parent_d = content_map[Key.CONTENTS_BY_NORMALIZED_RELATIVE_FILE_PATH]
         assert _path not in parent_d, "Duplicate normalized relative file path: %s" % _path
         parent_d[_path] = document
 
     # 3. Content Url Object
-    assert document.url_object not in content_map[
-        Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.url_object.path_as_str
-    content_map[Key.CONTENTS_BY_CONTENT_URL][document.url_object] = document
+    assert document.curl not in content_map[
+        Key.CONTENTS_BY_CONTENT_URL], "Path %s in content map" % document.curl.path_as_str
+    content_map[Key.CONTENTS_BY_CONTENT_URL][document.curl] = document
 
     # 4. Contents set
     content_map[Key.CONTENTS_SET].add(document)

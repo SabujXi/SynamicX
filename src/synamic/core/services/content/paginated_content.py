@@ -3,12 +3,12 @@ from synamic.core.contracts import ContentContract, DocumentType
 
 
 class PaginatedContent(ContentContract):
-    def __init__(self, site, origin_content_fields, url_object, paginated_content_fields, document_type):
+    def __init__(self, site, origin_content_fields, curl, paginated_content_fields, document_type):
         self.__site = site
         self.__origin_content_fields = origin_content_fields
-        self.__url_object = url_object
+        self.__curl = curl
         self.__content_fields = paginated_content_fields
-        self.__model = paginated_content_fields.model_object
+        self.__model = paginated_content_fields.cmodel
         self.__document_type = document_type
         self.__mime_type = 'text/html'  # TODO: remove hard coding.
 
@@ -24,12 +24,12 @@ class PaginatedContent(ContentContract):
         return self.__document_type
 
     @property
-    def path_object(self):
+    def cpath(self):
         raise NotImplemented
 
     @property
-    def url_object(self):
-        return self.__url_object
+    def curl(self):
+        return self.__curl
 
     def get_stream(self):
         template_name = self.__content_fields.get('template', 'default.html')
@@ -47,7 +47,7 @@ class PaginatedContent(ContentContract):
 
     @property
     def body(self):
-        content = self.__site.object_manager.get_marked_content(self.__origin_content_fields.cpath_object)
+        content = self.__site.object_manager.get_marked_content(self.__origin_content_fields.cpath)
         assert content is not None
         return content.body
 
@@ -105,7 +105,7 @@ class PaginationPage:
     def contents(self):
         if self.__contents_fields:
             contents = self.__site.object_manager.get_marked_contents_by_cpaths(
-                content_fields.cpath_object for content_fields in self.__contents_fields
+                content_fields.cpath for content_fields in self.__contents_fields
             )
             assert contents
         else:
@@ -272,11 +272,11 @@ class PaginationPage:
                 else:
                     # creating paginated content
                     document_type = DocumentType.GENERATED_HTML_DOCUMENT
-                    url_object = origin_content.url_object.join(
+                    curl = origin_content.curl.join(
                         "/%s/%s/%d/" % (url_partition_comp, pagination_url_comp, division_idx_i + 1),
                         for_document_type=document_type)
                     paginated_content_fields = origin_content.fields.as_generated(
-                        url_object, document_type=document_type
+                        curl, document_type=document_type
                     )
                     paginated_content_fields.set(
                         'title',
@@ -285,7 +285,7 @@ class PaginationPage:
                     paginated_content = PaginatedContent(
                         site,
                         origin_content.fields,
-                        url_object,
+                        curl,
                         paginated_content_fields,
                         document_type,
                     )

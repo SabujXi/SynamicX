@@ -70,7 +70,7 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def path_object(self):
+    def cpath(self):
         """
         This is a path object associated with the file (for static the path, for dynamic the path to things like .md
          and for auxiliary - i need to think about that :p )
@@ -79,7 +79,7 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def url_object(self):
+    def curl(self):
         """
         Generated contents will have to implement this method themselves,
         Markdown and static content can call object manager method from inside to get it.
@@ -99,7 +99,7 @@ class ContentContract(metaclass=abc.ABCMeta):
         """
          return mime/type
          
-         this can be determined by the extension of to_file_system_path() on the url_object object.
+         this can be determined by the extension of to_file_system_path() on the curl object.
         """
 
     @property
@@ -135,7 +135,7 @@ class ContentContract(metaclass=abc.ABCMeta):
         return self.document_type is self.__document_types.META_DOCUMENT
 
     def __str__(self):
-        return "Content with url -> %s" % self.url_object.path_as_str_w_site
+        return "Content with url -> %s" % self.curl.path_as_str_w_site
 
     def __repr__(self):
         return repr(self.__str__())
@@ -143,7 +143,7 @@ class ContentContract(metaclass=abc.ABCMeta):
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self.url_object == other.url_object
+        return self.curl == other.curl
 
     def __hash__(self):
-        return hash(self.url_object)
+        return hash(self.curl)

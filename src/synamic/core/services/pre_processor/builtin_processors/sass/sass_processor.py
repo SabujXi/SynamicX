@@ -36,21 +36,21 @@ class SASSProcessor:
             if file_cpath.extension.lower() in {'scss'}:
                 if not scss_basename.lower().startswith('_'):
                     # partial file in not not condition, ignore it.
-                    url_object = self.get_css_url_object(file_cpath)
+                    curl = self.get_css_curl(file_cpath)
                     file_content = None
                     document_type = DocumentType.GENERATED_TEXT_DOCUMENT
                     mime_type = 'text/css'
 
-                    content_obj = SCSS_CSSContent(self.__site, url_object, file_content,
+                    content_obj = SCSS_CSSContent(self.__site, curl, file_content,
                                                   document_type=document_type,
                                                   mime_type=mime_type,
                                                   source_cpath=file_cpath)
                     content_objects.append(content_obj)
             else:
-                url_object = self.get_static_file_url_object(file_cpath)
+                curl = self.get_static_file_curl(file_cpath)
                 file_content = None
                 content_obj = content_service.build_generated_content(
-                    url_object, file_content,
+                    curl, file_content,
                     document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream',
                     source_cpath=file_cpath
                 )
@@ -60,7 +60,7 @@ class SASSProcessor:
     def make_cpath(self, *path_comps, is_file=True):
         return self.__processor_cpath.join(*path_comps, is_file=is_file)
 
-    def get_css_url_object(self, scss_file_path):
+    def get_css_curl(self, scss_file_path):
         url_path_comps = self.__processor_cpath.parent_cpath.get_comps_after(scss_file_path)
         assert len(url_path_comps) > 0
         scss_basename = url_path_comps[-1]
@@ -68,15 +68,15 @@ class SASSProcessor:
         css_file_base_name = scss_basename[:len(scss_basename) - len('.scss')] + '.css'
 
         css_url_path_comps = (*parent_comps[1:], css_file_base_name)
-        url_object = self.__site.synamic.router.make_url(
+        curl = self.__site.synamic.router.make_url(
             self.__site, css_url_path_comps, for_document_type=DocumentType.GENERATED_BINARY_DOCUMENT
         )
-        return url_object
+        return curl
 
-    def get_static_file_url_object(self, file_cpath):
+    def get_static_file_curl(self, file_cpath):
         url_path_comps = self.__processor_cpath.parent_cpath.get_comps_after(file_cpath)
         assert len(url_path_comps) > 0
-        url_object = self.__site.synamic.router.make_url(
+        curl = self.__site.synamic.router.make_url(
             self.__site, url_path_comps, for_document_type=DocumentType.GENERATED_BINARY_DOCUMENT
         )
-        return url_object
+        return curl

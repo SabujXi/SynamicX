@@ -22,17 +22,17 @@ class RouterService:
         else:
             # step 1: search for static/binary file in file system with the path components : TODO: do for static.
             # step 2 if 1 fails: search for non-static content and in this case the url is already cached.
-            url_object = self.make_url(site, path_components, DocumentType.NONE)
-            content = self.get_content_by_url(site, url_object)
+            curl = self.make_url(site, path_components, DocumentType.NONE)
+            content = self.get_content_by_url(site, curl)
             if content is None:
-                url_object = self.make_url(site, path_components, DocumentType.HTML_DOCUMENT)
-                content = self.get_content_by_url(site, url_object)
+                curl = self.make_url(site, path_components, DocumentType.HTML_DOCUMENT)
+                content = self.get_content_by_url(site, curl)
         return content
 
-    def get_content_by_url(self, site, url_object):
+    def get_content_by_url(self, site, curl):
         """Forgiving function that returns None"""
-        if DocumentType.is_text(url_object.for_document_type):
-            content_cpath = site.object_manager.get_marked_cpath_by_curl(url_object)
+        if DocumentType.is_text(curl.for_document_type):
+            content_cpath = site.object_manager.get_marked_cpath_by_curl(curl)
             if content_cpath is not None:
                 return site.object_manager.get_marked_content(content_cpath)
             else:
@@ -41,7 +41,7 @@ class RouterService:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
             contents_dir = self.__synamic.default_data.get_syd('dirs')['contents.contents']
             contents_dir_cpath = site.object_manager.get_path_tree().create_dir_cpath(contents_dir)
-            fs_path = url_object.to_file_system_path
+            fs_path = curl.to_file_system_path
             fs_path = fs_path.rstrip('/\\')
             file_cpath = contents_dir_cpath.join(fs_path, is_file=True)
 

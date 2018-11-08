@@ -17,10 +17,10 @@ from synamic.core.standalones.functions import not_loaded
 
 
 class ModelContent(MetaContentContract):
-    def __init__(self, config, module_object, path_object, file_content: str):
+    def __init__(self, config, module_object, cpath, file_content: str):
         self.__config = config
         self.__module = module_object
-        self.__path_object = path_object
+        self.__cpath = cpath
         self.__file_content = file_content
 
         self.__root_field = FieldParser(file_content)
@@ -30,8 +30,8 @@ class ModelContent(MetaContentContract):
         return self.__module
 
     @property
-    def path_object(self):
-        return self.__path_object
+    def cpath(self):
+        return self.__cpath
 
     @property
     def config(self):

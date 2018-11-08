@@ -15,12 +15,12 @@ import abc
 class ContentUrlContract(abc.ABC):
     """
         For YAML provided urls
-            url_object can be of string or another map.
+            curl can be of string or another map.
             eg:
-                url_object: /my/path/to/file
+                curl: /my/path/to/file
             or:
-                url_object:
-                    url_object: /my/path/to/file
+                curl:
+                    curl: /my/path/to/file
                     name: my_awesome_url_name  # this name must conform to identifier as in variables
 
             - a '/' will be added at the end of the urls if it is not there.
@@ -57,7 +57,7 @@ class ContentUrlContract(abc.ABC):
     @abc.abstractmethod
     def url_encoded_path(self):
         """
-        :return: url_object-encoded version of path
+        :return: curl-encoded version of path
          
          Note: to_file_system_path does not need this because they do need to be present in html.
         """

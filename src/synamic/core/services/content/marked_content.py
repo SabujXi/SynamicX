@@ -4,13 +4,13 @@ from synamic.core.services.content.toc import Toc
 
 
 class MarkedContent(ContentContract):
-    def __init__(self, site, file_cpath, url_object, body_text, content_fields, document_type, mime_type='text/plain'):
+    def __init__(self, site, file_cpath, curl, body_text, content_fields, document_type, mime_type='text/plain'):
         self.__site = site
         self.__file_cpath = file_cpath
-        self.__url_object = url_object
+        self.__curl = curl
         self.__body_text = body_text
         self.__content_fields = content_fields
-        self.__model = content_fields.model_object
+        self.__model = content_fields.cmodel
         self.__document_type = document_type
         self.__mime_type = mime_type
 
@@ -29,12 +29,12 @@ class MarkedContent(ContentContract):
         return self.__document_type
 
     @property
-    def path_object(self):
+    def cpath(self):
         return self.__file_cpath
 
     @property
-    def url_object(self):
-        return self.__url_object
+    def curl(self):
+        return self.__curl
 
     def get_stream(self):
         template_name = self.__content_fields.get('template', 'default.html')
@@ -85,7 +85,7 @@ class MarkedContent(ContentContract):
         return self.__get(key)
 
     def __str__(self):
-        return "<%s>\n%s\n\n%s" % (self.path_object.relative_path, self['title'], self.body[:100] + '...')
+        return "<%s>\n%s\n\n%s" % (self.cpath.relative_path, self['title'], self.body[:100] + '...')
 
     def __repr__(self):
         return str(self)

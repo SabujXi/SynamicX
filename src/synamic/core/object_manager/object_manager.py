@@ -128,22 +128,22 @@ class ObjectManager:
             path = cpath_comps
 
         url_path_comps = path
-        url_object = self.__synamic.router.make_url(
+        curl = self.__synamic.router.make_url(
             site,
             url_path_comps,
             for_document_type=for_document_type
         )
-        return url_object
+        return curl
 
     def static_content_cpath_to_url(self, site, cpath, for_document_type):
         assert DocumentType.is_binary(for_document_type, not_generated=True)
         # For STATIC Files
-        url_object = self.__synamic.router.make_url(
+        curl = self.__synamic.router.make_url(
             site,
             cpath.path_comps,
             for_document_type=for_document_type
         )
-        return url_object
+        return curl
 
     #  @loaded
     def get_content_fields(self, site, path, default=None):
@@ -182,8 +182,8 @@ class ObjectManager:
             self.__cache.add_marked_content(site, marked_content)
             return marked_content
 
-    def get_marked_content_by_url(self, site, url_object):
-        cpath = self.__cache.get_marked_cpath_by_curl(site, url_object)
+    def get_marked_content_by_url(self, site, curl):
+        cpath = self.__cache.get_marked_cpath_by_curl(site, curl)
         return self.get_marked_content(site, cpath)
 
     def get_marked_contents_by_cpaths(self, site, cpaths):
@@ -327,7 +327,7 @@ class ObjectManager:
         ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
         if ordinary_url:
             return url_str
-        result_content = self.get_marked_content(site, self.getfields(site, url_str).cpath_object)
+        result_content = self.get_marked_content(site, self.getfields(site, url_str).cpath)
         return result_content
 
     def geturl(self, site, url_str):
@@ -342,7 +342,7 @@ class ObjectManager:
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
             marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
             if marked_content_fields is not None:
-                result_url = marked_content_fields.curl_object
+                result_url = marked_content_fields.curl
             else:
                 # try STATIC
                 result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
@@ -351,11 +351,11 @@ class ObjectManager:
             scss_cpath = site.get_service('pre_processor').get_processor('sass').make_cpath(for_value)
             scss_content = self.__cache.get_pre_processed_content_by_cpath(site, scss_cpath, None)
             if scss_content is not None:
-                result_url = scss_content.url_object
+                result_url = scss_content.curl
         elif url_for == 'id':
             for content_fields in self.__cache.get_all_marked_content_fields(site):
                 if content_fields.id == for_value:
-                    result_url = content_fields.curl_object
+                    result_url = content_fields.curl
                     break
         else:  # content
             raise NotImplemented
@@ -395,8 +395,8 @@ class ObjectManager:
         # - when to use it when not (when not cached)
         return self.__cache.get_all_marked_content_fields(site)
 
-    def get_marked_cpath_by_curl(self, site, url_object, default=None):
-        return self.__cache.get_marked_cpath_by_curl(site, url_object, default=default)
+    def get_marked_cpath_by_curl(self, site, curl, default=None):
+        return self.__cache.get_marked_cpath_by_curl(site, curl, default=default)
 
     def get_menu(self, site, menu_name, default=None):
         return self.__cache.get_menu(site, menu_name, default=default)
@@ -483,7 +483,7 @@ class ObjectManager:
         _ = []
         for content_fields in contents_fields:
             _.append(
-                self.get_marked_content(site, content_fields.cpath_object)
+                self.get_marked_content(site, content_fields.cpath)
             )
         return tuple(_)
 
@@ -567,10 +567,10 @@ class ObjectManager:
             self.__cpath_to_marked_content_fields = defaultdict(dict)
             # <<<<<<<<
 
-        def add_pre_processed_content(self, site, pre_processed_content, path_object=None):
-            self.__pre_processed_cachemap[site.id][pre_processed_content.url_object] = pre_processed_content
-            if path_object is not None:
-                self.__cpath_to_pre_processed_contents[site.id][path_object] = pre_processed_content
+        def add_pre_processed_content(self, site, pre_processed_content, cpath=None):
+            self.__pre_processed_cachemap[site.id][pre_processed_content.curl] = pre_processed_content
+            if cpath is not None:
+                self.__cpath_to_pre_processed_contents[site.id][cpath] = pre_processed_content
 
         def get_pre_processed_content_by_curl(self, site, curl, default=None):
             return self.__pre_processed_cachemap[site.id].get(curl, default)
@@ -580,8 +580,8 @@ class ObjectManager:
 
         def add_marked_content(self, site, marked_content):
             # TODO: set limit to 100 or so
-            self.__marked_contents_cachemap[site.id][marked_content.url_object] = marked_content
-            self.__cpath_to_marked_content[site.id][marked_content.path_object] = marked_content
+            self.__marked_contents_cachemap[site.id][marked_content.curl] = marked_content
+            self.__cpath_to_marked_content[site.id][marked_content.cpath] = marked_content
 
         def get_marked_content_by_curl(self, site, curl, default=None):
             return self.__marked_contents_cachemap[site.id].get(curl, default)
@@ -590,8 +590,8 @@ class ObjectManager:
             return self.__cpath_to_marked_content[site.id].get(cpath, default)
 
         def add_marked_content_fields(self, site, content_fields):
-            self.__marked_content_fields_cachemap[site.id][content_fields.curl_object] = content_fields
-            self.__cpath_to_marked_content_fields[site.id][content_fields.cpath_object] = content_fields
+            self.__marked_content_fields_cachemap[site.id][content_fields.curl] = content_fields
+            self.__cpath_to_marked_content_fields[site.id][content_fields.cpath] = content_fields
 
         def get_marked_content_fields_by_curl(self, site, curl, default=None):
             return self.__marked_content_fields_cachemap[site.id].get(curl, default)
@@ -604,7 +604,7 @@ class ObjectManager:
             if cfs is None:
                 return default
             else:
-                return cfs.cpath_object
+                return cfs.cpath
 
         def get_all_marked_content_fields(self, site):
             return tuple(self.__marked_content_fields_cachemap[site.id].values())

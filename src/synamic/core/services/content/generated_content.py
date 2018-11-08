@@ -12,13 +12,13 @@ from synamic.core.contracts.content import ContentContract, DocumentType
 
 
 class GeneratedContent(ContentContract):
-    def __init__(self, site, url_object, file_content,
+    def __init__(self, site, curl, file_content,
                  document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
         if file_content is None:
             assert source_cpath is not None
 
         self.__site = site
-        self.__url_object = url_object
+        self.__curl = curl
         self.__file_content = file_content
         self.__document_type = document_type
         self.__mime_type = mime_type
@@ -36,12 +36,12 @@ class GeneratedContent(ContentContract):
         return self.__site
 
     @property
-    def path_object(self):
+    def cpath(self):
         raise Exception("Generated content cannot have cpath object")
 
     @property
-    def url_object(self):
-        return self.__url_object
+    def curl(self):
+        return self.__curl
 
     def get_stream(self):
         if self.__file_content is not None:

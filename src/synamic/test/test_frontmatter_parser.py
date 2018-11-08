@@ -25,7 +25,7 @@ class TestFrontMatterParser(unittest.TestCase):
         """
         self.valid_frontmatter = """----
 name: My name
-url_object: somehow/url_object
+curl: somehow/curl
 ----
         """
         self.empty_text = ""
@@ -38,7 +38,7 @@ url_object: somehow/url_object
         res = parse_front_matter(self.valid_frontmatter)
         self.assertEqual(res[0], True)
         self.assertEqual(res[1], """name: My name
-url_object: somehow/url_object""")
+curl: somehow/curl""")
         self.assertEqual(res[2], """        """)
 
     def test_empty_frontmatter(self):

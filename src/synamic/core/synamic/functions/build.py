@@ -27,7 +27,7 @@ def _synamic_build(synamic, content_map, event_trigger):
 
     def build_content(process_content_map):
         for cont in process_content_map:
-            url = cont.url_object
+            url = cont.curl
             dir = os.path.join(self.site_root, self.site_settings.output_dir, *url.dir_components)
             if not os.path.exists(dir):
                 os.makedirs(dir)

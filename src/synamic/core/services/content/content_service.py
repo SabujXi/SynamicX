@@ -62,11 +62,11 @@ class ContentService:
                                 # User can only override no existing field creating another model with the same name
                                 # under site's meta model directory.
         model = self.__site.object_manager.get_model(model_name)
-        url_object = self.__site.object_manager.make_url_for_marked_content(
+        curl = self.__site.object_manager.make_url_for_marked_content(
             file_cpath, path=fields_syd.get('path', None), slug=fields_syd.get('slug', None), for_document_type=document_type
         )
 
-        content_fields = self.make_content_fields(file_cpath, url_object, model, document_type, fields_syd)
+        content_fields = self.make_content_fields(file_cpath, curl, model, document_type, fields_syd)
 
         # TODO: can the following be more systematic and agile.
         # create markers that exists in fields/contents but not in the system
@@ -86,10 +86,10 @@ class ContentService:
 
         _, body_text = self.__site.object_manager.get_content_parts(file_path)
         # mime type guess
-        url_object = cached_content_fields.curl_object
+        curl = cached_content_fields.curl
         content = MarkedContent(self.__site,
                                 file_path,
-                                url_object,
+                                curl,
                                 body_text,
                                 cached_content_fields,
                                 document_type,
@@ -107,24 +107,24 @@ class ContentService:
         mime_type = 'octet/stream'  # TODO: guess the content type here.
         document_type = DocumentType.BINARY_DOCUMENT
 
-        url_object = self.__site.object_manager.static_content_cpath_to_url(path_obj, document_type)
+        curl = self.__site.object_manager.static_content_cpath_to_url(path_obj, document_type)
 
         return StaticContent(
             self.__site,
             path_obj,
-            url_object,
+            curl,
             file_content=file_content,
             document_type=document_type,
             mime_type=mime_type)
 
     def build_generated_content(
-            self, url_object, file_content,
+            self, curl, file_content,
             document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream', source_cpath=None, **kwargs):
-        return GeneratedContent(self.__site, url_object, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath, **kwargs)
+        return GeneratedContent(self.__site, curl, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath, **kwargs)
 
-    def make_content_fields(self, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa):
+    def make_content_fields(self, content_file_path, curl, model, document_type, raw_fileds, *a, **kwa):
         """Just makes an instance"""
-        return _ContentFields(self.__site, content_file_path, url_object, model, document_type, raw_fileds, *a, **kwa)
+        return _ContentFields(self.__site, content_file_path, curl, model, document_type, raw_fileds, *a, **kwa)
 
     def build_chapters(self, chapters_fields):
         chapters = []
@@ -134,18 +134,18 @@ class ContentService:
 
 
 class _ContentFields:
-    def __init__(self, site, content_file_path, url_object, model, document_type, raw_fileds):
+    def __init__(self, site, content_file_cpath, curl, model, document_type, raw_fileds):
         self.__site = site
-        self.__content_file_path = content_file_path
-        self.__url_object = url_object
+        self.__content_file_cpath = content_file_cpath
+        self.__curl = curl
         self.__model = model
         self.__document_type = document_type
         self.__raw_fields = raw_fileds
         self.__converted_values = OrderedDict()
 
-    def as_generated(self, url_object, document_type=DocumentType.GENERATED_HTML_DOCUMENT):
+    def as_generated(self, curl, document_type=DocumentType.GENERATED_HTML_DOCUMENT):
         """With fields will use .set() and thus it will only affect converted values."""
-        return _GeneratedContentFields(self.__site, url_object, self.__model, document_type, self)
+        return _GeneratedContentFields(self.__site, curl, self.__model, document_type, self)
 
     def __convert_pagination(self, pagination_field):
         object_manager = self.__site.object_manager
@@ -161,7 +161,7 @@ class _ContentFields:
                 assert isinstance(per_page, int)
                 per_page = per_page
         fields = object_manager.query_fields(query_str)
-        origin_content = object_manager.get_marked_content(self.cpath_object)
+        origin_content = object_manager.get_marked_content(self.cpath)
         assert self is origin_content.fields
         paginations, paginated_contents = PaginationPage.paginate_content_fields(
             self.__site,
@@ -221,17 +221,17 @@ class _ContentFields:
         return self.__document_type
 
     @property
-    def model_object(self):
+    def cmodel(self):
         return self.__model
 
     @property
-    def curl_object(self):
-        return self.__url_object
+    def curl(self):
+        return self.__curl
 
     @property
-    def cpath_object(self):
+    def cpath(self):
         """Content file path"""
-        return self.__content_file_path
+        return self.__content_file_cpath
 
     def __getitem__(self, key):
         return self.get(key, None)
@@ -242,17 +242,17 @@ class _ContentFields:
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self.__url_object == other.curl_object
+        return self.__curl == other.curl
 
     def __hash__(self):
-        return hash(self.__url_object)
+        return hash(self.__curl)
 
 
 class _GeneratedContentFields:
-    def __init__(self, site, url_object, model, document_type, origin_content_fields):
+    def __init__(self, site, curl, cmodel, document_type, origin_content_fields):
         self.__site = site
-        self.__url_object = url_object
-        self.__model = model
+        self.__curl = curl
+        self.__cmodel = cmodel
         self.__document_type = document_type
         self.__origin_content_fields = origin_content_fields
 
@@ -282,15 +282,15 @@ class _GeneratedContentFields:
         return self.__document_type
 
     @property
-    def model_object(self):
-        return self.__model
+    def cmodel(self):
+        return self.__cmodel
 
     @property
-    def curl_object(self):
-        return self.__url_object
+    def curl(self):
+        return self.__curl
 
     @property
-    def cpath_object(self):
+    def cpath(self):
         raise NotImplemented
 
     def __getitem__(self, key):
@@ -302,7 +302,7 @@ class _GeneratedContentFields:
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self.__url_object == other.curl_object
+        return self.__curl == other.curl
 
     def __hash__(self):
-        return hash(self.__url_object)
+        return hash(self.__curl)

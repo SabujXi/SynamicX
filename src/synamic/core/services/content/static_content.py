@@ -12,10 +12,10 @@ from synamic.core.contracts.content import ContentContract, DocumentType
 
 
 class StaticContent(ContentContract):
-    def __init__(self, site, file_cpath, url_object, file_content=None, document_type=DocumentType.BINARY_DOCUMENT, mime_type='octet/stream'):
+    def __init__(self, site, file_cpath, curl, file_content=None, document_type=DocumentType.BINARY_DOCUMENT, mime_type='octet/stream'):
         self.__site = site
         self.__file_cpath = file_cpath
-        self.__url_object = url_object
+        self.__curl = curl
         self.__file_content = file_content
         self.__document_type = document_type
         self.__mime_type = mime_type
@@ -31,18 +31,18 @@ class StaticContent(ContentContract):
         return self.__site
 
     @property
-    def path_object(self):
+    def cpath(self):
         return self.__file_cpath
 
     @property
-    def url_object(self):
-        return self.__url_object
+    def curl(self):
+        return self.__curl
 
     def get_stream(self):
         if self.__file_content is not None:
             file = io.BytesIO(self.__file_content)
         else:
-            file = self.path_object.open('rb')
+            file = self.cpath.open('rb')
         return file
 
     @property
