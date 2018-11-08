@@ -85,7 +85,7 @@ class _Mark:
             curl = self.__site.synamic.router.make_url(
                 self.__site, '/%s/marker/%s/%s' % (url_partition_comp, self.__marker.id, self.id), for_document_type=document_type
             )
-            sf = synthetic_fields = content_service.make_synthetic_content_fields(
+            sf = synthetic_fields = content_service.make_synthetic_cfields(
                 curl,
                 document_type=document_type,
                 fields_map=None)

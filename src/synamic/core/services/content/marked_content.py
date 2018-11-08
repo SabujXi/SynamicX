@@ -4,13 +4,13 @@ from synamic.core.services.content.toc import Toc
 
 
 class MarkedContent(ContentContract):
-    def __init__(self, site, file_cpath, curl, body_text, content_fields, document_type, mime_type='text/plain'):
+    def __init__(self, site, file_cpath, curl, body_text, cfields, document_type, mime_type='text/plain'):
         self.__site = site
         self.__file_cpath = file_cpath
         self.__curl = curl
         self.__body_text = body_text
-        self.__content_fields = content_fields
-        self.__model = content_fields.cmodel
+        self.__cfields = cfields
+        self.__cmodel = cfields.cmodel
         self.__document_type = document_type
         self.__mime_type = mime_type
 
@@ -37,7 +37,7 @@ class MarkedContent(ContentContract):
         return self.__curl
 
     def get_stream(self):
-        template_name = self.__content_fields.get('template', 'default.html')
+        template_name = self.__cfields.get('template', 'default.html')
         templates = self.__site.get_service('templates')
         res = templates.render(template_name, context={
             'site': self.__site,
@@ -67,8 +67,8 @@ class MarkedContent(ContentContract):
         return self.__body
 
     @property
-    def fields(self):
-        return self.__content_fields
+    def cfields(self):
+        return self.__cfields
 
     @property
     def toc(self):
@@ -76,7 +76,7 @@ class MarkedContent(ContentContract):
         return self.__toc
 
     def __get(self, key):
-        return self.__content_fields.get(key, None)
+        return self.__cfields.get(key, None)
 
     def __getitem__(self, key):
         return self.__get(key)

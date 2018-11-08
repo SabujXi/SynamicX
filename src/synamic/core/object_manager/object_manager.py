@@ -42,11 +42,11 @@ class ObjectManager:
 
     def _load_for(self, site):
         self.__cache_markers(site)
-        self.__cache_marked_content_fields(site)
+        self.__cache_marked_cfields(site)
         self.__cache_pre_processed_contents(site)
         self.__cache_menus(site)
 
-    def __cache_marked_content_fields(self, site):
+    def __cache_marked_cfields(self, site):
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
             content_service = site.get_service('contents')
             path_tree = self.get_path_tree(site)
@@ -60,8 +60,8 @@ class ObjectManager:
                     front_matter, body = content_splitter(file_path, text)
                     del body
                     fields_syd = self.make_syd(front_matter)
-                    content_fields = content_service.build_content_fields(fields_syd, file_path)
-                    self.__cache.add_marked_content_fields(site, content_fields)
+                    cfields = content_service.build_cfields(fields_syd, file_path)
+                    self.__cache.add_marked_cfields(site, cfields)
                 else:
                     # No need to cache anything about static file.
                     pass
@@ -146,14 +146,14 @@ class ObjectManager:
         return curl
 
     #  @loaded
-    def get_content_fields(self, site, path, default=None):
+    def get_cfields(self, site, path, default=None):
         path_tree = site.get_service('path_tree')
         path = path_tree.create_cpath(path)
         if site.synamic.env['backend'] == 'database':
             raise NotImplemented
         else:
             # file backend
-            return self.__cache.get_marked_content_fields_by_cpath(site, path, default=default)
+            return self.__cache.get_marked_cfields_by_cpath(site, path, default=default)
 
     #  @loaded
     def get_marked_content(self, site, path):
@@ -175,9 +175,9 @@ class ObjectManager:
         if not file_cpath.exists():
             return None
         else:
-            cached_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath)
-            assert cached_content_fields is not None
-            marked_content = content_service.build_md_content(file_cpath, cached_content_fields)
+            cached_cfields = self.__cache.get_marked_cfields_by_cpath(site, file_cpath)
+            assert cached_cfields is not None
+            marked_content = content_service.build_md_content(file_cpath, cached_cfields)
             # cache it.
             self.__cache.add_marked_content(site, marked_content)
             return marked_content
@@ -257,7 +257,7 @@ class ObjectManager:
             else:
                 user_model = ModelParser.parse(model_name, self.get_raw_data(site, user_model_cpath))
                 new_model = user_model.new(system_model)
-            # put converters inside of the fields
+            # put converters inside of the cfields
             for key, field in new_model.items():
                 converter = types.get_converter(field.converter_name)
                 field.set_converter(converter)
@@ -301,27 +301,27 @@ class ObjectManager:
         if ordinary_url:
             return url_str
 
-        result_fields = None
+        result_cfields = None
         fields_for, for_value = url_content.split(':')
         assert fields_for in ('file', 'id')
         if fields_for == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
-            marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
-            if marked_content_fields is not None:
-                result_fields = marked_content_fields
+            marked_cfields = self.__cache.get_marked_cfields_by_cpath(site, file_cpath, None)
+            if marked_cfields is not None:
+                result_cfields = marked_cfields
 
         elif fields_for == 'id':
-            for marked_content_fields in self.__cache.get_all_marked_content_fields(site):
-                if marked_content_fields.id == for_value:
-                    result_fields = marked_content_fields
+            for marked_cfields in self.__cache.get_all_marked_cfields(site):
+                if marked_cfields.id == for_value:
+                    result_cfields = marked_cfields
                     break
         else:  # content
             raise NotImplemented
 
-        if result_fields is None:
+        if result_cfields is None:
             raise Exception('Fields not found for getfields(): %s' % url_str)
         else:
-            return result_fields
+            return result_cfields
 
     def getcontent(self, site, url_str):
         ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
@@ -340,9 +340,9 @@ class ObjectManager:
         assert url_for in ('file', 'sass', 'id')
         if url_for == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
-            marked_content_fields = self.__cache.get_marked_content_fields_by_cpath(site, file_cpath, None)
-            if marked_content_fields is not None:
-                result_url = marked_content_fields.curl
+            marked_cfields = self.__cache.get_marked_cfields_by_cpath(site, file_cpath, None)
+            if marked_cfields is not None:
+                result_url = marked_cfields.curl
             else:
                 # try STATIC
                 result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
@@ -353,9 +353,9 @@ class ObjectManager:
             if scss_content is not None:
                 result_url = scss_content.curl
         elif url_for == 'id':
-            for content_fields in self.__cache.get_all_marked_content_fields(site):
-                if content_fields.id == for_value:
-                    result_url = content_fields.curl
+            for cfields in self.__cache.get_all_marked_cfields(site):
+                if cfields.id == for_value:
+                    result_url = cfields.curl
                     break
         else:  # content
             raise NotImplemented
@@ -393,7 +393,7 @@ class ObjectManager:
     def get_all_cached_marked_fields(self, site):
         # TODO: logic for cached content metas
         # - when to use it when not (when not cached)
-        return self.__cache.get_all_marked_content_fields(site)
+        return self.__cache.get_all_marked_cfields(site)
 
     def get_marked_cpath_by_curl(self, site, curl, default=None):
         return self.__cache.get_marked_cpath_by_curl(site, curl, default=default)
@@ -407,20 +407,20 @@ class ObjectManager:
         converted_value = content_model[section.key].converter(section.value)
         return SimpleQueryParser.QuerySection(key=section.key, comp_op=section.comp_op, value=converted_value)
 
-    def __query_fields_left_right(self, section, result_set, content_model):
+    def __query_cfields_left_right(self, section, result_set, content_model):
         matched_result = set()
-        for content_fields in result_set:
-            field_value = content_fields.get(section.key, None)
+        for cfields in result_set:
+            field_value = cfields.get(section.key, None)
             converter = content_model[section.key].converter
             if field_value is not None:
                 if converter.compare(section.comp_op, field_value, section.value):
-                    matched_result.add(content_fields)
+                    matched_result.add(cfields)
             else:
                 if section.comp_op in ('!=', '!in'):
-                    matched_result.add(content_fields)
+                    matched_result.add(cfields)
         return matched_result
 
-    def __query_fields_by_node(self, node, result_set, content_model):
+    def __query_cfields_by_node(self, node, result_set, content_model):
         if isinstance(node, SimpleQueryParser.QuerySection):
             # only one section here.
             left_section = node
@@ -430,21 +430,21 @@ class ObjectManager:
             assert isinstance(node, QueryNode)
             logic_op = node.logic_op
             if isinstance(node.left, QueryNode):
-                return self.__query_fields_by_node(node.left, result_set, content_model)
+                return self.__query_cfields_by_node(node.left, result_set, content_model)
             else:
                 left_section = node.left
                 right_section = None
 
             if isinstance(node.right, QueryNode):
-                return self.__query_fields_by_node(node.left, result_set, content_model)
+                return self.__query_cfields_by_node(node.left, result_set, content_model)
             else:
                 right_section = node.right
 
         left_section = self.__convert_section_value(left_section, content_model)
-        left_result = self.__query_fields_left_right(left_section, result_set, content_model)
+        left_result = self.__query_cfields_left_right(left_section, result_set, content_model)
         if right_section is not None:
             right_section = self.__convert_section_value(right_section, content_model)
-            right_result = self.__query_fields_left_right(right_section, result_set, content_model)
+            right_result = self.__query_cfields_left_right(right_section, result_set, content_model)
         else:
             right_result = None
 
@@ -459,13 +459,13 @@ class ObjectManager:
         result_set.update(left_result)
         return result_set
 
-    def query_fields(self, site, query_str):
+    def query_cfields(self, site, query_str):
         content_model = site.object_manager.get_model('content')
         node, sort = SimpleQueryParser(query_str).parse()
-        all_contents_fields = self.__cache.get_all_marked_content_fields(site)
-        result = set(all_contents_fields)
+        all_cfields_s = self.__cache.get_all_marked_cfields(site)
+        result = set(all_cfields_s)
         if node is not None:
-            self.__query_fields_by_node(node, result, content_model)
+            self.__query_cfields_by_node(node, result, content_model)
         if sort is not None:
             def sorting_key_func(f):
                 value = f[sort.by_key]
@@ -479,11 +479,11 @@ class ObjectManager:
         return tuple(result)
 
     def query_contents(self, site, query_str):
-        contents_fields = self.query_fields(site, query_str)
+        cfields_s = self.query_cfields(site, query_str)
         _ = []
-        for content_fields in contents_fields:
+        for cfields in cfields_s:
             _.append(
-                self.get_marked_content(site, content_fields.cpath)
+                self.get_marked_content(site, cfields.cpath)
             )
         return tuple(_)
 
@@ -560,11 +560,11 @@ class ObjectManager:
             # CONTENTS
             self.__pre_processed_cachemap = defaultdict(dict)  # curl to content
             self.__marked_contents_cachemap = defaultdict(dict)  # curl to content: default limit 100 per site. < limit not yet implemented
-            self.__marked_content_fields_cachemap = defaultdict(dict)  # curl to content
+            self.__marked_cfields_cachemap = defaultdict(dict)  # curl to content
 
             self.__cpath_to_pre_processed_contents = defaultdict(dict)
             self.__cpath_to_marked_content = defaultdict(dict)
-            self.__cpath_to_marked_content_fields = defaultdict(dict)
+            self.__cpath_to_marked_cfields = defaultdict(dict)
             # <<<<<<<<
 
         def add_pre_processed_content(self, site, pre_processed_content, cpath=None):
@@ -589,25 +589,25 @@ class ObjectManager:
         def get_marked_content_by_cpath(self, site, cpath, default=None):
             return self.__cpath_to_marked_content[site.id].get(cpath, default)
 
-        def add_marked_content_fields(self, site, content_fields):
-            self.__marked_content_fields_cachemap[site.id][content_fields.curl] = content_fields
-            self.__cpath_to_marked_content_fields[site.id][content_fields.cpath] = content_fields
+        def add_marked_cfields(self, site, cfields):
+            self.__marked_cfields_cachemap[site.id][cfields.curl] = cfields
+            self.__cpath_to_marked_cfields[site.id][cfields.cpath] = cfields
 
-        def get_marked_content_fields_by_curl(self, site, curl, default=None):
-            return self.__marked_content_fields_cachemap[site.id].get(curl, default)
+        def get_marked_cfields_by_curl(self, site, curl, default=None):
+            return self.__marked_cfields_cachemap[site.id].get(curl, default)
 
-        def get_marked_content_fields_by_cpath(self, site, cpath, default=None):
-            return self.__cpath_to_marked_content_fields[site.id].get(cpath, default)
+        def get_marked_cfields_by_cpath(self, site, cpath, default=None):
+            return self.__cpath_to_marked_cfields[site.id].get(cpath, default)
 
         def get_marked_cpath_by_curl(self, site, curl, default=None):
-            cfs = self.get_marked_content_fields_by_curl(site, curl, None)
+            cfs = self.get_marked_cfields_by_curl(site, curl, None)
             if cfs is None:
                 return default
             else:
                 return cfs.cpath
 
-        def get_all_marked_content_fields(self, site):
-            return tuple(self.__marked_content_fields_cachemap[site.id].values())
+        def get_all_marked_cfields(self, site):
+            return tuple(self.__marked_cfields_cachemap[site.id].values())
 
         def add_marker(self, site, marker_id, marker):
             self.__marker_by_id_cachemap[site.id][marker_id] = marker
@@ -652,10 +652,10 @@ class ObjectManager:
         def clear_content_cache(self, site):
             self.__pre_processed_cachemap[site.id].clear()
             self.__marked_contents_cachemap[site.id].clear()
-            self.__marked_content_fields_cachemap[site.id].clear()
+            self.__marked_cfields_cachemap[site.id].clear()
             self.__cpath_to_pre_processed_contents[site.id].clear()
             self.__cpath_to_marked_content[site.id].clear()
-            self.__cpath_to_marked_content_fields[site.id].clear()
+            self.__cpath_to_marked_cfields[site.id].clear()
 
         def clear_marker_cache(self, site):
             self.__marker_by_id_cachemap[site.id].clear()

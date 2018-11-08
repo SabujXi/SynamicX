@@ -3,12 +3,12 @@ from synamic.core.contracts import ContentContract, DocumentType
 
 
 class PaginatedContent(ContentContract):
-    def __init__(self, site, origin_content_fields, curl, paginated_content_fields, document_type):
+    def __init__(self, site, origin_cfields, curl, paginated_cfields, document_type):
         self.__site = site
-        self.__origin_content_fields = origin_content_fields
+        self.__origin_cfields = origin_cfields
         self.__curl = curl
-        self.__content_fields = paginated_content_fields
-        self.__model = paginated_content_fields.cmodel
+        self.__cfields = paginated_cfields
+        self.__model = paginated_cfields.cmodel
         self.__document_type = document_type
         self.__mime_type = 'text/html'  # TODO: remove hard coding.
 
@@ -32,7 +32,7 @@ class PaginatedContent(ContentContract):
         return self.__curl
 
     def get_stream(self):
-        template_name = self.__content_fields.get('template', 'default.html')
+        template_name = self.__cfields.get('template', 'default.html')
         templates = self.__site.get_service('templates')
         res = templates.render(template_name, context={
             'site': self.__site,
@@ -47,20 +47,20 @@ class PaginatedContent(ContentContract):
 
     @property
     def body(self):
-        content = self.__site.object_manager.get_marked_content(self.__origin_content_fields.cpath)
+        content = self.__site.object_manager.get_marked_content(self.__origin_cfields.cpath)
         assert content is not None
         return content.body
 
     @property
-    def fields(self):
-        return self.__content_fields
+    def cfields(self):
+        return self.__cfields
 
     @property
     def toc(self):
         raise NotImplemented
 
     def __get(self, key):
-        return self.__content_fields.get(key, None)
+        return self.__cfields.get(key, None)
 
     def __getitem__(self, key):
         return self.__get(key)
@@ -76,11 +76,11 @@ class PaginatedContent(ContentContract):
 
 
 class PaginationPage:
-    def __init__(self, site, total_pagination, contents_fields, position, per_page):
-        # assert len(contents_fields) != 0
+    def __init__(self, site, total_pagination, cfields_s, position, per_page):
+        # assert len(cfields_s) != 0
         self.__site = site
         self.__total_pagination = total_pagination
-        self.__contents_fields = contents_fields
+        self.__cfields_s = cfields_s
         self.__position = position
         self.__per_page = per_page
 
@@ -98,14 +98,14 @@ class PaginationPage:
         return self.__total_pagination
 
     @property
-    def contents_fields(self):
-        return self.__contents_fields
+    def cfields_s(self):
+        return self.__cfields_s
 
     @property
     def contents(self):
-        if self.__contents_fields:
+        if self.__cfields_s:
             contents = self.__site.object_manager.get_marked_contents_by_cpaths(
-                content_fields.cpath for content_fields in self.__contents_fields
+                cfields.cpath for cfields in self.__cfields_s
             )
             assert contents
         else:
@@ -223,40 +223,40 @@ class PaginationPage:
         return repr(self.__str__())
 
     @classmethod
-    def paginate_content_fields(cls, site, origin_content, queried_contents_fieldS, per_page):
+    def paginate_cfields(cls, site, origin_content, queried_cfields_s, per_page):
         site_settings = site.object_manager.get_site_settings()
         url_partition_comp = site_settings['url_partition_comp']
         pagination_url_comp = site_settings['pagination_url_comp']
 
-        paginated_contents_fieldS_divisions = []
+        paginated_cfields_s_divisions = []
 
-        if queried_contents_fieldS:
-            quotient, remainder = divmod(len(queried_contents_fieldS), per_page)
+        if queried_cfields_s:
+            quotient, remainder = divmod(len(queried_cfields_s), per_page)
             divisions = quotient
             if remainder > 0:
                 divisions += 1
 
             for division_idx_i in range(divisions):
-                division_contents_fieldS = []
+                division_cfields_s = []
                 for idx_in_division_j in range(per_page):
                     idx = (division_idx_i * per_page) + idx_in_division_j  # (row * NUMCOLS) + column        #(i * divisions) + j
-                    if idx >= len(queried_contents_fieldS):
+                    if idx >= len(queried_cfields_s):
                         break
 
                     # creating paginated content
-                    original_content_fields = queried_contents_fieldS[idx]
-                    division_contents_fieldS.append(original_content_fields)
-                paginated_contents_fieldS_divisions.append(tuple(division_contents_fieldS))
+                    original_cfields = queried_cfields_s[idx]
+                    division_cfields_s.append(original_cfields)
+                paginated_cfields_s_divisions.append(tuple(division_cfields_s))
 
         paginations = []
         paginated_contents = []
-        if paginated_contents_fieldS_divisions:
+        if paginated_cfields_s_divisions:
             prev_page = None
-            for division_idx_i, division_contents_fieldS in enumerate(paginated_contents_fieldS_divisions):
+            for division_idx_i, division_cfields_s in enumerate(paginated_cfields_s_divisions):
                 pagination = PaginationPage(
                     site,
-                    len(paginated_contents_fieldS_divisions),
-                    division_contents_fieldS,
+                    len(paginated_cfields_s_divisions),
+                    division_cfields_s,
                     division_idx_i,
                     per_page
                 )
@@ -264,7 +264,7 @@ class PaginationPage:
 
                 if division_idx_i == 0:
                     # setting pagination to the host content
-                    origin_content.fields.set('pagination', pagination)
+                    origin_content.cfields.set('pagination', pagination)
 
                     pagination.host_content = origin_content
                     prev_page = origin_content
@@ -275,23 +275,23 @@ class PaginationPage:
                     curl = origin_content.curl.join(
                         "/%s/%s/%d/" % (url_partition_comp, pagination_url_comp, division_idx_i + 1),
                         for_document_type=document_type)
-                    paginated_content_fields = origin_content.fields.as_generated(
+                    paginated_cfields = origin_content.cfields.as_generated(
                         curl, document_type=document_type
                     )
-                    paginated_content_fields.set(
+                    paginated_cfields.set(
                         'title',
-                        origin_content.fields.get('title') + " - %s %d" % (pagination_url_comp.title(), division_idx_i + 1)
+                        origin_content.cfields.get('title') + " - %s %d" % (pagination_url_comp.title(), division_idx_i + 1)
                     )
                     paginated_content = PaginatedContent(
                         site,
-                        origin_content.fields,
+                        origin_content.cfields,
                         curl,
-                        paginated_content_fields,
+                        paginated_cfields,
                         document_type,
                     )
 
                     # setting pagination to an aux content
-                    paginated_content.fields.set('pagination', pagination)
+                    paginated_content.cfields.set('pagination', pagination)
                     pagination.host_content = paginated_content
 
                     pagination.previous_content = prev_page
@@ -309,6 +309,6 @@ class PaginationPage:
                 0,
                 0
             )
-            origin_content.fields.set('pagination', pagination)
+            origin_content.cfields.set('pagination', pagination)
         paginations[0].sub_pages = paginations[1:]
         return tuple(paginations), tuple(paginated_contents)

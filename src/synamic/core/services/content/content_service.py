@@ -38,14 +38,14 @@ class ContentService:
         self.__is_loaded = True
 
     @classmethod
-    def is_type_content_fields(cls, other):
+    def is_type_cfields(cls, other):
         return isinstance(other, _ContentFields)
 
     @classmethod
-    def is_type_synthetic_content_fields(cls, other):
+    def is_type_synthetic_cfields(cls, other):
         return isinstance(other, _SyntheticContentFields)
 
-    def build_content_fields(self, fields_syd, file_cpath):
+    def build_cfields(self, fields_syd, file_cpath):
         # get dir meta syd
         # """It should not live here as it is compile time dependency"""
         # each field from meta syd will be converted with individual content model and site type system.
@@ -70,10 +70,10 @@ class ContentService:
             file_cpath, path=fields_syd.get('path', None), slug=fields_syd.get('slug', None), for_document_type=document_type
         )
 
-        content_fields = self.make_content_fields(file_cpath, curl, model, document_type, fields_syd)
+        cfields = self.make_cfields(file_cpath, curl, model, document_type, fields_syd)
 
         # TODO: can the following be more systematic and agile.
-        # create markers that exists in fields/contents but not in the system
+        # create markers that exists in cfields/contents but not in the system
         for marker_id in ('tags', 'categories'):
             if marker_id in fields_syd:
                 marker = self.__site.object_manager.get_marker(marker_id)
@@ -82,23 +82,23 @@ class ContentService:
                     if marker.get_mark_by_id(mark.id, None) is None:
                         marker.add_mark(mark)
 
-        return content_fields
+        return cfields
 
-    def build_synthetic_content_fields(self, curl, document_type, fields_map):
+    def build_synthetic_cfields(self, curl, document_type, fields_map):
         return _SyntheticContentFields(self.__site, curl, document_type, fields_map)
 
-    def build_md_content(self, file_path, cached_content_fields):
+    def build_md_content(self, file_path, cached_cfields):
         mime_type = 'text/html'
         document_type = DocumentType.HTML_DOCUMENT
 
         _, body_text = self.__site.object_manager.get_content_parts(file_path)
         # mime type guess
-        curl = cached_content_fields.curl
+        curl = cached_cfields.curl
         content = MarkedContent(self.__site,
                                 file_path,
                                 curl,
                                 body_text,
-                                cached_content_fields,
+                                cached_cfields,
                                 document_type,
                                 mime_type=mime_type)
         return content
@@ -126,19 +126,19 @@ class ContentService:
 
     def build_generated_content(
             self,
-            synthetic_fields,
+            synthetic_cfields,
             curl,
             file_content,
             document_type=DocumentType.GENERATED_TEXT_DOCUMENT,
             mime_type='octet/stream',
             source_cpath=None):
-        return GeneratedContent(self.__site, synthetic_fields, curl, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath)
+        return GeneratedContent(self.__site, synthetic_cfields, curl, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath)
 
-    def make_content_fields(self, content_file_path, curl, model, document_type, raw_fileds):
+    def make_cfields(self, content_file_path, curl, model, document_type, raw_fileds):
         """Just makes an instance"""
         return _ContentFields(self.__site, content_file_path, curl, model, document_type, raw_fileds)
 
-    def make_synthetic_content_fields(self, curl, document_type=DocumentType.GENERATED_BINARY_DOCUMENT, fields_map=None):
+    def make_synthetic_cfields(self, curl, document_type=DocumentType.GENERATED_BINARY_DOCUMENT, fields_map=None):
         return _SyntheticContentFields(self.__site, curl, document_type=document_type, fields_map=fields_map)
 
     def build_chapters(self, chapters_fields):
@@ -149,17 +149,17 @@ class ContentService:
 
 
 class _ContentFields:
-    def __init__(self, site, content_file_cpath, curl, model, document_type, raw_fileds):
+    def __init__(self, site, content_file_cpath, curl, model, document_type, raw_cfields):
         self.__site = site
         self.__content_file_cpath = content_file_cpath
         self.__curl = curl
         self.__model = model
         self.__document_type = document_type
-        self.__raw_fields = raw_fileds
+        self.__raw_cfields = raw_cfields
         self.__converted_values = OrderedDict()
 
     def as_generated(self, curl, document_type=DocumentType.GENERATED_HTML_DOCUMENT):
-        """With fields will use .set() and thus it will only affect converted values."""
+        """With cfields will use .set() and thus it will only affect converted values."""
         return _GeneratedContentFields(self.__site, curl, self.__model, document_type, self)
 
     def __convert_pagination(self, pagination_field):
@@ -175,10 +175,10 @@ class _ContentFields:
             if per_page is not None:
                 assert isinstance(per_page, int)
                 per_page = per_page
-        fields = object_manager.query_fields(query_str)
+        fields = object_manager.query_cfields(query_str)
         origin_content = object_manager.get_marked_content(self.cpath)
-        assert self is origin_content.fields
-        paginations, paginated_contents = PaginationPage.paginate_content_fields(
+        assert self is origin_content.cfields
+        paginations, paginated_contents = PaginationPage.paginate_cfields(
             self.__site,
             origin_content,
             fields,
@@ -192,7 +192,7 @@ class _ContentFields:
         return chapters
 
     def get(self, key, default=None):
-        raw_value = self.__raw_fields.get(key, None)
+        raw_value = self.__raw_cfields.get(key, None)
         if raw_value is None:
             return default
 
@@ -219,17 +219,17 @@ class _ContentFields:
         return value
 
     def set(self, key, value):
-        """Converted fields will be affected only.
-        Raw fields will stay intact."""
+        """Converted cfields will be affected only.
+        Raw cfields will stay intact."""
         self.__converted_values[key] = value
 
     @property
     def raw(self):
-        return self.__raw_fields
+        return self.__raw_cfields
 
     @property
     def keys(self):
-        return tuple(set(self.__converted_values.keys()).union(set(self.__raw_fields.keys())))
+        return tuple(set(self.__converted_values.keys()).union(set(self.__raw_cfields.keys())))
 
     @property
     def document_type(self):
@@ -264,33 +264,33 @@ class _ContentFields:
 
 
 class _GeneratedContentFields:
-    def __init__(self, site, curl, cmodel, document_type, origin_content_fields):
+    def __init__(self, site, curl, cmodel, document_type, origin_cfields):
         self.__site = site
         self.__curl = curl
         self.__cmodel = cmodel
         self.__document_type = document_type
-        self.__origin_content_fields = origin_content_fields
+        self.__origin_cfields = origin_cfields
 
-        self.__overridden_fields = {}
+        self.__overridden_cfields = {}
 
     def get(self, key, default=None):
-        value = self.__overridden_fields.get(key, None)
+        value = self.__overridden_cfields.get(key, None)
         if value is None:
-            value = self.__origin_content_fields.get(key, default)
+            value = self.__origin_cfields.get(key, default)
         return value
 
     def set(self, key, value):
-        """Converted fields will be affected only.
-        Raw fields will stay intact."""
-        self.__overridden_fields[key] = value
+        """Converted cfields will be affected only.
+        Raw cfields will stay intact."""
+        self.__overridden_cfields[key] = value
 
     @property
     def raw(self):
-        return self.__origin_content_fields.raw
+        return self.__origin_cfields.raw
 
     @property
     def keys(self):
-        return tuple(set(self.__origin_content_fields.keys()).union(set(self.__overridden_fields.keys())))
+        return tuple(set(self.__origin_cfields.keys()).union(set(self.__overridden_cfields.keys())))
 
     @property
     def document_type(self):

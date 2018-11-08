@@ -90,7 +90,7 @@ class UserService:
                 curl = self.__site.synamic.router.make_url(
                     self.__site, '/%s/user/%s' % (url_partition_comp, self.id), for_document_type=document_type
                 )
-                sf = synthetic_fields = content_service.make_synthetic_content_fields(
+                sf = synthetic_fields = content_service.make_synthetic_cfields(
                     curl,
                     document_type=document_type,
                     fields_map=None)
