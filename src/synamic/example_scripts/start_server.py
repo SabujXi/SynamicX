@@ -11,7 +11,7 @@
 
 import os
 from synamic.core.synamic import Synamic
-from synamic.dev_server.server import serve
+from synamic.entry_points.dev_server.server import serve
 
 site_root = os.path.join(os.path.abspath(os.path.dirname(__file__)), "test_site")
 

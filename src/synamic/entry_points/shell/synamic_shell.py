@@ -12,7 +12,7 @@
 from .base_shell import BaseShell
 import os
 from shutil import rmtree
-from synamic.dev_server.server import serve
+from synamic.entry_points.dev_server.server import serve
 
 
 class CommandProcessor(BaseShell):

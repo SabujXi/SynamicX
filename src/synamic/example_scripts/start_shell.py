@@ -9,7 +9,7 @@ SYNAMIC_LIBRARY_ROOT = "C:\\...."  # full path to synamic library/src
 sys.path.insert(0, SYNAMIC_LIBRARY_ROOT)
 
 from synamic.core.synamic import Synamic
-from synamic.shell.synamic_shell import start_shell
+from synamic.entry_points.shell import start_shell
 
 
 SITE_ROOT_DIR = "test_site"  # put the relative directory name of the site (relative to this script)

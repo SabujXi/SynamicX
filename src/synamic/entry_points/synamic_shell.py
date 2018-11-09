@@ -1,7 +1,5 @@
 import os
-import sys
-import codecs
-from synamic.shell.synamic_shell import start_shell
+from synamic.entry_points.shell import start_shell
 from synamic.core.synamic import Synamic
 
 # sys.stdout = codecs.getwriter('utf8')(sys.stdout)
