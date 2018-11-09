@@ -12,33 +12,25 @@ from synamic.core.contracts.content import ContentContract, CDocType
 
 
 class GeneratedContent(ContentContract):
-    def __init__(self, site, synthetic_cfields, curl, file_content,
-                 cdoctype=CDocType.GENERATED_TEXT_DOCUMENT,
-                 mimetype='octet/stream', source_cpath=None):
+    def __init__(self, site, synthetic_cfields, file_content, source_cpath=None):
 
         self.__site = site
         self.__synthetic_cfields = synthetic_cfields
-        self.__curl = curl
         self.__file_content = file_content
-        self.__cdoctype = cdoctype
-        self.__mimetype = mimetype
         self.__source_cpath = source_cpath
 
         # validation
-        assert CDocType.is_generated(self.__cdoctype)
+        assert CDocType.is_generated(self.__synthetic_cfields.cdoctype)
         assert type(self.__file_content) in (type(None), bytes, bytearray, str)
+        assert synthetic_cfields.cpath is None
 
     @property
     def site(self):
         return self.__site
 
     @property
-    def cpath(self):
-        raise Exception("Generated content cannot have cpath object")
-
-    @property
-    def curl(self):
-        return self.__curl
+    def cfields(self):
+        return self.__synthetic_cfields
 
     def get_stream(self):
         if self.__file_content is None:
@@ -59,25 +51,14 @@ class GeneratedContent(ContentContract):
         body = self.__synthetic_cfields.get('__body__', '')
         return body
 
-    @property
-    def mimetype(self):
-        return self.__mimetype
-
-    @property
-    def cdoctype(self):
-        return self.__cdoctype
-
-    def __get(self, key):
-        return self.__synthetic_cfields.get(key, None)
-
     def __getitem__(self, key):
-        return self.__get(key)
+        return self.__synthetic_cfields[key]
 
     def __getattr__(self, key):
-        return self.__get(key)
+        return getattr(self.__synthetic_cfields, key)
 
     def __str__(self):
-        return "Generated content: <%s>\n" % str(self.curl) + '...'
+        return "Generated content: <%s>\n" % str(self.cfields.curl) + '...'
 
     def __repr__(self):
         return str(self)
@@ -98,5 +79,3 @@ class GeneratedContent(ContentContract):
     def __set_file_content__(self, fc):
         assert self.__file_content is None
         self.__file_content = fc
-
-

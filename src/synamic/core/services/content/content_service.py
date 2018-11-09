@@ -16,6 +16,7 @@ from synamic.core.services.content.static_content import StaticContent
 from synamic.core.services.content.generated_content import GeneratedContent
 from synamic.core.services.content.marked_content import MarkedContent
 from synamic.core.services.content.paginated_content import PaginationPage
+from synamic.core.contracts.cfields import CFieldsContract
 from .chapters import Chapter
 
 
@@ -69,8 +70,8 @@ class ContentService:
         curl = self.__site.object_manager.make_url_for_marked_content(
             file_cpath, path=fields_syd.get('path', None), slug=fields_syd.get('slug', None), for_cdoctype=cdoctype
         )
-
-        cfields = self.make_cfields(file_cpath, curl, model, cdoctype, fields_syd)
+        mimetype = 'text/html'
+        cfields = self.make_cfields(file_cpath, curl, model, cdoctype, mimetype, fields_syd)
 
         # TODO: can the following be more systematic and agile.
         # create markers that exists in cfields/contents but not in the system
@@ -84,23 +85,15 @@ class ContentService:
 
         return cfields
 
-    def build_synthetic_cfields(self, curl, cdoctype, fields_map):
-        return _SyntheticContentFields(self.__site, curl, cdoctype, fields_map)
+    # def build_synthetic_cfields(self, curl, cdoctype, fields_map):
+    #     return _SyntheticContentFields(self.__site, curl, cdoctype, fields_map)
 
-    def build_md_content(self, file_path, cached_cfields):
-        mimetype = 'text/html'
-        cdoctype = CDocType.HTML_DOCUMENT
-
-        _, body_text = self.__site.object_manager.get_content_parts(file_path)
+    def build_md_content(self, file_cpath, cached_cfields):
+        _, body_text = self.__site.object_manager.get_content_parts(file_cpath)
         # mime type guess
-        curl = cached_cfields.curl
         content = MarkedContent(self.__site,
-                                file_path,
-                                curl,
                                 body_text,
-                                cached_cfields,
-                                cdoctype,
-                                mimetype=mimetype)
+                                cached_cfields)
         return content
 
     def build_paginated_md_content(self):
@@ -109,37 +102,31 @@ class ContentService:
 
     def build_static_content(self, path):
         path_tree = self.__site.get_service('path_tree')
-        path_obj = path_tree.create_file_cpath(path)
-        file_content = None
+        file_cpath = path_tree.create_file_cpath(path)
+
         mimetype = 'octet/stream'  # TODO: guess the content type here.
         cdoctype = CDocType.BINARY_DOCUMENT
-
-        curl = self.__site.object_manager.static_content_cpath_to_url(path_obj, cdoctype)
-
+        curl = self.__site.object_manager.static_content_cpath_to_url(file_cpath, cdoctype)
+        cfields_map = {}
+        cfields = self.make_synthetic_cfields(curl, cdoctype, mimetype, cpath=file_cpath, fields_map=cfields_map)
         return StaticContent(
             self.__site,
-            path_obj,
-            curl,
-            file_content=file_content,
-            cdoctype=cdoctype,
-            mimetype=mimetype)
+            cfields
+        )
 
     def build_generated_content(
             self,
             synthetic_cfields,
-            curl,
             file_content,
-            cdoctype=CDocType.GENERATED_TEXT_DOCUMENT,
-            mimetype='octet/stream',
             source_cpath=None):
-        return GeneratedContent(self.__site, synthetic_cfields, curl, file_content, cdoctype=cdoctype, mimetype=mimetype, source_cpath=source_cpath)
+        return GeneratedContent(self.__site, synthetic_cfields, file_content, source_cpath=source_cpath)
 
-    def make_cfields(self, content_file_path, curl, model, cdoctype, raw_fileds):
+    def make_cfields(self, content_file_path, curl, model, cdoctype, mimetype, raw_fileds):
         """Just makes an instance"""
-        return _ContentFields(self.__site, content_file_path, curl, model, cdoctype, raw_fileds)
+        return _ContentFields(self.__site, content_file_path, curl, model, cdoctype, mimetype, raw_fileds)
 
-    def make_synthetic_cfields(self, curl, cdoctype=CDocType.GENERATED_BINARY_DOCUMENT, fields_map=None):
-        return _SyntheticContentFields(self.__site, curl, cdoctype=cdoctype, fields_map=fields_map)
+    def make_synthetic_cfields(self, curl, cdoctype, mimetype, cpath=None, fields_map=None):
+        return _SyntheticContentFields(self.__site, curl, cdoctype, mimetype, cpath=cpath, fields_map=fields_map)
 
     def build_chapters(self, chapters_fields):
         chapters = []
@@ -148,19 +135,20 @@ class ContentService:
         return tuple(chapters)
 
 
-class _ContentFields:
-    def __init__(self, site, content_file_cpath, curl, model, cdoctype, raw_cfields):
+class _ContentFields(CFieldsContract):
+    def __init__(self, site, content_file_cpath, curl, model, cdoctype, mimetype, raw_cfields):
         self.__site = site
         self.__content_file_cpath = content_file_cpath
         self.__curl = curl
-        self.__model = model
+        self.__cmodel = model
         self.__cdoctype = cdoctype
+        self.__mimetype = mimetype
         self.__raw_cfields = raw_cfields
         self.__converted_values = OrderedDict()
 
     def as_generated(self, curl, cdoctype=CDocType.GENERATED_HTML_DOCUMENT):
         """With cfields will use .set() and thus it will only affect converted values."""
-        return _GeneratedContentFields(self.__site, curl, self.__model, cdoctype, self)
+        return _GeneratedContentFields(self.__site, curl, self.__cmodel, cdoctype, self)
 
     def __convert_pagination(self, pagination_field):
         object_manager = self.__site.object_manager
@@ -210,7 +198,7 @@ class _ContentFields:
                     value = chapters
             # normal conversions through converter or else raw value
             else:
-                model_field = self.__model.get(key, None)
+                model_field = self.__cmodel.get(key, None)
                 if model_field is not None:
                     value = model_field.converter(raw_value)
                 else:
@@ -237,7 +225,7 @@ class _ContentFields:
 
     @property
     def cmodel(self):
-        return self.__model
+        return self.__cmodel
 
     @property
     def curl(self):
@@ -247,6 +235,10 @@ class _ContentFields:
     def cpath(self):
         """Content file path"""
         return self.__content_file_cpath
+
+    @property
+    def mimetype(self):
+        return self.__mimetype
 
     def __getitem__(self, key):
         return self.get(key, None)
@@ -263,7 +255,7 @@ class _ContentFields:
         return hash(self.__curl)
 
 
-class _GeneratedContentFields:
+class _GeneratedContentFields(CFieldsContract):
     def __init__(self, site, curl, cmodel, cdoctype, origin_cfields):
         self.__site = site
         self.__curl = curl
@@ -286,6 +278,7 @@ class _GeneratedContentFields:
 
     @property
     def raw(self):
+        # TODO: what happens when generated field is changed but raw of origin cfields does not.
         return self.__origin_cfields.raw
 
     @property
@@ -308,6 +301,10 @@ class _GeneratedContentFields:
     def cpath(self):
         raise NotImplemented
 
+    @property
+    def mimetype(self):
+        return self.__origin_cfields.mimetype
+
     def __getitem__(self, key):
         return self.get(key, None)
 
@@ -323,11 +320,13 @@ class _GeneratedContentFields:
         return hash(self.__curl)
 
 
-class _SyntheticContentFields:
-    def __init__(self, site, curl, cdoctype=CDocType.GENERATED_BINARY_DOCUMENT, fields_map=None):
+class _SyntheticContentFields(CFieldsContract):
+    def __init__(self, site, curl, cdoctype, mimetype, cpath=None, fields_map=None):
         self.__site = site
         self.__curl = curl
         self.__cdoctype = cdoctype
+        self.__mimetype = mimetype
+        self.__cpath = cpath
         self.__fields_map = {} if fields_map is None else fields_map
 
         assert CDocType.is_generated(cdoctype)
@@ -360,7 +359,11 @@ class _SyntheticContentFields:
 
     @property
     def cpath(self):
-        raise NotImplemented
+        return self.__cpath
+
+    @property
+    def mimetype(self):
+        return self.__mimetype
 
     def __getitem__(self, key):
         return self.get(key, None)

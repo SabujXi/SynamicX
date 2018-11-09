@@ -3,14 +3,11 @@ from synamic.core.contracts import ContentContract, CDocType
 
 
 class PaginatedContent(ContentContract):
-    def __init__(self, site, origin_cfields, curl, paginated_cfields, cdoctype):
+    def __init__(self, site, origin_cfields, paginated_cfields):
         self.__site = site
         self.__origin_cfields = origin_cfields
-        self.__curl = curl
         self.__cfields = paginated_cfields
         self.__model = paginated_cfields.cmodel
-        self.__cdoctype = cdoctype
-        self.__mimetype = 'text/html'  # TODO: remove hard coding.
 
         # validation
         assert CDocType.is_text(self.__cdoctype)
@@ -18,18 +15,6 @@ class PaginatedContent(ContentContract):
     @property
     def site(self):
         return self.__site
-
-    @property
-    def cdoctype(self):
-        return self.__cdoctype
-
-    @property
-    def cpath(self):
-        raise NotImplemented
-
-    @property
-    def curl(self):
-        return self.__curl
 
     def get_stream(self):
         template_name = self.__cfields.get('template', 'default.html')
@@ -42,10 +27,6 @@ class PaginatedContent(ContentContract):
         return f
 
     @property
-    def mimetype(self):
-        return self.__mimetype
-
-    @property
     def body(self):
         content = self.__site.object_manager.get_marked_content(self.__origin_cfields.cpath)
         assert content is not None
@@ -55,18 +36,11 @@ class PaginatedContent(ContentContract):
     def cfields(self):
         return self.__cfields
 
-    @property
-    def toc(self):
-        raise NotImplemented
-
-    def __get(self, key):
-        return self.__cfields.get(key, None)
-
     def __getitem__(self, key):
-        return self.__get(key)
+        return self.__cfields[key]
 
     def __getattr__(self, key):
-        return self.__get(key)
+        return getattr(self.__cfields, key)
 
     def __str__(self):
         return "Paginated content: <%s>\n" % self['title'] + '...'
@@ -285,9 +259,7 @@ class PaginationPage:
                     paginated_content = PaginatedContent(
                         site,
                         origin_content.cfields,
-                        curl,
-                        paginated_cfields,
-                        cdoctype,
+                        paginated_cfields
                     )
 
                     # setting pagination to an aux content

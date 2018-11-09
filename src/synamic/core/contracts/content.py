@@ -61,31 +61,13 @@ class ContentContract(metaclass=abc.ABCMeta):
     __cdoc_types = CDocType
 
     @property
-    def cdoctypes(self) -> CDocType:
-        return self.__cdoc_types
-
-    @property
     @abc.abstractmethod
     def site(self):
         pass
 
     @property
     @abc.abstractmethod
-    def cpath(self):
-        """
-        This is a path object associated with the file (for static the path, for dynamic the path to things like .md
-         and for auxiliary - i need to think about that :p )
-        """
-        pass
-
-    @property
-    @abc.abstractmethod
-    def curl(self):
-        """
-        Generated contents will have to implement this method themselves,
-        Markdown and static content can call object manager method from inside to get it.
-        <A content should know what it's url is - that's why I re-added this method to the interface.>
-        """
+    def cfields(self):
         pass
 
     @abc.abstractmethod
@@ -94,49 +76,8 @@ class ContentContract(metaclass=abc.ABCMeta):
         This will be a file like object. 
         """
 
-    @property
-    @abc.abstractmethod
-    def mimetype(self):
-        """
-         return mime/type
-         
-         this can be determined by the extension of to_file_system_path() on the curl object.
-        """
-
-    @property
-    @abc.abstractmethod
-    def cdoctype(self):
-        """
-        Instance of document __cdoc_types enum
-        """
-        pass
-
-    @property
-    def is_text_doc(self):
-        return self.cdoctype is self.__cdoc_types.TEXT_DOCUMENT
-
-    @property
-    def is_binary(self):
-        return self.cdoctype is self.__cdoc_types.BINARY_DOCUMENT
-
-    @property
-    def is_generated_binary_doc(self):
-        return self.cdoctype is self.__cdoc_types.GENERATED_BINARY_DOCUMENT
-
-    @property
-    def is_generated_text_doc(self):
-        return self.cdoctype is self.__cdoc_types.GENERATED_TEXT_DOCUMENT
-
-    @property
-    def is_nourl_doc(self):
-        return self.cdoctype is self.__cdoc_types.NOURL_DOCUMENT
-
-    @property
-    def is_meta_doc(self):
-        return self.cdoctype is self.__cdoc_types.META_DOCUMENT
-
     def __str__(self):
-        return "Content with url -> %s" % self.curl.path_as_str_w_site
+        return "Content with url -> %s" % self.cfields.curl.path_as_str_w_site
 
     def __repr__(self):
         return repr(self.__str__())
@@ -144,7 +85,43 @@ class ContentContract(metaclass=abc.ABCMeta):
     def __eq__(self, other):
         if not isinstance(other, self.__class__):
             return False
-        return self.curl == other.curl
+        return self.cfields.curl == other.cfields.curl
 
     def __hash__(self):
-        return hash(self.curl)
+        return hash(self.cfields.curl)
+
+    # @property
+    # @abc.abstractmethod
+    # def mimetype(self):
+    #     """
+    #      return mime/type
+    #
+    #      this can be determined by the extension of to_file_system_path() on the curl object.
+    #     """
+    #
+    # @property
+    # @abc.abstractmethod
+    # def cdoctype(self):
+    #     """
+    #     Instance of document __cdoc_types enum
+    #     """
+    #     pass
+
+    # @property
+    # @abc.abstractmethod
+    # def cpath(self):
+    #     """
+    #     This is a path object associated with the file (for static the path, for dynamic the path to things like .md
+    #      and for auxiliary - i need to think about that :p )
+    #     """
+    #     pass
+    #
+    # @property
+    # @abc.abstractmethod
+    # def curl(self):
+    #     """
+    #     Generated contents will have to implement this method themselves,
+    #     Markdown and static content can call object manager method from inside to get it.
+    #     <A content should know what it's url is - that's why I re-added this method to the interface.>
+    #     """
+    #     pass

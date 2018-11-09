@@ -6,7 +6,6 @@ from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
-from synamic.core.services.content.paginated_content import PaginationPage
 
 
 class ObjectManager:
@@ -182,7 +181,7 @@ class ObjectManager:
             self.__cache.add_marked_content(site, marked_content)
             return marked_content
 
-    def get_marked_content_by_url(self, site, curl):
+    def get_marked_content_by_curl(self, site, curl):
         cpath = self.__cache.get_marked_cpath_by_curl(site, curl)
         return self.get_marked_content(site, cpath)
 
@@ -568,15 +567,19 @@ class ObjectManager:
             # <<<<<<<<
 
         def add_pre_processed_content(self, site, pre_processed_content, cpath=None):
+            """Pre processed content is one kind of generated content, sor we cannot rely on source-cpath and thus cpath
+            parameter is needed explicitly"""
             self.__pre_processed_cachemap[site.id][pre_processed_content.curl] = pre_processed_content
             if cpath is not None:
                 self.__cpath_to_pre_processed_contents[site.id][cpath] = pre_processed_content
 
         def get_pre_processed_content_by_curl(self, site, curl, default=None):
-            return self.__pre_processed_cachemap[site.id].get(curl, default)
+            res = self.__pre_processed_cachemap[site.id].get(curl, default)
+            return res
 
         def get_pre_processed_content_by_cpath(self, site, cpath, default=None):
-            return self.__cpath_to_pre_processed_contents[site.id].get(cpath, default)
+            res = self.__cpath_to_pre_processed_contents[site.id].get(cpath, default)
+            return res
 
         def add_marked_content(self, site, marked_content):
             # TODO: set limit to 100 or so

@@ -4,18 +4,14 @@ from synamic.core.services.content.toc import Toc
 
 
 class MarkedContent(ContentContract):
-    def __init__(self, site, file_cpath, curl, body_text, cfields, cdoctype, mimetype='text/plain'):
+    def __init__(self, site, body_text, cfields):
         self.__site = site
-        self.__file_cpath = file_cpath
-        self.__curl = curl
         self.__body_text = body_text
         self.__cfields = cfields
         self.__cmodel = cfields.cmodel
-        self.__cdoctype = cdoctype
-        self.__mimetype = mimetype
 
         # validation
-        assert CDocType.is_text(self.__cdoctype)
+        assert CDocType.is_text(self.__cfields.cdoctype)
 
         self.__toc = None
         self.__body = None
@@ -23,18 +19,6 @@ class MarkedContent(ContentContract):
     @property
     def site(self):
         return self.__site
-
-    @property
-    def cdoctype(self):
-        return self.__cdoctype
-
-    @property
-    def cpath(self):
-        return self.__file_cpath
-
-    @property
-    def curl(self):
-        return self.__curl
 
     def get_stream(self):
         template_name = self.__cfields.get('template', 'default.html')
@@ -45,10 +29,6 @@ class MarkedContent(ContentContract):
         })
         f = io.BytesIO(res.encode('utf-8'))
         return f
-
-    @property
-    def mimetype(self):
-        return self.__mimetype
 
     def __render_body(self):
         body = self.__body
@@ -75,17 +55,14 @@ class MarkedContent(ContentContract):
         self.__render_body()
         return self.__toc
 
-    def __get(self, key):
-        return self.__cfields.get(key, None)
-
     def __getitem__(self, key):
-        return self.__get(key)
+        return self.__cfields[key]
 
     def __getattr__(self, key):
-        return self.__get(key)
+        return getattr(self.__cfields, key)
 
     def __str__(self):
-        return "<%s>\n%s\n\n%s" % (self.cpath.relative_path, self['title'], self.body[:100] + '...')
+        return "<%s>\n%s\n\n%s" % (self.cfields.cpath.relative_path, self['title'], self.body[:100] + '...')
 
     def __repr__(self):
         return str(self)

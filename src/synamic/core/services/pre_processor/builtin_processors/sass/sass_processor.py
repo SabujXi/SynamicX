@@ -37,27 +37,36 @@ class SASSProcessor:
                 if not scss_basename.lower().startswith('_'):
                     # partial file in not not condition, ignore it.
                     curl = self.get_css_curl(file_cpath)
-                    synthetic_fields = content_service.make_synthetic_cfields(
-                        curl,
-                        cdoctype=CDocType.GENERATED_BINARY_DOCUMENT,
-                        fields_map=None)
-                    file_content = None
                     cdoctype = CDocType.GENERATED_TEXT_DOCUMENT
                     mimetype = 'text/css'
+                    synthetic_fields = content_service.make_synthetic_cfields(
+                        curl,
+                        cdoctype,
+                        mimetype,
+                        cpath=None,
+                        fields_map=None)
+                    file_content = None
 
-                    content_obj = SCSS_CSSContent(self.__site, synthetic_fields, curl, file_content,
-                                                  cdoctype=cdoctype,
-                                                  mimetype=mimetype,
+                    content_obj = SCSS_CSSContent(self.__site,
+                                                  synthetic_fields,
+                                                  file_content,
                                                   source_cpath=file_cpath)
                     content_objects.append(content_obj)
             else:
                 curl = self.get_static_file_curl(file_cpath)
-                synthetic_fields = content_service.make_synthetic_cfields(self, curl, cdoctype=CDocType.GENERATED_BINARY_DOCUMENT, fields_map=None)
+                cdoctype = CDocType.GENERATED_BINARY_DOCUMENT
+                mimetype = 'octet/stream'
+                synthetic_fields = content_service.make_synthetic_cfields(
+                    curl,
+                    cdoctype,
+                    mimetype,
+                    cpath=None,
+                    fields_map=None)
                 file_content = None
                 content_obj = content_service.build_generated_content(
                     synthetic_fields,
                     curl, file_content,
-                    cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mimetype='octet/stream',
+                    cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mimetype=mimetype,
                     source_cpath=file_cpath
                 )
                 content_objects.append(content_obj)

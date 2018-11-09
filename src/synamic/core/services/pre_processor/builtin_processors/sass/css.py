@@ -15,21 +15,30 @@ from synamic.core.services.content.generated_content import GeneratedContent
 
 
 class SCSS_CSSContent(GeneratedContent):
-
-    def __init__(self, site, synthetic_cfields, curl, file_content,
-                 cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mimetype='text/css', source_cpath=None):
-        super().__init__(site, synthetic_cfields, curl, file_content, cdoctype=cdoctype, mimetype=mimetype, source_cpath=source_cpath)
-        self.__scss_path = source_cpath
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        assert self.source_cpath is not None
+        self.__css_str = None
 
     def get_stream(self):
-        scss_fn = self.__scss_path.abs_path
-        css_str = sass.compile(filename=scss_fn)
+        assert self.source_cpath is not None
+        if self.__css_str is None:
+            scss_fn = self.source_cpath.abs_path
+            css_str = sass.compile(filename=scss_fn)
+            self.__css_str = css_str
+        else:
+            css_str = self.__css_str
         css_io = io.BytesIO(css_str.encode('utf-8'))
-        del css_str
         return css_io
 
+    def __getitem__(self, item):
+        return self.cfields[item]
+
+    def __getattr__(self, item):
+        return getattr(self.cfields, item)
+
     def __str__(self):
-        return 'Generated content for %s' % self.__scss_path.abs_path
+        return 'SCSS CSS Generated content for %s' % self.source_cpath.abs_path
 
     def __repr__(self):
         return repr(self.__str__())

@@ -85,9 +85,11 @@ class _Mark:
             curl = self.__site.synamic.router.make_url(
                 self.__site, '/%s/marker/%s/%s' % (url_partition_comp, self.__marker.id, self.id), for_cdoctype=cdoctype
             )
+            mimetype = 'text/html'
             sf = synthetic_fields = content_service.make_synthetic_cfields(
                 curl,
-                cdoctype=cdoctype,
+                cdoctype,
+                mimetype,
                 fields_map=None)
             sf['title'] = self.title
             sf['mark'] = self
@@ -113,10 +115,7 @@ class _Mark:
 
             content = content_service.build_generated_content(
                 self.cfields,
-                self.cfields.curl,
                 None,
-                cdoctype=self.cfields.cdoctype,
-                mimetype='text/html',
                 source_cpath=None)
             html_text_content = template_service.render(user_template_name,
                                                         site=self.__site,

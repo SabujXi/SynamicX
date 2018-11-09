@@ -87,12 +87,15 @@ class UserService:
                 content_service = self.__site.get_service('contents')
                 url_partition_comp = site_settings['url_partition_comp']
                 cdoctype = CDocType.GENERATED_HTML_DOCUMENT
+                mimetype = 'text/html'
                 curl = self.__site.synamic.router.make_url(
                     self.__site, '/%s/user/%s' % (url_partition_comp, self.id), for_cdoctype=cdoctype
                 )
                 sf = synthetic_fields = content_service.make_synthetic_cfields(
                     curl,
-                    cdoctype=cdoctype,
+                    cdoctype,
+                    mimetype,
+                    cpath=None,
                     fields_map=None)
                 sf['title'] = self.title if self.title else self.name
                 sf['author'] = self
