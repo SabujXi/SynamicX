@@ -216,22 +216,11 @@ if __name__ == '__main__':
         try:
             text = input('parse > ')
         except EOFError:
-            break
-        parser = QueryParser()
-        lexer = QueryLexer()
+            raise
         if text:
             try:
-                res = parser.parse(lexer.tokenize(text))
-                # return res
-            except sly.lex.LexError as e:
-                txt_rest = e.text
-                err_before_txt = '_' * (len(text) - len(txt_rest))
-                err_after_txt = '^' * len(txt_rest)
-                err_txt = '\n' + text + '\n' + err_before_txt + err_after_txt
-
-                raise QueryLexingError(
-                    ('Lexical error at index: %s' % e.error_index) +
-                    err_txt
-                )
+                res = SimpleQueryParser(text).parse()
+            except (QueryParsingError, QueryLexingError) as e:
+                print(e.args[0])
             else:
                 print(res)

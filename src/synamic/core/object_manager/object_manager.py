@@ -329,6 +329,11 @@ class ObjectManager:
         result_content = self.get_marked_content(site, self.getfields(site, url_str).cpath)
         return result_content
 
+    def getc(self, site, url_str):
+        """
+        For: url:// fields:// content://
+        """
+
     def geturl(self, site, url_str):
         ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
         if ordinary_url:

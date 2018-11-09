@@ -89,39 +89,3 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     def __hash__(self):
         return hash(self.cfields.curl)
-
-    # @property
-    # @abc.abstractmethod
-    # def mimetype(self):
-    #     """
-    #      return mime/type
-    #
-    #      this can be determined by the extension of to_file_system_path() on the curl object.
-    #     """
-    #
-    # @property
-    # @abc.abstractmethod
-    # def cdoctype(self):
-    #     """
-    #     Instance of document __cdoc_types enum
-    #     """
-    #     pass
-
-    # @property
-    # @abc.abstractmethod
-    # def cpath(self):
-    #     """
-    #     This is a path object associated with the file (for static the path, for dynamic the path to things like .md
-    #      and for auxiliary - i need to think about that :p )
-    #     """
-    #     pass
-    #
-    # @property
-    # @abc.abstractmethod
-    # def curl(self):
-    #     """
-    #     Generated contents will have to implement this method themselves,
-    #     Markdown and static content can call object manager method from inside to get it.
-    #     <A content should know what it's url is - that's why I re-added this method to the interface.>
-    #     """
-    #     pass
