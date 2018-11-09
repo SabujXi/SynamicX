@@ -33,11 +33,23 @@ class MarkedContent(ContentContract):
     def __render_body(self):
         body = self.__body
         if body is None:
-            markdown_renderer = self.__site.get_service('types').get_converter('markdown')
             toc = Toc()
-            body = markdown_renderer(self.__body_text, value_pack={
-                'toc': toc
-            }).rendered_markdown
+            # try with model converter
+            body_field_key = self.__cmodel.body_field
+            if body_field_key is None:
+                body_field_key = '__body__'
+
+            model_field = self.__cmodel.get(body_field_key)
+            if model_field is not None:
+                body = model_field.converter(self.__body_text)
+
+            # try with markdown renderer
+            else:
+                markdown_renderer = self.__site.get_service('types').get_converter('markdown')
+
+                body = markdown_renderer(self.__body_text, value_pack={
+                    'toc': toc
+                })
             self.__toc = toc
             self.__body = body
 
@@ -70,7 +82,7 @@ class MarkedContent(ContentContract):
         return getattr(self.__cfields, key)
 
     def __str__(self):
-        return "<%s>\n%s\n\n%s" % (self.cfields.cpath.relative_path, self['title'], self.body[:100] + '...')
+        return "<%s>\n%s\n" % (self.cfields.cpath.relative_path, self['title'])
 
     def __repr__(self):
         return str(self)

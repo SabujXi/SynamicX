@@ -10,7 +10,7 @@ class PaginatedContent(ContentContract):
         self.__model = paginated_cfields.cmodel
 
         # validation
-        assert CDocType.is_text(self.__cdoctype)
+        assert CDocType.is_text(self.__cfields.cdoctype), f'Wrong Doctype {self.__cfields.cdoctype}'
 
     @property
     def site(self):
@@ -188,12 +188,13 @@ class PaginationPage:
         self.__sub_pages = sub_pages
 
     def get_sub_page(self, idx, default=None):
-        assert idx > 0, "Root/start pagination is considered 0 and this method is only available on root"
+        idx = idx - 1
+        assert idx >= 0, "Root/start pagination is considered 0 and this method is only available on root"
         sub_pages = self.sub_pages
         if idx >= len(sub_pages):
             return default
         else:
-            return sub_pages[idx - 1]
+            return sub_pages[idx]
 
     @property
     def is_empty(self):
@@ -259,14 +260,14 @@ class PaginationPage:
                     # creating paginated content
                     cdoctype = CDocType.GENERATED_HTML_DOCUMENT
                     curl = origin_content.curl.join(
-                        "/%s/%s/%d/" % (url_partition_comp, pagination_url_comp, division_idx_i + 1),
+                        "/%s/%s/%d/" % (url_partition_comp, pagination_url_comp, division_idx_i),
                         for_cdoctype=cdoctype)
                     paginated_cfields = origin_content.cfields.as_generated(
                         curl, cdoctype=cdoctype
                     )
                     paginated_cfields.set(
                         'title',
-                        origin_content.cfields.get('title') + " - %s %d" % (pagination_url_comp.title(), division_idx_i + 1)
+                        origin_content.cfields.get('title') + " - %s %d" % (pagination_url_comp.title(), division_idx_i)
                     )
                     paginated_content = PaginatedContent(
                         site,

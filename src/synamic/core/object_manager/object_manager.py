@@ -184,7 +184,12 @@ class ObjectManager:
 
     def get_marked_content_by_curl(self, site, curl):
         cpath = self.__cache.get_marked_cpath_by_curl(site, curl)
+        if cpath is None:
+            return None
         return self.get_marked_content(site, cpath)
+
+    def get_pre_processed_content_by_curl(self, site, curl):
+        return self.__cache.get_pre_processed_content_by_curl(site, curl, None)
 
     def get_marked_contents_by_cpaths(self, site, cpaths):
         contents = []

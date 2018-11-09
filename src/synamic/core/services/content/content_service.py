@@ -10,6 +10,7 @@
 
 import re
 from collections import OrderedDict
+import mimetypes
 from synamic.core.contracts.content import CDocType
 from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static_content import StaticContent
@@ -103,8 +104,9 @@ class ContentService:
     def build_static_content(self, path):
         path_tree = self.__site.get_service('path_tree')
         file_cpath = path_tree.create_file_cpath(path)
-
-        mimetype = 'octet/stream'  # TODO: guess the content type here.
+        mimetype, _ = mimetypes.guess_type(file_cpath.basename)
+        if mimetype is None:
+            mimetype = 'octet/stream'  # TODO: improve guessing here.
         cdoctype = CDocType.BINARY_DOCUMENT
         curl = self.__site.object_manager.static_content_cpath_to_url(file_cpath, cdoctype)
         cfields_map = {}
@@ -154,7 +156,7 @@ class _ContentFields(CFieldsContract):
     def __convert_pagination(self, pagination_field):
         object_manager = self.__site.object_manager
         site_settings = object_manager.get_site_settings()
-        per_page = site_settings['pagination_per_page']
+        per_page = per_page_4m_settings = site_settings['pagination_per_page']
 
         if isinstance(pagination_field, str):
             query_str = pagination_field
@@ -162,8 +164,10 @@ class _ContentFields(CFieldsContract):
             query_str = pagination_field['query']
             per_page = pagination_field.get('per_page', None)
             if per_page is not None:
-                assert isinstance(per_page, int)
+                assert isinstance(per_page, int), f'{type(per_page)}: {per_page}'
                 per_page = per_page
+            else:
+                per_page = per_page_4m_settings
         fields = object_manager.query_cfields(query_str)
         origin_content = object_manager.get_marked_content(self.cpath)
         assert self is origin_content.cfields

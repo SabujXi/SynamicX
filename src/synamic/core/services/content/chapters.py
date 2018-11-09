@@ -8,7 +8,6 @@ class Chapter:
         self.__raw_link = chapter_field['link']
         del chapter_field['link']
         self.__cached_link = None
-        # TODO: do more magic with getfields/getcontents and add property for them.
 
     @property
     def link(self):

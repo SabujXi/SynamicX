@@ -206,7 +206,7 @@ class ContentUrl:
             ss = self.__site.object_manager.get_site_settings()
             host_scheme = ss['host_scheme']
             hostname = ss['hostname']
-            port = ss['host_port']
+            port = str(ss['host_port'])
             if port:
                 port_part = ':' + port
             else:

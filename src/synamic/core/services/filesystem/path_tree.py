@@ -116,10 +116,10 @@ class PathTree(object):
         Create a Content Path object.
         """
         comps = self.to_cpath_comps(*path_comps)
-        if not is_file:
+        if not is_file:  # directory
             if comps[-1] != '':
                 comps += ('', )
-        else:
+        else:  # file
             assert comps[-1] != ''
         path_obj = self.__CPath(self, self.__site, comps, is_file=is_file)
         return path_obj
