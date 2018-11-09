@@ -90,6 +90,7 @@ class _Mark:
                 curl,
                 cdoctype,
                 mimetype,
+                cpath=None,
                 fields_map=None)
             sf['title'] = self.title
             sf['mark'] = self
@@ -103,27 +104,31 @@ class _Mark:
     def curl(self):
         return self.cfields.curl
 
+    def __marker_content_renderer(self, site, gen_content):
+        site_settings = site.object_manager.get_site_settings()
+        template_service = site.get_service('templates')
+        user_template_name = site_settings['templates.mark']
+
+        html_text_content = template_service.render(
+            user_template_name,
+            site=site,
+            content=gen_content,
+            mark=self,
+            marker=self.__marker
+        )
+        return html_text_content
+
     @property
     def content(self):
         if self.__content is not None:
             content = self.__content
         else:
-            site_settings = self.__site.object_manager.get_site_settings()
-            template_service = self.__site.get_service('templates')
             content_service = self.__site.get_service('contents')
-            user_template_name = site_settings['templates.mark']
-
             content = content_service.build_generated_content(
                 self.cfields,
-                None,
-                source_cpath=None)
-            html_text_content = template_service.render(user_template_name,
-                                                        site=self.__site,
-                                                        content=content,
-                                                        mark=self,
-                                                        marker=self.__marker)
-            content.__set_file_content__(html_text_content)
-            # TODO: fix this content setting later (2).
+                '',
+                source_cpath=None,
+                render_callable=self.__marker_content_renderer)
             self.__content = content
         return content
 

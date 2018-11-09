@@ -76,6 +76,21 @@ class ContentContract(metaclass=abc.ABCMeta):
         This will be a file like object. 
         """
 
+    @property
+    @abc.abstractmethod
+    def body(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def body_as_bytes(self):
+        pass
+
+    @property
+    @abc.abstractmethod
+    def body_as_string(self):
+        pass
+
     def __str__(self):
         return "Content with url -> %s" % self.cfields.curl.path_as_str_w_site
 

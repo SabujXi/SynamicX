@@ -16,13 +16,17 @@ class PaginatedContent(ContentContract):
     def site(self):
         return self.__site
 
-    def get_stream(self):
+    def __rendered(self):
         template_name = self.__cfields.get('template', 'default.html')
         templates = self.__site.get_service('templates')
         res = templates.render(template_name, context={
             'site': self.__site,
             'content': self
         })
+        return res
+
+    def get_stream(self):
+        res = self.__rendered()
         f = io.BytesIO(res.encode('utf-8'))
         return f
 
@@ -31,6 +35,14 @@ class PaginatedContent(ContentContract):
         content = self.__site.object_manager.get_marked_content(self.__origin_cfields.cpath)
         assert content is not None
         return content.body
+
+    @property
+    def body_as_string(self):
+        return self.body
+
+    @property
+    def body_as_bytes(self):
+        return self.body.encode('utf-8')
 
     @property
     def cfields(self):

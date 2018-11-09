@@ -12,17 +12,19 @@ from synamic.core.contracts.content import ContentContract, CDocType
 
 
 class GeneratedContent(ContentContract):
-    def __init__(self, site, synthetic_cfields, file_content, source_cpath=None):
+    def __init__(self, site, synthetic_cfields, file_content, source_cpath=None, render_callable=None):
 
         self.__site = site
         self.__synthetic_cfields = synthetic_cfields
         self.__file_content = file_content
         self.__source_cpath = source_cpath
+        self.__render_callable = render_callable  # render callable will accept 2 params: site, this content object
 
         # validation
         assert CDocType.is_generated(self.__synthetic_cfields.cdoctype)
         assert type(self.__file_content) in (type(None), bytes, bytearray, str)
         assert synthetic_cfields.cpath is None
+        assert self.__file_content is not None or source_cpath is not None
 
     @property
     def site(self):
@@ -32,23 +34,56 @@ class GeneratedContent(ContentContract):
     def cfields(self):
         return self.__synthetic_cfields
 
-    def get_stream(self):
-        if self.__file_content is None:
-            assert self.__source_cpath is not None
-
+    @property
+    def __get_content_as_str(self):
         if self.__file_content is not None:
-            if isinstance(self.__file_content, (bytes, bytearray)):
-                file = io.BytesIO(self.__file_content)
-            else:
-                assert isinstance(self.__file_content, str)
-                file = io.BytesIO(self.__file_content.encode('utf-8'))
+            content = self.__file_content
+            if isinstance(content, (bytearray, bytes)):
+                content = content.decode('utf-8')
         else:
-            file = self.__source_cpath.open('rb')
-        return file
+            with self.__source_cpath.open('r') as f:
+                content = f.read()
+        return content
+
+    def get_stream(self):
+        if callable(self.__render_callable):
+            # so this content is renderable.
+            text_content = self.__render_callable(self.__site, self)
+            stream = io.BytesIO(text_content.encode('utf-8'))
+        else:
+            if self.__file_content is not None:
+                if isinstance(self.__file_content, (bytes, bytearray)):
+                    stream = io.BytesIO(self.__file_content)
+                else:
+                    stream = io.BytesIO(self.__file_content.encode('utf-8'))
+            else:
+                stream = self.__source_cpath.open('rb')
+        return stream
 
     @property
     def body(self):
-        body = self.__synthetic_cfields.get('__body__', '')
+        if self.__file_content is not None:
+            body = self.__file_content
+        else:
+            file_mode = 'r'
+            if CDocType.is_binary(self.cfields.cdoctype):
+                file_mode = 'rb'
+            with self.__source_cpath.open(file_mode) as f:
+                body = f.read()
+        return body
+
+    @property
+    def body_as_bytes(self):
+        body = self.body
+        if not isinstance(body, (bytes, bytearray)):
+            body = body.encode('utf-8')
+        return body
+
+    @property
+    def body_as_string(self):
+        body = self.body
+        if not isinstance(body, str):
+            body = body.decode('utf-8')
         return body
 
     def __getitem__(self, key):
@@ -67,15 +102,3 @@ class GeneratedContent(ContentContract):
     def source_cpath(self):
         return self.__source_cpath
 
-    @property
-    def file_content(self):
-        if self.__file_content is not None:
-            return self.__file_content
-        else:
-            with self.get_stream() as stream:
-                content = stream.read()
-                return content
-
-    def __set_file_content__(self, fc):
-        assert self.__file_content is None
-        self.__file_content = fc

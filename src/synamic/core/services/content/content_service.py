@@ -118,8 +118,9 @@ class ContentService:
             self,
             synthetic_cfields,
             file_content,
-            source_cpath=None):
-        return GeneratedContent(self.__site, synthetic_cfields, file_content, source_cpath=source_cpath)
+            source_cpath=None,
+            render_callable=None):
+        return GeneratedContent(self.__site, synthetic_cfields, file_content, source_cpath=source_cpath, render_callable=render_callable)
 
     def make_cfields(self, content_file_path, curl, model, cdoctype, mimetype, raw_fileds):
         """Just makes an instance"""

@@ -28,6 +28,21 @@ class StaticContent(ContentContract):
         return file
 
     @property
+    def body(self):
+        # TODO: body should not be allowed for binary files. Fix it later.
+        with self.get_stream() as f:
+            res = f.read()
+        return res
+
+    @property
+    def body_as_string(self):
+        return self.body.decode('utf-8')
+
+    @property
+    def body_as_bytes(self):
+        return self.body
+
+    @property
     def cfields(self):
         return self.__cfields
 

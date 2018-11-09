@@ -106,26 +106,31 @@ class UserService:
         def curl(self):
             return self.cfields.curl
 
+        def __user_content_renderer(self, site, gen_content):
+            site_settings = site.object_manager.get_site_settings()
+            template_service = site.get_service('templates')
+            user_template_name = site_settings['templates.user']
+
+            html_text_content = template_service.render(
+                user_template_name,
+                site=site,
+                content=gen_content,
+                author=self,
+            )
+            return html_text_content
+
         @property
         def content(self):
             if self.__content is not None:
                 content = self.__content
             else:
-                site_settings = self.__site.object_manager.get_site_settings()
-                template_service = self.__site.get_service('templates')
                 content_service = self.__site.get_service('contents')
-                user_template_name = site_settings['templates.user']
 
                 content = content_service.build_generated_content(
                     self.cfields,
-                    self.cfields.curl,
-                    None,
-                    cdoctype=self.cfields.cdoctype,
-                    mimetype='text/html',
-                    source_cpath=None)
-                html_text_content = template_service.render(user_template_name, site=self.__site, content=content, author=self)
-                content.__set_file_content__(html_text_content)
-                # TODO: fix this content setting later.
+                    '',
+                    source_cpath=None,
+                    render_callable=self.__user_content_renderer)
                 self.__content = content
             return content
 

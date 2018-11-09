@@ -47,6 +47,14 @@ class MarkedContent(ContentContract):
         return self.__body
 
     @property
+    def body_as_string(self):
+        return self.body
+
+    @property
+    def body_as_bytes(self):
+        return self.body.encode('utf-8')
+
+    @property
     def cfields(self):
         return self.__cfields
 
