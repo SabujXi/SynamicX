@@ -4,7 +4,7 @@ from synamic.core.services.content.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
-from synamic.core.contracts import DocumentType
+from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
 from synamic.core.services.content.paginated_content import PaginationPage
 
@@ -93,7 +93,7 @@ class ObjectManager:
             menu = menu_service.make_menu(menu_name)
             self.__cache.add_menu(site, menu_name, menu)
 
-    def make_url_for_marked_content(self, site, file_cpath, path=None, slug=None, for_document_type=DocumentType.TEXT_DOCUMENT):
+    def make_url_for_marked_content(self, site, file_cpath, path=None, slug=None, for_cdoctype=CDocType.TEXT_DOCUMENT):
         if path is not None:
             #  discard everything and keep it. No processing needed.
             pass
@@ -131,17 +131,17 @@ class ObjectManager:
         curl = self.__synamic.router.make_url(
             site,
             url_path_comps,
-            for_document_type=for_document_type
+            for_cdoctype=for_cdoctype
         )
         return curl
 
-    def static_content_cpath_to_url(self, site, cpath, for_document_type):
-        assert DocumentType.is_binary(for_document_type, not_generated=True)
+    def static_content_cpath_to_url(self, site, cpath, for_cdoctype):
+        assert CDocType.is_binary(for_cdoctype, not_generated=True)
         # For STATIC Files
         curl = self.__synamic.router.make_url(
             site,
             cpath.path_comps,
-            for_document_type=for_document_type
+            for_cdoctype=for_cdoctype
         )
         return curl
 
@@ -345,7 +345,7 @@ class ObjectManager:
                 result_url = marked_cfields.curl
             else:
                 # try STATIC
-                result_url = self.static_content_cpath_to_url(site, file_cpath, DocumentType.BINARY_DOCUMENT)
+                result_url = self.static_content_cpath_to_url(site, file_cpath, CDocType.BINARY_DOCUMENT)
         elif url_for == 'sass':
             # pre-processor stuff. Must be in pre processed content.
             scss_cpath = site.get_service('pre_processor').get_processor('sass').make_cpath(for_value)

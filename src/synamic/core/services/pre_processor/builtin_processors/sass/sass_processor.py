@@ -10,7 +10,7 @@
 
 from synamic.core.standalones.functions.decorators import not_loaded, loaded
 from .css import SCSS_CSSContent
-from synamic.core.contracts import DocumentType
+from synamic.core.contracts import CDocType
 
 
 class SASSProcessor:
@@ -39,25 +39,25 @@ class SASSProcessor:
                     curl = self.get_css_curl(file_cpath)
                     synthetic_fields = content_service.make_synthetic_cfields(
                         curl,
-                        document_type=DocumentType.GENERATED_BINARY_DOCUMENT,
+                        cdoctype=CDocType.GENERATED_BINARY_DOCUMENT,
                         fields_map=None)
                     file_content = None
-                    document_type = DocumentType.GENERATED_TEXT_DOCUMENT
+                    cdoctype = CDocType.GENERATED_TEXT_DOCUMENT
                     mime_type = 'text/css'
 
                     content_obj = SCSS_CSSContent(self.__site, synthetic_fields, curl, file_content,
-                                                  document_type=document_type,
+                                                  cdoctype=cdoctype,
                                                   mime_type=mime_type,
                                                   source_cpath=file_cpath)
                     content_objects.append(content_obj)
             else:
                 curl = self.get_static_file_curl(file_cpath)
-                synthetic_fields = content_service.make_synthetic_cfields(self, curl, document_type=DocumentType.GENERATED_BINARY_DOCUMENT, fields_map=None)
+                synthetic_fields = content_service.make_synthetic_cfields(self, curl, cdoctype=CDocType.GENERATED_BINARY_DOCUMENT, fields_map=None)
                 file_content = None
                 content_obj = content_service.build_generated_content(
                     synthetic_fields,
                     curl, file_content,
-                    document_type=DocumentType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream',
+                    cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream',
                     source_cpath=file_cpath
                 )
                 content_objects.append(content_obj)
@@ -75,7 +75,7 @@ class SASSProcessor:
 
         css_url_path_comps = (*parent_comps[1:], css_file_base_name)
         curl = self.__site.synamic.router.make_url(
-            self.__site, css_url_path_comps, for_document_type=DocumentType.GENERATED_BINARY_DOCUMENT
+            self.__site, css_url_path_comps, for_cdoctype=CDocType.GENERATED_BINARY_DOCUMENT
         )
         return curl
 
@@ -83,6 +83,6 @@ class SASSProcessor:
         url_path_comps = self.__processor_cpath.parent_cpath.get_comps_after(file_cpath)
         assert len(url_path_comps) > 0
         curl = self.__site.synamic.router.make_url(
-            self.__site, url_path_comps, for_document_type=DocumentType.GENERATED_BINARY_DOCUMENT
+            self.__site, url_path_comps, for_cdoctype=CDocType.GENERATED_BINARY_DOCUMENT
         )
         return curl

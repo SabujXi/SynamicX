@@ -10,7 +10,7 @@
 
 import re
 from collections import OrderedDict
-from synamic.core.contracts.content import DocumentType
+from synamic.core.contracts.content import CDocType
 from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static_content import StaticContent
 from synamic.core.services.content.generated_content import GeneratedContent
@@ -61,16 +61,16 @@ class ContentService:
             fields_syd = _syd.new(fields_syd)
 
         # TODO: what is the document type???
-        document_type = DocumentType.HTML_DOCUMENT
+        cdoctype = CDocType.HTML_DOCUMENT
         model_name = 'content'  # model name for contents is 'content' - a builtin model exists with this name.
                                 # User can only override no existing field creating another model with the same name
                                 # under site's meta model directory.
         model = self.__site.object_manager.get_model(model_name)
         curl = self.__site.object_manager.make_url_for_marked_content(
-            file_cpath, path=fields_syd.get('path', None), slug=fields_syd.get('slug', None), for_document_type=document_type
+            file_cpath, path=fields_syd.get('path', None), slug=fields_syd.get('slug', None), for_cdoctype=cdoctype
         )
 
-        cfields = self.make_cfields(file_cpath, curl, model, document_type, fields_syd)
+        cfields = self.make_cfields(file_cpath, curl, model, cdoctype, fields_syd)
 
         # TODO: can the following be more systematic and agile.
         # create markers that exists in cfields/contents but not in the system
@@ -84,12 +84,12 @@ class ContentService:
 
         return cfields
 
-    def build_synthetic_cfields(self, curl, document_type, fields_map):
-        return _SyntheticContentFields(self.__site, curl, document_type, fields_map)
+    def build_synthetic_cfields(self, curl, cdoctype, fields_map):
+        return _SyntheticContentFields(self.__site, curl, cdoctype, fields_map)
 
     def build_md_content(self, file_path, cached_cfields):
         mime_type = 'text/html'
-        document_type = DocumentType.HTML_DOCUMENT
+        cdoctype = CDocType.HTML_DOCUMENT
 
         _, body_text = self.__site.object_manager.get_content_parts(file_path)
         # mime type guess
@@ -99,7 +99,7 @@ class ContentService:
                                 curl,
                                 body_text,
                                 cached_cfields,
-                                document_type,
+                                cdoctype,
                                 mime_type=mime_type)
         return content
 
@@ -112,16 +112,16 @@ class ContentService:
         path_obj = path_tree.create_file_cpath(path)
         file_content = None
         mime_type = 'octet/stream'  # TODO: guess the content type here.
-        document_type = DocumentType.BINARY_DOCUMENT
+        cdoctype = CDocType.BINARY_DOCUMENT
 
-        curl = self.__site.object_manager.static_content_cpath_to_url(path_obj, document_type)
+        curl = self.__site.object_manager.static_content_cpath_to_url(path_obj, cdoctype)
 
         return StaticContent(
             self.__site,
             path_obj,
             curl,
             file_content=file_content,
-            document_type=document_type,
+            cdoctype=cdoctype,
             mime_type=mime_type)
 
     def build_generated_content(
@@ -129,17 +129,17 @@ class ContentService:
             synthetic_cfields,
             curl,
             file_content,
-            document_type=DocumentType.GENERATED_TEXT_DOCUMENT,
+            cdoctype=CDocType.GENERATED_TEXT_DOCUMENT,
             mime_type='octet/stream',
             source_cpath=None):
-        return GeneratedContent(self.__site, synthetic_cfields, curl, file_content, document_type=document_type, mime_type=mime_type, source_cpath=source_cpath)
+        return GeneratedContent(self.__site, synthetic_cfields, curl, file_content, cdoctype=cdoctype, mime_type=mime_type, source_cpath=source_cpath)
 
-    def make_cfields(self, content_file_path, curl, model, document_type, raw_fileds):
+    def make_cfields(self, content_file_path, curl, model, cdoctype, raw_fileds):
         """Just makes an instance"""
-        return _ContentFields(self.__site, content_file_path, curl, model, document_type, raw_fileds)
+        return _ContentFields(self.__site, content_file_path, curl, model, cdoctype, raw_fileds)
 
-    def make_synthetic_cfields(self, curl, document_type=DocumentType.GENERATED_BINARY_DOCUMENT, fields_map=None):
-        return _SyntheticContentFields(self.__site, curl, document_type=document_type, fields_map=fields_map)
+    def make_synthetic_cfields(self, curl, cdoctype=CDocType.GENERATED_BINARY_DOCUMENT, fields_map=None):
+        return _SyntheticContentFields(self.__site, curl, cdoctype=cdoctype, fields_map=fields_map)
 
     def build_chapters(self, chapters_fields):
         chapters = []
@@ -149,18 +149,18 @@ class ContentService:
 
 
 class _ContentFields:
-    def __init__(self, site, content_file_cpath, curl, model, document_type, raw_cfields):
+    def __init__(self, site, content_file_cpath, curl, model, cdoctype, raw_cfields):
         self.__site = site
         self.__content_file_cpath = content_file_cpath
         self.__curl = curl
         self.__model = model
-        self.__document_type = document_type
+        self.__cdoctype = cdoctype
         self.__raw_cfields = raw_cfields
         self.__converted_values = OrderedDict()
 
-    def as_generated(self, curl, document_type=DocumentType.GENERATED_HTML_DOCUMENT):
+    def as_generated(self, curl, cdoctype=CDocType.GENERATED_HTML_DOCUMENT):
         """With cfields will use .set() and thus it will only affect converted values."""
-        return _GeneratedContentFields(self.__site, curl, self.__model, document_type, self)
+        return _GeneratedContentFields(self.__site, curl, self.__model, cdoctype, self)
 
     def __convert_pagination(self, pagination_field):
         object_manager = self.__site.object_manager
@@ -232,8 +232,8 @@ class _ContentFields:
         return tuple(set(self.__converted_values.keys()).union(set(self.__raw_cfields.keys())))
 
     @property
-    def document_type(self):
-        return self.__document_type
+    def cdoctype(self):
+        return self.__cdoctype
 
     @property
     def cmodel(self):
@@ -264,11 +264,11 @@ class _ContentFields:
 
 
 class _GeneratedContentFields:
-    def __init__(self, site, curl, cmodel, document_type, origin_cfields):
+    def __init__(self, site, curl, cmodel, cdoctype, origin_cfields):
         self.__site = site
         self.__curl = curl
         self.__cmodel = cmodel
-        self.__document_type = document_type
+        self.__cdoctype = cdoctype
         self.__origin_cfields = origin_cfields
 
         self.__overridden_cfields = {}
@@ -293,8 +293,8 @@ class _GeneratedContentFields:
         return tuple(set(self.__origin_cfields.keys()).union(set(self.__overridden_cfields.keys())))
 
     @property
-    def document_type(self):
-        return self.__document_type
+    def cdoctype(self):
+        return self.__cdoctype
 
     @property
     def cmodel(self):
@@ -324,13 +324,13 @@ class _GeneratedContentFields:
 
 
 class _SyntheticContentFields:
-    def __init__(self, site, curl, document_type=DocumentType.GENERATED_BINARY_DOCUMENT, fields_map=None):
+    def __init__(self, site, curl, cdoctype=CDocType.GENERATED_BINARY_DOCUMENT, fields_map=None):
         self.__site = site
         self.__curl = curl
-        self.__document_type = document_type
+        self.__cdoctype = cdoctype
         self.__fields_map = {} if fields_map is None else fields_map
 
-        assert DocumentType.is_generated(document_type)
+        assert CDocType.is_generated(cdoctype)
 
     def get(self, key, default=None):
         return self.__fields_map.get(key, default)
@@ -347,8 +347,8 @@ class _SyntheticContentFields:
         return tuple(self.__fields_map.keys())
 
     @property
-    def document_type(self):
-        return self.__document_type
+    def cdoctype(self):
+        return self.__cdoctype
 
     @property
     def cmodel(self):

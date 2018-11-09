@@ -1,27 +1,27 @@
 import io
-from synamic.core.contracts import ContentContract, DocumentType
+from synamic.core.contracts import ContentContract, CDocType
 
 
 class PaginatedContent(ContentContract):
-    def __init__(self, site, origin_cfields, curl, paginated_cfields, document_type):
+    def __init__(self, site, origin_cfields, curl, paginated_cfields, cdoctype):
         self.__site = site
         self.__origin_cfields = origin_cfields
         self.__curl = curl
         self.__cfields = paginated_cfields
         self.__model = paginated_cfields.cmodel
-        self.__document_type = document_type
+        self.__cdoctype = cdoctype
         self.__mime_type = 'text/html'  # TODO: remove hard coding.
 
         # validation
-        assert DocumentType.is_text(self.__document_type)
+        assert CDocType.is_text(self.__cdoctype)
 
     @property
     def site(self):
         return self.__site
 
     @property
-    def document_type(self):
-        return self.__document_type
+    def cdoctype(self):
+        return self.__cdoctype
 
     @property
     def cpath(self):
@@ -271,12 +271,12 @@ class PaginationPage:
 
                 else:
                     # creating paginated content
-                    document_type = DocumentType.GENERATED_HTML_DOCUMENT
+                    cdoctype = CDocType.GENERATED_HTML_DOCUMENT
                     curl = origin_content.curl.join(
                         "/%s/%s/%d/" % (url_partition_comp, pagination_url_comp, division_idx_i + 1),
-                        for_document_type=document_type)
+                        for_cdoctype=cdoctype)
                     paginated_cfields = origin_content.cfields.as_generated(
-                        curl, document_type=document_type
+                        curl, cdoctype=cdoctype
                     )
                     paginated_cfields.set(
                         'title',
@@ -287,7 +287,7 @@ class PaginationPage:
                         origin_content.cfields,
                         curl,
                         paginated_cfields,
-                        document_type,
+                        cdoctype,
                     )
 
                     # setting pagination to an aux content

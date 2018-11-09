@@ -8,20 +8,20 @@
     status: "Development"
 """
 import io
-from synamic.core.contracts.content import ContentContract, DocumentType
+from synamic.core.contracts.content import ContentContract, CDocType
 
 
 class StaticContent(ContentContract):
-    def __init__(self, site, file_cpath, curl, file_content=None, document_type=DocumentType.BINARY_DOCUMENT, mime_type='octet/stream'):
+    def __init__(self, site, file_cpath, curl, file_content=None, cdoctype=CDocType.BINARY_DOCUMENT, mime_type='octet/stream'):
         self.__site = site
         self.__file_cpath = file_cpath
         self.__curl = curl
         self.__file_content = file_content
-        self.__document_type = document_type
+        self.__cdoctype = cdoctype
         self.__mime_type = mime_type
 
         # validation
-        assert DocumentType.is_binary(self.__document_type)
+        assert CDocType.is_binary(self.__cdoctype)
         assert type(self.__file_content) in (type(None), bytes, bytearray)
         if self.__file_cpath is None:
             assert file_content is not None
@@ -56,6 +56,6 @@ class StaticContent(ContentContract):
         return self.__mime_type
 
     @property
-    def document_type(self):
-        return self.__document_type
+    def cdoctype(self):
+        return self.__cdoctype
 

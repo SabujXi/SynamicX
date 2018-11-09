@@ -1,21 +1,21 @@
 import io
-from synamic.core.contracts import ContentContract, DocumentType
+from synamic.core.contracts import ContentContract, CDocType
 from synamic.core.services.content.toc import Toc
 
 
 class MarkedContent(ContentContract):
-    def __init__(self, site, file_cpath, curl, body_text, cfields, document_type, mime_type='text/plain'):
+    def __init__(self, site, file_cpath, curl, body_text, cfields, cdoctype, mime_type='text/plain'):
         self.__site = site
         self.__file_cpath = file_cpath
         self.__curl = curl
         self.__body_text = body_text
         self.__cfields = cfields
         self.__cmodel = cfields.cmodel
-        self.__document_type = document_type
+        self.__cdoctype = cdoctype
         self.__mime_type = mime_type
 
         # validation
-        assert DocumentType.is_text(self.__document_type)
+        assert CDocType.is_text(self.__cdoctype)
 
         self.__toc = None
         self.__body = None
@@ -25,8 +25,8 @@ class MarkedContent(ContentContract):
         return self.__site
 
     @property
-    def document_type(self):
-        return self.__document_type
+    def cdoctype(self):
+        return self.__cdoctype
 
     @property
     def cpath(self):

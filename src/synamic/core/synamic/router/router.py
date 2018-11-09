@@ -1,5 +1,5 @@
 from synamic.core.synamic.router.url import ContentUrl
-from synamic.core.contracts import DocumentType
+from synamic.core.contracts import CDocType
 
 
 class RouterService:
@@ -22,16 +22,16 @@ class RouterService:
         else:
             # step 1: search for static/binary file in file system with the path components : TODO: do for static.
             # step 2 if 1 fails: search for non-static content and in this case the url is already cached.
-            curl = self.make_url(site, path_components, DocumentType.NONE)
+            curl = self.make_url(site, path_components, CDocType.NONE)
             content = self.get_content_by_url(site, curl)
             if content is None:
-                curl = self.make_url(site, path_components, DocumentType.HTML_DOCUMENT)
+                curl = self.make_url(site, path_components, CDocType.HTML_DOCUMENT)
                 content = self.get_content_by_url(site, curl)
         return content
 
     def get_content_by_url(self, site, curl):
         """Forgiving function that returns None"""
-        if DocumentType.is_text(curl.for_document_type):
+        if CDocType.is_text(curl.for_cdoctype):
             content_cpath = site.object_manager.get_marked_cpath_by_curl(curl)
             if content_cpath is not None:
                 return site.object_manager.get_marked_content(content_cpath)
@@ -51,5 +51,5 @@ class RouterService:
                 return None
 
     @classmethod
-    def make_url(cls, site, url_path_comps, for_document_type=None):
-        return ContentUrl(site, url_path_comps, for_document_type=for_document_type)
+    def make_url(cls, site, url_path_comps, for_cdoctype=None):
+        return ContentUrl(site, url_path_comps, for_cdoctype=for_cdoctype)

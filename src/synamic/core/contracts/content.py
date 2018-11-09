@@ -12,7 +12,7 @@ import enum
 
 
 @enum.unique
-class DocumentType(enum.Enum):
+class CDocType(enum.Enum):
     # later, intending the use of auto() - currently this project in 3.5 and auto() is available in 3.6
     BINARY_DOCUMENT = "BINARY_DOCUMENT"
     GENERATED_BINARY_DOCUMENT = "GENERATED_BINARY_DOCUMENT"
@@ -57,11 +57,11 @@ class DocumentType(enum.Enum):
 
 class ContentContract(metaclass=abc.ABCMeta):
 
-    __document_types = DocumentType
+    __cdoc_types = CDocType
 
     @property
-    def document_types(self) -> DocumentType:
-        return self.__document_types
+    def cdoctypes(self) -> CDocType:
+        return self.__cdoc_types
 
     @property
     @abc.abstractmethod
@@ -104,35 +104,35 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def document_type(self):
+    def cdoctype(self):
         """
-        Instance of document __document_types enum
+        Instance of document __cdoc_types enum
         """
         pass
 
     @property
     def is_text_document(self):
-        return self.document_type is self.__document_types.TEXT_DOCUMENT
+        return self.cdoctype is self.__cdoc_types.TEXT_DOCUMENT
 
     @property
     def is_binary_document(self):
-        return self.document_type is self.__document_types.BINARY_DOCUMENT
+        return self.cdoctype is self.__cdoc_types.BINARY_DOCUMENT
 
     @property
     def is_generated_binary_document(self):
-        return self.document_type is self.__document_types.GENERATED_BINARY_DOCUMENT
+        return self.cdoctype is self.__cdoc_types.GENERATED_BINARY_DOCUMENT
 
     @property
     def is_generated_text_document(self):
-        return self.document_type is self.__document_types.GENERATED_TEXT_DOCUMENT
+        return self.cdoctype is self.__cdoc_types.GENERATED_TEXT_DOCUMENT
 
     @property
     def is_nourl_document(self):
-        return self.document_type is self.__document_types.NOURL_DOCUMENT
+        return self.cdoctype is self.__cdoc_types.NOURL_DOCUMENT
 
     @property
     def is_meta_document(self):
-        return self.document_type is self.__document_types.META_DOCUMENT
+        return self.cdoctype is self.__cdoc_types.META_DOCUMENT
 
     def __str__(self):
         return "Content with url -> %s" % self.curl.path_as_str_w_site

@@ -1,7 +1,7 @@
 import mimetypes
 import re
 from PIL import Image
-from synamic.core.contracts.content import ContentContract
+from synamic.core.contracts.content import ContentContract, CDocType
 from synamic.core.synamic.router.url import ContentUrl
 from io import BytesIO
 
@@ -95,7 +95,7 @@ class ResizedImageContent(ContentContract):
         return mime_type
 
     @property
-    def document_type(self):
+    def cdoctype(self):
         return ContentContract.__document_types.AUXILIARY
 
     @property

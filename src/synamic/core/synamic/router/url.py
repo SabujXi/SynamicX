@@ -11,7 +11,7 @@
 import re
 import urllib.parse
 from typing import Union
-from synamic.core.contracts import DocumentType
+from synamic.core.contracts import CDocType
 
 
 class ContentUrl:
@@ -94,7 +94,7 @@ class ContentUrl:
 
         return tuple(res_url_path_comps)
 
-    def __init__(self, site, url_path_comps, for_document_type=None):
+    def __init__(self, site, url_path_comps, for_cdoctype=None):
         """
         append_slash is only for dynamic contents and only when the url_path_comps is being passed as sting (not: list, tuple, content path)
         So, we are not persisting that data
@@ -105,7 +105,7 @@ class ContentUrl:
         """
 
         # TODO: make appending slash system  settings based.
-        if DocumentType.is_html(for_document_type):
+        if CDocType.is_html(for_cdoctype):
             self.__url_path_comps = self.path_to_components(
                 url_path_comps, '/'
             )
@@ -115,11 +115,11 @@ class ContentUrl:
             )
 
         self.__site = site
-        self.__for_document_type = for_document_type
+        self.__for_cdoctype = for_cdoctype
         # TODO: fix this
-        # assert type(self.__for_document_type) is DocumentType
-        # assert DocumentType.is_text(self.__for_document_type) or DocumentType.is_binary(self.__for_document_type) or\
-        #     self.__for_document_type == DocumentType.DIRECTORY
+        # assert type(self.__for_cdoctype) is CDocType
+        # assert CDocType.is_text(self.__for_cdoctype) or CDocType.is_binary(self.__for_cdoctype) or\
+        #     self.__for_cdoctype == CDocType.DIRECTORY
         self.__path_str = None
         self.__path_components_w_site = None
         self.__url_str = None
@@ -129,10 +129,10 @@ class ContentUrl:
         return self.__site
 
     @property
-    def for_document_type(self):
-        return self.__for_document_type
+    def for_cdoctype(self):
+        return self.__for_cdoctype
 
-    def join(self, url_comps: Union[str, list, tuple], for_document_type=None):
+    def join(self, url_comps: Union[str, list, tuple], for_cdoctype=None):
         this_comps = self.__url_path_comps
         other_comps = self.path_to_components(url_comps)
 
@@ -152,9 +152,9 @@ class ContentUrl:
             comps = this_comps[:-1] + (res_comp,) + other_comps[1:]
         else:
             comps = this_comps + other_comps
-        if for_document_type is None:
-            for_document_type = self.__for_document_type
-        return self.__class__(self.__site, comps, for_document_type)
+        if for_cdoctype is None:
+            for_cdoctype = self.__for_cdoctype
+        return self.__class__(self.__site, comps, for_cdoctype)
 
     @property
     def path_components(self):
@@ -222,7 +222,7 @@ class ContentUrl:
     @property
     def to_file_system_path(self):
         p = self.path_as_str
-        if DocumentType.is_html(self.__for_document_type):
+        if CDocType.is_html(self.__for_cdoctype):
             index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
             if p.endswith('/'):
                 p += index_file_name
@@ -236,7 +236,7 @@ class ContentUrl:
 
     @property
     def is_file(self):
-        return DocumentType.is_file(self.__for_document_type)
+        return CDocType.is_file(self.__for_cdoctype)
 
     @property
     def to_cpath(self):

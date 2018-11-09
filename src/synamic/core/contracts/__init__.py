@@ -10,5 +10,5 @@
 
 from synamic.core.contracts.url import ContentUrlContract
 from synamic.core.contracts.content import ContentContract
-from synamic.core.contracts.content import DocumentType
+from synamic.core.contracts.content import CDocType
 from .synamic import SynamicContract

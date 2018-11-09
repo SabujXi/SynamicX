@@ -8,24 +8,24 @@
     status: "Development"
 """
 import io
-from synamic.core.contracts.content import ContentContract, DocumentType
+from synamic.core.contracts.content import ContentContract, CDocType
 
 
 class GeneratedContent(ContentContract):
-    def __init__(self, site, synthetic_fields, curl, file_content,
-                 document_type=DocumentType.GENERATED_TEXT_DOCUMENT,
+    def __init__(self, site, synthetic_cfields, curl, file_content,
+                 cdoctype=CDocType.GENERATED_TEXT_DOCUMENT,
                  mime_type='octet/stream', source_cpath=None):
 
         self.__site = site
-        self.__synthetic_fields = synthetic_fields
+        self.__synthetic_cfields = synthetic_cfields
         self.__curl = curl
         self.__file_content = file_content
-        self.__document_type = document_type
+        self.__cdoctype = cdoctype
         self.__mime_type = mime_type
         self.__source_cpath = source_cpath
 
         # validation
-        assert DocumentType.is_generated(self.__document_type)
+        assert CDocType.is_generated(self.__cdoctype)
         assert type(self.__file_content) in (type(None), bytes, bytearray, str)
 
     @property
@@ -56,7 +56,7 @@ class GeneratedContent(ContentContract):
 
     @property
     def body(self):
-        body = self.__synthetic_fields.get('__body__', '')
+        body = self.__synthetic_cfields.get('__body__', '')
         return body
 
     @property
@@ -64,11 +64,11 @@ class GeneratedContent(ContentContract):
         return self.__mime_type
 
     @property
-    def document_type(self):
-        return self.__document_type
+    def cdoctype(self):
+        return self.__cdoctype
 
     def __get(self, key):
-        return self.__synthetic_fields.get(key, None)
+        return self.__synthetic_cfields.get(key, None)
 
     def __getitem__(self, key):
         return self.__get(key)

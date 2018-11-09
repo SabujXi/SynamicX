@@ -8,7 +8,7 @@
     status: "Development"
 """
 from synamic.core.standalones.functions.decorators import not_loaded
-from synamic.core.contracts import DocumentType
+from synamic.core.contracts import CDocType
 
 
 class UserService:
@@ -86,13 +86,13 @@ class UserService:
                 site_settings = self.__site.object_manager.get_site_settings()
                 content_service = self.__site.get_service('contents')
                 url_partition_comp = site_settings['url_partition_comp']
-                document_type = DocumentType.GENERATED_HTML_DOCUMENT
+                cdoctype = CDocType.GENERATED_HTML_DOCUMENT
                 curl = self.__site.synamic.router.make_url(
-                    self.__site, '/%s/user/%s' % (url_partition_comp, self.id), for_document_type=document_type
+                    self.__site, '/%s/user/%s' % (url_partition_comp, self.id), for_cdoctype=cdoctype
                 )
                 sf = synthetic_fields = content_service.make_synthetic_cfields(
                     curl,
-                    document_type=document_type,
+                    cdoctype=cdoctype,
                     fields_map=None)
                 sf['title'] = self.title if self.title else self.name
                 sf['author'] = self
@@ -117,7 +117,7 @@ class UserService:
                     self.cfields,
                     self.cfields.curl,
                     None,
-                    document_type=self.cfields.document_type,
+                    cdoctype=self.cfields.cdoctype,
                     mime_type='text/html',
                     source_cpath=None)
                 html_text_content = template_service.render(user_template_name, site=self.__site, content=content, author=self)
