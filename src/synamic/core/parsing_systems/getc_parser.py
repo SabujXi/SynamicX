@@ -2,8 +2,10 @@ import sly
 from sly import Lexer, Parser
 from collections import namedtuple
 
+UrlStruct = namedtuple('UrlStruct', ('scheme', 'keys', 'path'))
 
-def parse(text):
+
+def parse_getc(text) -> UrlStruct:
     """
     """
     text = text.strip()
@@ -26,10 +28,6 @@ def parse(text):
         )
     else:
         return res
-
-
-UrlStruct = namedtuple('UrlStruct', ('scheme', 'keys', 'path'))
-
 
 class GetCParsingError(Exception):
     pass
@@ -93,7 +91,7 @@ if __name__ == '__main__':
             raise
         if text:
             try:
-                res = parse(text)
+                res = parse_getc(text)
             except GetCParsingError as e:
                 print(e.args[0])
             else:

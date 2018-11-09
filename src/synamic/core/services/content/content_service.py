@@ -329,8 +329,6 @@ class _SyntheticContentFields(CFieldsContract):
         self.__cpath = cpath
         self.__fields_map = {} if fields_map is None else fields_map
 
-        assert CDocType.is_generated(cdoctype)
-
     def get(self, key, default=None):
         return self.__fields_map.get(key, default)
 

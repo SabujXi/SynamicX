@@ -12,8 +12,8 @@ from jinja2 import nodes, lexer
 from jinja2.ext import Extension
 
 
-class GetUrlExtension(Extension):
-    tags = {'geturl'}
+class GetCExtension(Extension):
+    tags = {'geturl', 'getc'}
 
     def __init__(self, environment):
         super().__init__(environment)
@@ -29,7 +29,7 @@ class GetUrlExtension(Extension):
         return nodes.Output([call], lineno=lineno)
 
     def _get_url(self, parameter):
-        url = self.environment.site_object.object_manager.geturl('geturl://' + parameter)
+        url = self.environment.site_object.object_manager.getc(parameter)
         return url
 
 

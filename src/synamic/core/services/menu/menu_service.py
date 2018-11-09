@@ -29,9 +29,7 @@ class _Menu:
 
     @property
     def link(self):
-        # router = self.__site.get_service('router')
-        # return router.geturl(self.__link)
-        return self.__site.object_manager.geturl(self.__link)
+        return self.__site.object_manager.getc(self.__link)
 
     @property
     def children(self):

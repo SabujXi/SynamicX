@@ -6,6 +6,7 @@ from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
+from synamic.core.parsing_systems.getc_parser import parse_getc, GetCParsingError
 
 
 class ObjectManager:
@@ -274,100 +275,87 @@ class ObjectManager:
     def get_path_tree(self, site):
         return site.get_service('path_tree')
 
-    @staticmethod
-    def __get_with_x_scheme(url_str):
-        url_str = url_str.strip()
-        low_url = url_str.lower()
-        if '://' in low_url:
-            scheme, url_content = url_str.split('://', 1)
-        else:
-            scheme = None
-            url_content = url_str
-
-        if scheme is not None:
-            if scheme.lower() not in ('geturl', 'getfields', 'getcontent'):
-                ordinary_url = True
-            else:
-                scheme = scheme.lower()
-                ordinary_url = False
-        else:
-            ordinary_url = True
-
-        return ordinary_url, scheme, url_content
-
-    def getfields(self, site, url_str):
-        ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
-        if ordinary_url:
-            return url_str
-
-        result_cfields = None
-        fields_for, for_value = url_content.split(':')
-        assert fields_for in ('file', 'id')
-        if fields_for == 'file':
-            file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
-            marked_cfields = self.__cache.get_marked_cfields_by_cpath(site, file_cpath, None)
-            if marked_cfields is not None:
-                result_cfields = marked_cfields
-
-        elif fields_for == 'id':
-            for marked_cfields in self.__cache.get_all_marked_cfields(site):
-                if marked_cfields.id == for_value:
-                    result_cfields = marked_cfields
-                    break
-        else:  # content
-            raise NotImplemented
-
-        if result_cfields is None:
-            raise Exception('Fields not found for getfields(): %s' % url_str)
-        else:
-            return result_cfields
-
-    def getcontent(self, site, url_str):
-        ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
-        if ordinary_url:
-            return url_str
-        result_content = self.get_marked_content(site, self.getfields(site, url_str).cpath)
-        return result_content
-
     def getc(self, site, url_str):
         """
-        For: url:// fields:// content://
+        For: curl:// url:// cfields:// content:// etc.
         """
-
-    def geturl(self, site, url_str):
-        ordinary_url, scheme, url_content = self.__get_with_x_scheme(url_str)
-        if ordinary_url:
+        try:
+            url_struct = parse_getc(url_str)
+        except GetCParsingError as e:
+            raise Exception(f"Invalid url_str/GerCParsingError: {e.args[0]}")
+        result = None
+        if url_struct.scheme in ('cfields', 'curl', 'geturl', 'url', 'content', 'cpath'):
+            key = url_struct.keys[0]  # TODO: add support for more chained keys later.
+            path = url_struct.path
+            assert key is not None and path is not None
+            c_res = self.__getc(site, key, path, None)
+            if c_res is not None:
+                if url_struct.scheme == 'cfields':
+                    result = c_res['cfields']
+                elif url_struct.scheme == 'curl':
+                    result = c_res['cfields'].curl
+                elif url_struct.scheme in ('url', 'geturl'):
+                    result = c_res['cfields'].curl.url
+                elif url_struct.scheme == 'cpath':
+                    result = c_res['cfields'].cpath
+                elif url_struct.scheme == 'content':
+                    static_content = c_res.get('static_content', None)
+                    scss_content = c_res.get('scss_content', None)  # CAUTION: sCss vs sAss
+                    if static_content is not None:
+                        result = static_content
+                    elif scss_content is not None:
+                        result = static_content
+                    else:
+                        # marked cfields
+                        marked_cfields = c_res.get('marked_cfields', None)
+                        if marked_cfields is not None:
+                            result = self.get_marked_content(site, marked_cfields.cpath)
+        else:
             return url_str
+        if result is not None:
+            return result
+        else:
+            raise Exception(f"Not found for getc ->  {url_str}")
 
-        result_url = None
-        url_for, for_value = url_content.split(':')
-        assert url_for in ('file', 'sass', 'id')
-        if url_for == 'file':
-            file_cpath = site.get_service('path_tree').create_file_cpath(for_value)
+    def __getc(self, site, key, path, default=None):
+        content_service = site.get_service('contents')
+        getc_key, getc_path = key, path
+
+        result_cfields = default
+        assert getc_key in ('file', 'sass', 'id')
+        if getc_key == 'file':
+            file_cpath = site.get_service('path_tree').create_file_cpath(getc_path)
             marked_cfields = self.__cache.get_marked_cfields_by_cpath(site, file_cpath, None)
             if marked_cfields is not None:
-                result_url = marked_cfields.curl
+                result_cfields = {
+                    'cfields': marked_cfields,
+                    'marked_cfields': marked_cfields
+                }
             else:
                 # try STATIC
-                result_url = self.static_content_cpath_to_url(site, file_cpath, CDocType.BINARY_DOCUMENT)
-        elif url_for == 'sass':
+                static_content = content_service.build_static_content(file_cpath)
+                result_cfields = {
+                    'cfields': static_content.cfields,
+                    'static_content': static_content
+                }
+        elif getc_key == 'sass':
             # pre-processor stuff. Must be in pre processed content.
-            scss_cpath = site.get_service('pre_processor').get_processor('sass').make_cpath(for_value)
+            scss_cpath = site.get_service('pre_processor').get_processor('sass').make_cpath(getc_path)
             scss_content = self.__cache.get_pre_processed_content_by_cpath(site, scss_cpath, None)
             if scss_content is not None:
-                result_url = scss_content.curl
-        elif url_for == 'id':
+                result_cfields = {
+                    'cfields': scss_content.cfields,
+                    'scss_content': scss_content  # CAREFUL: sCss vs sAss
+                }
+        elif getc_key == 'id':
             for cfields in self.__cache.get_all_marked_cfields(site):
-                if cfields.id == for_value:
-                    result_url = cfields.curl
+                if cfields.id == getc_path:
+                    result_cfields = {
+                        'cfields': cfields,
+                        'marked_cfields': cfields
+                    }
                     break
-        else:  # content
-            raise NotImplemented
-
-        if result_url is None:
-            raise Exception('URL not found for geturl(): %s' % url_str)
-        else:
-            return result_url.url_encoded
+        return result_cfields
 
     def get_site_settings(self, site):
         ss = self.__site_settings.get(site.id, None)

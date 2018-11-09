@@ -13,7 +13,7 @@ class Chapter:
     @property
     def link(self):
         if self.__cached_link is None:
-            self.__cached_link = self.__site.object_manager.geturl(self.__raw_link)
+            self.__cached_link = self.__site.object_manager.getc(self.__raw_link)
         return self.__cached_link
 
     @property

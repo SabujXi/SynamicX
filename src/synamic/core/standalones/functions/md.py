@@ -20,11 +20,11 @@ class SynamicRenderer(mistune.Renderer):
         self.__value_pack = value_pack if value_pack is not None else {}
 
     def image(self, src, title, alt_text):
-        url = self.__site.object_manager.geturl(src)
+        url = self.__site.object_manager.getc(src)
         return "<img src='%s' title='%s' alt='%s' class='img-responsive center-block'>" % (url, title, alt_text)
 
     def link(self, link, title, content):
-        url = self.__site.object_manager.geturl(link)
+        url = self.__site.object_manager.getc(link)
         return "<a href='%s' title='%s'>%s</a>" % (url, title, content)
 
     def header(self, text, level, raw=None):
