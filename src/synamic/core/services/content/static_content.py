@@ -12,13 +12,13 @@ from synamic.core.contracts.content import ContentContract, CDocType
 
 
 class StaticContent(ContentContract):
-    def __init__(self, site, file_cpath, curl, file_content=None, cdoctype=CDocType.BINARY_DOCUMENT, mime_type='octet/stream'):
+    def __init__(self, site, file_cpath, curl, file_content=None, cdoctype=CDocType.BINARY_DOCUMENT, mimetype='octet/stream'):
         self.__site = site
         self.__file_cpath = file_cpath
         self.__curl = curl
         self.__file_content = file_content
         self.__cdoctype = cdoctype
-        self.__mime_type = mime_type
+        self.__mimetype = mimetype
 
         # validation
         assert CDocType.is_binary(self.__cdoctype)
@@ -46,14 +46,14 @@ class StaticContent(ContentContract):
         return file
 
     @property
-    def mime_type(self):
-        # mime_type = 'octet/stream'
+    def mimetype(self):
+        # mimetype = 'octet/stream'
         # path = self.__url.to_file_system_path
         # type, enc = mimetypes.guess_type(path)
         # if type:
-        #     mime_type = type
-        # return mime_type
-        return self.__mime_type
+        #     mimetype = type
+        # return mimetype
+        return self.__mimetype
 
     @property
     def cdoctype(self):

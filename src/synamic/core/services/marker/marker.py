@@ -116,7 +116,7 @@ class _Mark:
                 self.cfields.curl,
                 None,
                 cdoctype=self.cfields.cdoctype,
-                mime_type='text/html',
+                mimetype='text/html',
                 source_cpath=None)
             html_text_content = template_service.render(user_template_name,
                                                         site=self.__site,

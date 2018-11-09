@@ -88,7 +88,7 @@ class ContentService:
         return _SyntheticContentFields(self.__site, curl, cdoctype, fields_map)
 
     def build_md_content(self, file_path, cached_cfields):
-        mime_type = 'text/html'
+        mimetype = 'text/html'
         cdoctype = CDocType.HTML_DOCUMENT
 
         _, body_text = self.__site.object_manager.get_content_parts(file_path)
@@ -100,7 +100,7 @@ class ContentService:
                                 body_text,
                                 cached_cfields,
                                 cdoctype,
-                                mime_type=mime_type)
+                                mimetype=mimetype)
         return content
 
     def build_paginated_md_content(self):
@@ -111,7 +111,7 @@ class ContentService:
         path_tree = self.__site.get_service('path_tree')
         path_obj = path_tree.create_file_cpath(path)
         file_content = None
-        mime_type = 'octet/stream'  # TODO: guess the content type here.
+        mimetype = 'octet/stream'  # TODO: guess the content type here.
         cdoctype = CDocType.BINARY_DOCUMENT
 
         curl = self.__site.object_manager.static_content_cpath_to_url(path_obj, cdoctype)
@@ -122,7 +122,7 @@ class ContentService:
             curl,
             file_content=file_content,
             cdoctype=cdoctype,
-            mime_type=mime_type)
+            mimetype=mimetype)
 
     def build_generated_content(
             self,
@@ -130,9 +130,9 @@ class ContentService:
             curl,
             file_content,
             cdoctype=CDocType.GENERATED_TEXT_DOCUMENT,
-            mime_type='octet/stream',
+            mimetype='octet/stream',
             source_cpath=None):
-        return GeneratedContent(self.__site, synthetic_cfields, curl, file_content, cdoctype=cdoctype, mime_type=mime_type, source_cpath=source_cpath)
+        return GeneratedContent(self.__site, synthetic_cfields, curl, file_content, cdoctype=cdoctype, mimetype=mimetype, source_cpath=source_cpath)
 
     def make_cfields(self, content_file_path, curl, model, cdoctype, raw_fileds):
         """Just makes an instance"""

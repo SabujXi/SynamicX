@@ -14,14 +14,14 @@ from synamic.core.contracts.content import ContentContract, CDocType
 class GeneratedContent(ContentContract):
     def __init__(self, site, synthetic_cfields, curl, file_content,
                  cdoctype=CDocType.GENERATED_TEXT_DOCUMENT,
-                 mime_type='octet/stream', source_cpath=None):
+                 mimetype='octet/stream', source_cpath=None):
 
         self.__site = site
         self.__synthetic_cfields = synthetic_cfields
         self.__curl = curl
         self.__file_content = file_content
         self.__cdoctype = cdoctype
-        self.__mime_type = mime_type
+        self.__mimetype = mimetype
         self.__source_cpath = source_cpath
 
         # validation
@@ -60,8 +60,8 @@ class GeneratedContent(ContentContract):
         return body
 
     @property
-    def mime_type(self):
-        return self.__mime_type
+    def mimetype(self):
+        return self.__mimetype
 
     @property
     def cdoctype(self):

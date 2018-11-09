@@ -4,7 +4,7 @@ from synamic.core.services.content.toc import Toc
 
 
 class MarkedContent(ContentContract):
-    def __init__(self, site, file_cpath, curl, body_text, cfields, cdoctype, mime_type='text/plain'):
+    def __init__(self, site, file_cpath, curl, body_text, cfields, cdoctype, mimetype='text/plain'):
         self.__site = site
         self.__file_cpath = file_cpath
         self.__curl = curl
@@ -12,7 +12,7 @@ class MarkedContent(ContentContract):
         self.__cfields = cfields
         self.__cmodel = cfields.cmodel
         self.__cdoctype = cdoctype
-        self.__mime_type = mime_type
+        self.__mimetype = mimetype
 
         # validation
         assert CDocType.is_text(self.__cdoctype)
@@ -47,8 +47,8 @@ class MarkedContent(ContentContract):
         return f
 
     @property
-    def mime_type(self):
-        return self.__mime_type
+    def mimetype(self):
+        return self.__mimetype
 
     def __render_body(self):
         body = self.__body

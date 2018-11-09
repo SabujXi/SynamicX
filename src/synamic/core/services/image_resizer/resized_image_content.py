@@ -86,13 +86,13 @@ class ResizedImageContent(ContentContract):
         return bio
 
     @property
-    def mime_type(self):
-        mime_type = 'octet/stream'
+    def mimetype(self):
+        mimetype = 'octet/stream'
         path = self.__url.to_file_system_path
         type, enc = mimetypes.guess_type(path)
         if type:
-            mime_type = type
-        return mime_type
+            mimetype = type
+        return mimetype
 
     @property
     def cdoctype(self):

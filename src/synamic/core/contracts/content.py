@@ -20,6 +20,7 @@ class CDocType(enum.Enum):
     GENERATED_TEXT_DOCUMENT = "GENERATED_TEXT_DOCUMENT"
     HTML_DOCUMENT = "HTML_DOCUMENT"
     GENERATED_HTML_DOCUMENT = "GENERATED_HTML_DOCUMENT"
+
     NOURL_DOCUMENT = "NOURL_DOCUMENT"
     META_DOCUMENT = "META_DOCUMENT"
     DIRECTORY = "DIRECTORY"
@@ -95,7 +96,7 @@ class ContentContract(metaclass=abc.ABCMeta):
 
     @property
     @abc.abstractmethod
-    def mime_type(self):
+    def mimetype(self):
         """
          return mime/type
          
@@ -111,27 +112,27 @@ class ContentContract(metaclass=abc.ABCMeta):
         pass
 
     @property
-    def is_text_document(self):
+    def is_text_doc(self):
         return self.cdoctype is self.__cdoc_types.TEXT_DOCUMENT
 
     @property
-    def is_binary_document(self):
+    def is_binary(self):
         return self.cdoctype is self.__cdoc_types.BINARY_DOCUMENT
 
     @property
-    def is_generated_binary_document(self):
+    def is_generated_binary_doc(self):
         return self.cdoctype is self.__cdoc_types.GENERATED_BINARY_DOCUMENT
 
     @property
-    def is_generated_text_document(self):
+    def is_generated_text_doc(self):
         return self.cdoctype is self.__cdoc_types.GENERATED_TEXT_DOCUMENT
 
     @property
-    def is_nourl_document(self):
+    def is_nourl_doc(self):
         return self.cdoctype is self.__cdoc_types.NOURL_DOCUMENT
 
     @property
-    def is_meta_document(self):
+    def is_meta_doc(self):
         return self.cdoctype is self.__cdoc_types.META_DOCUMENT
 
     def __str__(self):

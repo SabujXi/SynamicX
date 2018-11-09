@@ -43,11 +43,11 @@ class SASSProcessor:
                         fields_map=None)
                     file_content = None
                     cdoctype = CDocType.GENERATED_TEXT_DOCUMENT
-                    mime_type = 'text/css'
+                    mimetype = 'text/css'
 
                     content_obj = SCSS_CSSContent(self.__site, synthetic_fields, curl, file_content,
                                                   cdoctype=cdoctype,
-                                                  mime_type=mime_type,
+                                                  mimetype=mimetype,
                                                   source_cpath=file_cpath)
                     content_objects.append(content_obj)
             else:
@@ -57,7 +57,7 @@ class SASSProcessor:
                 content_obj = content_service.build_generated_content(
                     synthetic_fields,
                     curl, file_content,
-                    cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mime_type='octet/stream',
+                    cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mimetype='octet/stream',
                     source_cpath=file_cpath
                 )
                 content_objects.append(content_obj)

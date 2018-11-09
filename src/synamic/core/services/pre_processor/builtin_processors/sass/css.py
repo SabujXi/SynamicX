@@ -17,8 +17,8 @@ from synamic.core.services.content.generated_content import GeneratedContent
 class SCSS_CSSContent(GeneratedContent):
 
     def __init__(self, site, synthetic_cfields, curl, file_content,
-                 cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mime_type='text/css', source_cpath=None):
-        super().__init__(site, synthetic_cfields, curl, file_content, cdoctype=cdoctype, mime_type=mime_type, source_cpath=source_cpath)
+                 cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mimetype='text/css', source_cpath=None):
+        super().__init__(site, synthetic_cfields, curl, file_content, cdoctype=cdoctype, mimetype=mimetype, source_cpath=source_cpath)
         self.__scss_path = source_cpath
 
     def get_stream(self):

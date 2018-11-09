@@ -10,7 +10,7 @@ class PaginatedContent(ContentContract):
         self.__cfields = paginated_cfields
         self.__model = paginated_cfields.cmodel
         self.__cdoctype = cdoctype
-        self.__mime_type = 'text/html'  # TODO: remove hard coding.
+        self.__mimetype = 'text/html'  # TODO: remove hard coding.
 
         # validation
         assert CDocType.is_text(self.__cdoctype)
@@ -42,8 +42,8 @@ class PaginatedContent(ContentContract):
         return f
 
     @property
-    def mime_type(self):
-        return self.__mime_type
+    def mimetype(self):
+        return self.__mimetype
 
     @property
     def body(self):
