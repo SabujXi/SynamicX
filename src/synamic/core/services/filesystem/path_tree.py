@@ -111,24 +111,28 @@ class PathTree(object):
 
         return tuple(comps)
 
-    def create_cpath(self, *path_comps, is_file=False):
+    def create_cpath(self, *path_comps, is_file=False, forgiving=False):
         """
         Create a Content Path object.
+        :forgiving: if forgiving is True then it will not consider a result of path component ending in '' to be error.
+            This method is only for end user who do not know deep details or for from template or when you want a relaxed
+            way of doing things * Must not use in synamic core development.*
         """
         comps = self.to_cpath_comps(*path_comps)
         if not is_file:  # directory
             if comps[-1] != '':
                 comps += ('', )
         else:  # file
-            assert comps[-1] != ''
+            if not forgiving:
+                assert comps[-1] != ''
         path_obj = self.__CPath(self, self.__site, comps, is_file=is_file)
         return path_obj
 
-    def create_file_cpath(self, *path_comps):
-        return self.create_cpath(*path_comps, is_file=True)
+    def create_file_cpath(self, *path_comps, forgiving=False):
+        return self.create_cpath(*path_comps, is_file=True, forgiving=forgiving)
 
-    def create_dir_cpath(self, *path_comps):
-        return self.create_cpath(*path_comps, is_file=False)
+    def create_dir_cpath(self, *path_comps, forgiving=False):
+        return self.create_cpath(*path_comps, is_file=False, forgiving=forgiving)
 
     def exists(self, *path) -> bool:
         comps = self.to_cpath_comps(*path)
@@ -519,13 +523,13 @@ class PathTree(object):
         def __eq__(self, other):
             if not isinstance(other, self.__class__):
                 return False
-            return self.path_comps == other.path_comps
+            return self.path_comps == other.path_comps and self.is_file == other.is_file
 
         def __hash__(self):
             return hash(self.path_comps)
 
         def __str__(self):
-            return "__CPath: %s" % self.relative_path
+            return f"CPath: {self.relative_path}"
 
         def __repr__(self):
             return repr(str(self))
