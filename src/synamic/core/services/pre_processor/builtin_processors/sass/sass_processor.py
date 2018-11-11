@@ -30,15 +30,33 @@ class SASSProcessor:
     def get_generated_contents(self):
         content_objects = []
         content_service = self.__site.get_service('contents')
-        sass_file_cpaths = self.__processor_cpath.list_files()
-        for file_cpath in sass_file_cpaths:
-            scss_basename = file_cpath.basename
-            if file_cpath.extension.lower() in {'scss'}:
-                if not scss_basename.lower().startswith('_'):
-                    # partial file in not not condition, ignore it.
-                    curl = self.get_css_curl(file_cpath)
-                    cdoctype = CDocType.GENERATED_TEXT_DOCUMENT
-                    mimetype = 'text/css'
+        if self.__processor_cpath.exists():
+            sass_file_cpaths = self.__processor_cpath.list_files()
+            for file_cpath in sass_file_cpaths:
+                scss_basename = file_cpath.basename
+                if file_cpath.extension.lower() in {'scss'}:
+                    if not scss_basename.lower().startswith('_'):
+                        # partial file in not not condition, ignore it.
+                        curl = self.get_css_curl(file_cpath)
+                        cdoctype = CDocType.GENERATED_TEXT_DOCUMENT
+                        mimetype = 'text/css'
+                        synthetic_fields = content_service.make_synthetic_cfields(
+                            curl,
+                            cdoctype,
+                            mimetype,
+                            cpath=None,
+                            fields_map=None)
+                        file_content = None
+
+                        content_obj = SCSS_CSSContent(self.__site,
+                                                      synthetic_fields,
+                                                      file_content,
+                                                      source_cpath=file_cpath)
+                        content_objects.append(content_obj)
+                else:
+                    curl = self.get_static_file_curl(file_cpath)
+                    cdoctype = CDocType.GENERATED_BINARY_DOCUMENT
+                    mimetype = 'octet/stream'
                     synthetic_fields = content_service.make_synthetic_cfields(
                         curl,
                         cdoctype,
@@ -46,30 +64,13 @@ class SASSProcessor:
                         cpath=None,
                         fields_map=None)
                     file_content = None
-
-                    content_obj = SCSS_CSSContent(self.__site,
-                                                  synthetic_fields,
-                                                  file_content,
-                                                  source_cpath=file_cpath)
+                    content_obj = content_service.build_generated_content(
+                        synthetic_fields,
+                        curl, file_content,
+                        cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mimetype=mimetype,
+                        source_cpath=file_cpath
+                    )
                     content_objects.append(content_obj)
-            else:
-                curl = self.get_static_file_curl(file_cpath)
-                cdoctype = CDocType.GENERATED_BINARY_DOCUMENT
-                mimetype = 'octet/stream'
-                synthetic_fields = content_service.make_synthetic_cfields(
-                    curl,
-                    cdoctype,
-                    mimetype,
-                    cpath=None,
-                    fields_map=None)
-                file_content = None
-                content_obj = content_service.build_generated_content(
-                    synthetic_fields,
-                    curl, file_content,
-                    cdoctype=CDocType.GENERATED_TEXT_DOCUMENT, mimetype=mimetype,
-                    source_cpath=file_cpath
-                )
-                content_objects.append(content_obj)
         return content_objects
 
     def make_cpath(self, *path_comps, is_file=True):

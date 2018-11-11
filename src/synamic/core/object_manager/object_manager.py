@@ -51,20 +51,21 @@ class ObjectManager:
             content_service = site.get_service('contents')
             path_tree = self.get_path_tree(site)
             content_dir = site.synamic.default_data.get_syd('dirs')['contents.contents']
-
+            content_cdir = path_tree.create_dir_cpath(content_dir)
             # for content
-            file_paths = path_tree.list_file_cpaths(content_dir)
-            for file_path in file_paths:
-                if file_path.extension.lower() in {'md', 'markdown'}:
-                    text = self.get_raw_data(site, file_path)
-                    front_matter, body = content_splitter(file_path, text)
-                    del body
-                    fields_syd = self.make_syd(front_matter)
-                    cfields = content_service.build_cfields(fields_syd, file_path)
-                    self.__cache.add_marked_cfields(site, cfields)
-                else:
-                    # No need to cache anything about static file.
-                    pass
+            if content_cdir.exists():  # check content dir existence before proceeding
+                file_paths = content_cdir.list_files()
+                for file_path in file_paths:
+                    if file_path.extension.lower() in {'md', 'markdown'}:
+                        text = self.get_raw_data(site, file_path)
+                        front_matter, body = content_splitter(file_path, text)
+                        del body
+                        fields_syd = self.make_syd(front_matter)
+                        cfields = content_service.build_cfields(fields_syd, file_path)
+                        self.__cache.add_marked_cfields(site, cfields)
+                    else:
+                        # No need to cache anything about static file.
+                        pass
         else:
             raise NotImplemented
             # database backend is not implemented yet. AND there is nothing to do here for db, skip it when implemented
@@ -84,7 +85,6 @@ class ObjectManager:
             generated_contents = pre_processor.get_generated_contents()
             for generated_content in generated_contents:
                 self.__cache.add_pre_processed_content(site, generated_content, generated_content.source_cpath)
-                # self.__pre_processed_content_cachemap[site.id][generated_content.id] = generated_content
 
     def __cache_menus(self, site):
         menu_service = site.get_service('menus')
@@ -208,12 +208,11 @@ class ObjectManager:
     def get_static_file_paths(self, site):
         paths = []
         path_tree = site.get_service('path_tree')
-        statics_dir = site.default_data.get_syd('dirs')['contents.statics']
         contents_dir = site.default_data.get_syd('dirs')['contents.contents']
-        paths.extend(path_tree.list_file_cpaths(statics_dir))
+        contents_cdir = path_tree.create_dir_cpath(contents_dir)
 
-        for path in path_tree.list_file_cpaths(contents_dir):
-            if path.basename.lower().endswith(('.md', '.markdown')):
+        if contents_cdir.exists():
+            for path in contents_cdir.list_cpaths(checker=lambda cp: cp.basename.endswith(('.md', '.markdown'))):
                 paths.append(path)
         return paths
 
@@ -252,7 +251,8 @@ class ObjectManager:
         model_dir = site.synamic.default_data.get_syd('dirs')['metas.models']
         path_tree = site.get_service('path_tree')
         user_model_cpath = path_tree.create_file_cpath(model_dir, model_name + '.model')
-
+        if not user_model_cpath.exists():
+            return None
         processed_model = self.__cache.get_model(site, model_name, None)
         if processed_model is None:
             system_model = site.default_data.get_model(model_name, None)

@@ -22,10 +22,13 @@ class MarkerService:
     def get_marker_ids(self):
         path_tree = self.__site.get_service('path_tree')
         markers_path = self.__site.default_data.get_syd('dirs').get('metas.markers')
-        marker_cpaths = path_tree.list_file_cpaths(markers_path, checker=lambda cp: cp.basename.endswith('.syd'))
+        markers_cdir = path_tree.create_dir_cpath(markers_path)
+
         _ = []
-        for cp in marker_cpaths:
-            _.append(cp.basename[:-len('.syd')])
+        if markers_cdir.exists():
+            marker_cpaths = markers_cdir.list_files(checker=lambda cp: cp.basename.endswith('.syd'))
+            for cp in marker_cpaths:
+                _.append(cp.basename[:-len('.syd')])
         ids = tuple(_)
         return ids
 

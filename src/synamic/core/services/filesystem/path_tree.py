@@ -257,7 +257,7 @@ class PathTree(object):
         # new code p1: converting sting paths like ('x', 'a/b\\c') to ('x', 'a', 'b', 'c')
 
         absolute_root = self.__full_path(starting_comps)
-        absolute_site_root = self.__host.abs_root_path
+        # absolute_site_root = self.__host.abs_root_path
         assert self.__fs.exists(absolute_root), "Absolute root must exist: %s" % absolute_root
 
         # new
@@ -315,7 +315,8 @@ class PathTree(object):
 
     def list_cpaths(self, initial_path_comps=(), files_only=None, directories_only=None, depth=None, exclude_compss=(), checker=None):
         if type(initial_path_comps) is self.__CPath:
-            starting_comps = initial_path_comps.path_components
+            assert initial_path_comps.is_dir
+            starting_comps = initial_path_comps.path_comps
         else:
             starting_comps = self.to_cpath_comps(initial_path_comps)
         _exclude_compss = []
@@ -446,32 +447,22 @@ class PathTree(object):
                     return ".".join(dotted_parts[-dot_count:])
             return ''
 
-        def list_paths(self, initial_comps=(), depth=None):
-            assert self.is_dir
-            comps = self.__path_tree.to_cpath_comps(initial_comps)
-            comps = (*self.path_comps, *comps)
+        def list_cpaths(self, files_only=None, depth=None, exclude_compss=(), checker=None):
             return self.__path_tree.list_cpaths(
-                initial_path_comps=comps,
-                depth=depth
+                files_only=files_only,
+                initial_path_comps=self,
+                depth=depth,
+                exclude_compss=exclude_compss,
+                checker=checker
             )
 
-        def list_files(self, initial_comps=(), depth=None):
-            assert self.is_dir
-            comps = self.__path_tree.to_cpath_comps(initial_comps)
-            comps = (*self.path_comps, *comps)
-            return self.__path_tree.list_file_cpaths(
-                initial_path_comps=comps,
-                depth=depth
-            )
+        def list_files(self, depth=None, exclude_compss=(), checker=None):
+            _, cfiles = self.list_cpaths(files_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker)
+            return cfiles
 
-        def list_dirs(self, initial_comps=(), depth=None):
-            assert self.is_dir
-            comps = self.__path_tree.to_cpath_comps(initial_comps)
-            comps = (*self.path_comps, *comps)
-            return self.__path_tree.list_dir_cpaths(
-                initial_path_comps=comps,
-                depth=depth
-            )
+        def list_dirs(self, depth=None, exclude_compss=(), checker=None):
+            dirs, _ = self.list_cpaths(files_only=False, depth=depth, exclude_compss=exclude_compss, checker=checker)
+            return dirs
 
         def exists(self):
             """Real time checking"""

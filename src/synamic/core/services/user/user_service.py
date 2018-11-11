@@ -43,12 +43,13 @@ class UserService:
         user_ids = []
         path_tree = self.__site.get_service('path_tree')
         users_cdir = path_tree.create_dir_cpath(self.__menu_dir)
-        menu_cfiles = users_cdir.list_files(depth=1)
-        for menu_cfile in menu_cfiles:
-            basename = menu_cfile.basename
-            if basename.lower().endswith('.syd'):
-                menu_name = basename[:-len('.syd')]
-                user_ids.append(menu_name)
+        if users_cdir.exists():
+            user_cfiles = users_cdir.list_files(depth=1)
+            for menu_cfile in user_cfiles:
+                basename = menu_cfile.basename
+                if basename.lower().endswith('.syd'):
+                    menu_name = basename[:-len('.syd')]
+                    user_ids.append(menu_name)
         return tuple(user_ids)
 
     class __User:
