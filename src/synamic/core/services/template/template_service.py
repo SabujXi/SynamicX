@@ -13,6 +13,7 @@ import jinja2
 from synamic.core.services.template.template_tags import GetCExtension, ResizeImageExtension
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.standalones.functions.parent_config_splitter import parent_config_str_splitter
+from .loaders import SynamicJinjaFileSystemLoader
 
 
 class SynamicTemplateService:
@@ -23,14 +24,8 @@ class SynamicTemplateService:
 
     @not_loaded
     def load(self):
-        assert not self.__is_loaded, "Module cannot be loaded twice"
-        path_tree = self.__site.get_service('path_tree')
-        templates_dir = self.__site.default_data.get_syd('dirs')['templates.templates']
-        templates_dir_path = path_tree.create_dir_cpath(templates_dir)
         self.__template_env = jinja2.Environment(
-            loader=jinja2.FileSystemLoader(
-                templates_dir_path.abs_path,
-                encoding='utf-8', followlinks=False),
+            loader=SynamicJinjaFileSystemLoader(self.__site),
             autoescape=jinja2.select_autoescape(['html', 'xml']),
             extensions=[GetCExtension, ResizeImageExtension]
         )
