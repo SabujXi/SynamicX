@@ -1,13 +1,13 @@
-def _assert_type(target, what):
-    assert type(target) in (tuple, list)
-    assert type(what) in (tuple, list)
+def _assert_convert_type(target, what):
+    assert isinstance(target, (tuple, list))
+    assert isinstance(what, (tuple, list))
     return tuple(target), tuple(what)
 
 
 class Sequence:
     @staticmethod
     def startswith(target, what):
-        target, what = _assert_type(target, what)
+        target, what = _assert_convert_type(target, what)
         if len(what) == 0 or len(target) == 0:
             return False
         elif len(what) > len(target):
@@ -25,7 +25,7 @@ class Sequence:
 
     @staticmethod
     def lstrip(target, what):
-        target, what = _assert_type(target, what)
+        target, what = _assert_convert_type(target, what)
         if Sequence.startswith(target, what):
             res = target[len(what):]
         else:
@@ -34,7 +34,7 @@ class Sequence:
 
     @staticmethod
     def _contains_w_idx(target, what):
-        target, what = _assert_type(target, what)
+        target, what = _assert_convert_type(target, what)
         if len(what) == 0 or len(target) == 0:
             return False, -1
 
@@ -56,7 +56,7 @@ class Sequence:
 
     @staticmethod
     def extract_4m_startswith(target, what):
-        target, what = _assert_type(target, what)
+        target, what = _assert_convert_type(target, what)
         print("extract_4m_startswith: %s, %s (target, what)" % (target, what))
         found, idx = Sequence._contains_w_idx(target, what)
         if found:

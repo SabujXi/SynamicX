@@ -31,12 +31,10 @@ class PreProcessorService:
         preprocess_cdir = path_tree.create_dir_cpath(self.__site.default_data.get_syd('dirs')['contents.pre_process'])
         if preprocess_cdir.exists():
             cdirs = preprocess_cdir.list_dirs(depth=1)
-            print(cdirs)
             for cdir in cdirs:
                 processor_name = cdir.basename
                 if processor_name in _builtin_processor_classes:
                     self.add_processor(processor_name, cdir, _builtin_processor_classes[processor_name])
-
         # Add builtin pre-processor even if the dir does not exist for it
         for processor_name, processor_class in _builtin_processor_classes.items():
             if self.get_processor(processor_name, default=None, error_out=False) is None:

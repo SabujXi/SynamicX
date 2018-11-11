@@ -270,19 +270,18 @@ class ContentUrl:
         # Unused for now: url_fragment = parsed_url.fragment
         path_segments = list(cls.path_to_components(url_path))
         assert path_segments[0] == ''  # logical validation of path to components
+        path_segments = path_segments[1:]
         # del path_segments[0]
-
         # partition at special url comp
-        site_ids_comps = [site_id.components for site_id in synamic.sites.ids]
+        site_ids_comps = sorted([site_id.components for site_id in synamic.sites.ids], key=len, reverse=True)
         url_partition_comp = synamic.default_data.get_syd('settings')['url_partition_comp']
 
         site_id_components, path_components, special_components = [], [], []
-
         #  extract out site id.
         for site_id_comps in site_ids_comps:
             if len(path_segments) < len(site_id_comps):
                 continue
-            if path_segments[:len(site_id_comps)] == site_ids_comps:
+            if tuple(path_segments[:len(site_id_comps)]) == tuple(site_id_comps):
                 site_id_components = path_segments[:len(site_id_comps)]
                 path_segments = path_segments[len(site_id_comps):]
                 break

@@ -2,7 +2,7 @@ import sly
 from sly import Lexer, Parser
 from collections import namedtuple
 
-UrlStruct = namedtuple('UrlStruct', ('scheme', 'keys', 'path'))
+UrlStruct = namedtuple('UrlStruct', ('scheme', 'site_sep', 'keys', 'path'))
 
 
 def parse_getc(text) -> UrlStruct:
@@ -29,15 +29,17 @@ def parse_getc(text) -> UrlStruct:
     else:
         return res
 
+
 class GetCParsingError(Exception):
     pass
 
 
 class GetCLexer(Lexer):
-    tokens = {'SCHEME_NAME', 'SCHEME_SEP', 'KEY', 'KEY_SEP', 'PATH'}
+    tokens = {'SCHEME_NAME', 'SCHEME_SEP', 'SITE_SEP', 'KEY', 'KEY_SEP', 'PATH'}
     PATH = r'[^:]+$'
     SCHEME_NAME = r'[a-zA-Z]+(?=://)'
     SCHEME_SEP = r'://'
+    SITE_SEP = r'::'
     KEY = r'[a-zA-Z_][a-zA-Z0-9_-]*'
     KEY_SEP = r':'
 
@@ -49,17 +51,20 @@ class GetCParser(Parser):
     # Grammar rules and actions
     @_('PATH',  # normal relative url
        'SCHEME_NAME SCHEME_SEP PATH',  # normal absolute url
-       'SCHEME_NAME SCHEME_SEP keys PATH'  # geturl
+       'SCHEME_NAME SCHEME_SEP keys PATH',  # geturl
+       'SCHEME_NAME SCHEME_SEP SITE_SEP keys PATH'  # geturl
        )
     def query(self, p):
         length = len(p)
         if length == 1:
-            struct = UrlStruct(scheme='', keys=tuple(), path=p[0])
+            struct = UrlStruct(scheme='', keys=tuple(), site_sep='', path=p[0])
         elif length == 3:
-            struct = UrlStruct(scheme=p[0], keys=tuple(), path=p[2])
+            struct = UrlStruct(scheme=p[0], keys=tuple(), site_sep='', path=p[2])
+        elif length == 4:
+            struct = UrlStruct(scheme=p[0], keys=p[2], site_sep='', path=p[3])
         else:
-            assert length == 4
-            struct = UrlStruct(scheme=p[0], keys=p[2], path=p[3])
+            assert length == 5
+            struct = UrlStruct(scheme=p[0], keys=p[3], site_sep=p[2], path=p[4])
         return struct
 
     @_('KEY KEY_SEP',

@@ -86,10 +86,12 @@ class SiteSettingsService:
 
         # all parent settings are merged
         parent_settings = []
-        while self.__site.has_parent:
+        site = self.__site
+        while site.has_parent:
             parent_settings.append(
                 self.__site.parent.object_manager.get_site_settings()
             )
+            site = site.parent
         parent_settings.reverse()
         parent_settings = [dirs_syd, configs_syd] + parent_settings
 

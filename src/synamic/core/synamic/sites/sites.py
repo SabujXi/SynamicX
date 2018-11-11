@@ -82,7 +82,6 @@ class Sites:
                                               *self.__get_real_site_path_comps(site_id.components))
             site = self.make_site(site_id, site_root_abs_path, parent_site=parent_site, root_site=root_site)
             self.add_site(site)
-
         # load all the sites.
         for site in self.__sites_map.values():
             site.load()

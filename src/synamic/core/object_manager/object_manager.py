@@ -247,22 +247,28 @@ class ObjectManager:
 
     def get_model(self, site, model_name):
         """Nothing from the system model be overridden - this is opposite of system syd to user settings."""
-        types = site.get_service('types')
-
-        model_dir = site.synamic.default_data.get_syd('dirs')['metas.models']
-        path_tree = site.get_service('path_tree')
-        user_model_cpath = path_tree.create_file_cpath(model_dir, model_name + '.model')
-        if not user_model_cpath.exists():
-            return None
         processed_model = self.__cache.get_model(site, model_name, None)
         if processed_model is None:
-            system_model = site.default_data.get_model(model_name, None)
-            if system_model is None:
+            types = site.get_service('types')
+
+            model_dir = site.synamic.default_data.get_syd('dirs')['metas.models']
+            path_tree = site.get_service('path_tree')
+            user_model_cpath = path_tree.create_file_cpath(model_dir, model_name + '.model')
+
+            if user_model_cpath.exists():
                 user_model = ModelParser.parse(model_name, self.get_raw_data(site, user_model_cpath))
+            else:
+                user_model = None
+
+            system_model = site.default_data.get_model(model_name, None)
+            if system_model is None and processed_model is None:
+                return None
+            elif system_model is not None and user_model is not None:
+                new_model = user_model.new(system_model)
+            elif system_model is None:
                 new_model = user_model
             else:
-                user_model = ModelParser.parse(model_name, self.get_raw_data(site, user_model_cpath))
-                new_model = user_model.new(system_model)
+                new_model = system_model
             # put converters inside of the cfields
             for key, field in new_model.items():
                 converter = types.get_converter(field.converter_name)
@@ -294,7 +300,13 @@ class ObjectManager:
             key = url_struct.keys[0]  # TODO: add support for more chained keys later.
             path = url_struct.path
             assert key is not None and path is not None
-            c_res = self.__getc(site, key, path, None)
+
+            c_res = None
+            for s in self.sites_up(site, url_struct.site_sep)[0]:
+                c_res = self.__getc(s, key, path, None)
+                if c_res is not None:
+                    break
+
             if c_res is not None:
                 if url_struct.scheme == 'cfields':
                     result = c_res['cfields']
@@ -486,12 +498,32 @@ class ObjectManager:
         return tuple(_)
 
     def get_user(self, site, user_id):
-        user = self.__cache.get_user(site, user_id, None)
+        user = None
+        sites_up, user_id = self.sites_up(site, user_id)
+        for _site in sites_up:
+            user = self.__cache.get_user(_site, user_id, None)
+            if user is not None:
+                break
+
         if user is None:
             user_service = site.get_service('users')
             user = user_service.make_user(user_id)
-            self.__cache.add_user(site, user)
+            if user is not None:
+                self.__cache.add_user(site, user)
         return user
+
+    def sites_up(self, site, param_w_site_sep):
+        _ = []
+        if param_w_site_sep.startswith('::'):
+            param_w_site_sep = param_w_site_sep[2:]
+            _.append(site)
+        else:
+            _site = site
+            _.append(_site)
+            while _site.has_parent:
+                _site = _site.parent
+                _.append(_site)
+        return _, param_w_site_sep
 
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):

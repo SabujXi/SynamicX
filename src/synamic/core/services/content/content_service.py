@@ -124,9 +124,9 @@ class ContentService:
             render_callable=None):
         return GeneratedContent(self.__site, synthetic_cfields, file_content, source_cpath=source_cpath, render_callable=render_callable)
 
-    def make_cfields(self, content_file_path, curl, model, cdoctype, mimetype, raw_fileds):
+    def make_cfields(self, content_file_path, curl, cmodel, cdoctype, mimetype, raw_fileds):
         """Just makes an instance"""
-        return _ContentFields(self.__site, content_file_path, curl, model, cdoctype, mimetype, raw_fileds)
+        return _ContentFields(self.__site, content_file_path, curl, cmodel, cdoctype, mimetype, raw_fileds)
 
     def make_synthetic_cfields(self, curl, cdoctype, mimetype, cpath=None, fields_map=None):
         return _SyntheticContentFields(self.__site, curl, cdoctype, mimetype, cpath=cpath, fields_map=fields_map)
@@ -139,11 +139,11 @@ class ContentService:
 
 
 class _ContentFields(CFieldsContract):
-    def __init__(self, site, content_file_cpath, curl, model, cdoctype, mimetype, raw_cfields):
+    def __init__(self, site, content_file_cpath, curl, cmodel, cdoctype, mimetype, raw_cfields):
         self.__site = site
         self.__content_file_cpath = content_file_cpath
         self.__curl = curl
-        self.__cmodel = model
+        self.__cmodel = cmodel
         self.__cdoctype = cdoctype
         self.__mimetype = mimetype
         self.__raw_cfields = raw_cfields

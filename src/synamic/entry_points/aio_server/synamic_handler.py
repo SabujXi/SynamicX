@@ -4,7 +4,7 @@ from aiohttp import web
 
 async def synamic_handler(request):
     synamic = request.app.synamic
-    path_qs = f"{request.path}?{request.query_string}"
+    path_qs = f"{request.path}{'?' + request.query_string if request.query_string else ''}"
     print(f'Requesting: {path_qs}')
     # content = synamic.object_manager.router.get(path_qs)
     content = synamic.router.get_content(path_qs)

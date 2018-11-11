@@ -19,23 +19,23 @@ class SynamicJinjaFileSystemLoader(BaseLoader):
             if not template_cdir.exists() or not template_cfile.exists():
                 raise TemplateNotFound(
                     template,
-                    message=f"Template directory "
-                            f"{template_cdir.abs_path} does not exits for site with id {site.id.as_string}"
+                    message=f"Template "
+                            f"{template_cfile.abs_path} does not exits for site with id {site.id.as_string}"
                 )
         else:
-            while site.parent is not None:
+            while site.has_parent:
+                site = site.parent
                 path_tree = site.path_tree
                 template_cdir = path_tree.create_dir_cpath(template_dir)
                 template_cfile = template_cdir.join(template, is_file=True)
                 if template_cdir.exists() and template_cfile.exists():
                     break
-                site = site.parent
 
             if not template_cdir.exists() or not template_cfile.exists():
                 raise TemplateNotFound(
                     template,
-                    message=f"Template directory "
-                            f"{template_cdir.abs_path} does not exits for site with id {site.id.as_string}"
+                    message=f"Template "
+                            f"{template_cfile.abs_path} does not exits for site with id {site.id.as_string}"
                 )
         with template_cfile.open('r', encoding='utf-8') as f:
             source = f.read()
