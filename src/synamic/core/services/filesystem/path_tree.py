@@ -125,6 +125,10 @@ class PathTree(object):
         else:  # file
             if not forgiving:
                 assert comps[-1] != ''
+            else:
+                if len(comps) > 1 and comps[-1] == '':
+                    comps = comps[:-1]
+
         path_obj = self.__CPath(self, self.__site, comps, is_file=is_file)
         return path_obj
 
