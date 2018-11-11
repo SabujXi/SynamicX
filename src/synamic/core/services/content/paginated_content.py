@@ -295,5 +295,6 @@ class PaginationPage:
                 0
             )
             origin_content.cfields.set('pagination', pagination)
+            paginations.append(pagination)
         paginations[0].sub_pages = paginations[1:]
         return tuple(paginations), tuple(paginated_contents)
