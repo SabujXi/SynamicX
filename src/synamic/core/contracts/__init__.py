@@ -7,8 +7,8 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-from synamic.core.contracts.cfields import CFieldsContract
-from synamic.core.contracts.url import ContentUrlContract
-from synamic.core.contracts.content import ContentContract
-from synamic.core.contracts.content import CDocType
+from .fs_backend import BaseFsBackendContract
+from .cfields import CFieldsContract
+from .url import ContentUrlContract
+from .content import ContentContract, CDocType
 from .synamic import SynamicContract

@@ -9,7 +9,8 @@
 """
 import re
 from collections import deque
-from .backends import FileSystemBackend, BaseFsBackendContract
+from synamic.core.contracts import BaseFsBackendContract
+from .backends import FileSystemBackend
 
 
 regex_type = type(re.compile(""))
