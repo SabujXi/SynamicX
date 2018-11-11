@@ -11,6 +11,7 @@ import re
 from collections import deque
 from synamic.core.contracts import BaseFsBackendContract
 from .backends import FileSystemBackend
+from synamic.core.contracts import HostContract, SiteContract, SynamicContract
 
 
 regex_type = type(re.compile(""))
@@ -22,19 +23,37 @@ class _Patterns:
 
 
 class PathTree(object):
-    def __init__(self, site):
-        self.__site = site
-        # TODO: assert os.path.isdir(site.site_root), "FileTree.__init__: _root must be a directory, `%s`"
-        #  % site.site_root
+    def __init__(self, host):
+        assert isinstance(host, HostContract)
+        self.__host = host
+        # TODO: assert os.path.isdir(host.site_root), "FileTree.__init__: _root must be a directory, `%s`"
+        #  % host.site_root
 
         # default backend system
         self.__fs = FileSystemBackend()
 
         # default configs
-        _dc = site.default_data.get_syd('configs')
+        _dc = host.default_data.get_syd('configs')
         self.__ignore_dirs_sw = _dc.get('ignore_dirs_sw', None)
         self.__ignore_files_sw = _dc.get('ignore_files_sw', None)
         self.__is_loaded = False
+
+    @classmethod
+    def for_site(cls, site):
+        assert isinstance(site, SiteContract)
+        return cls(site)
+
+    @property
+    def host(self):
+        return self.__host
+
+    @property
+    def is_site_host(self):
+        return isinstance(self.__host, SiteContract)
+
+    @property
+    def is_synamic_host(self):
+        return isinstance(self.__host, SynamicContract)
 
     @property
     def fs(self):
@@ -137,7 +156,7 @@ class PathTree(object):
                 if len(comps) > 1 and comps[-1] == '':
                     comps = comps[:-1]
 
-        path_obj = self.__CPath(self, self.__site, comps, is_file=is_file)
+        path_obj = self.__CPath(self, self.__host, comps, is_file=is_file)
         return path_obj
 
     def create_file_cpath(self, *path_comps, forgiving=False):
@@ -197,12 +216,12 @@ class PathTree(object):
 
     def get_full_path(self, *comps) -> str:
         comps = self.to_cpath_comps(*comps)
-        return self.join_comps(self.__site.abs_site_path, *comps)
+        return self.join_comps(self.__host.abs_root_path, *comps)
 
     def __full_path(self, comps):
         # for internal use only where there is no normalization needed with self.to_cpath_comps
         """Comma separated arguments of path components or os.sep separated paths"""
-        return self.join_comps(self.__site.abs_site_path, *comps)
+        return self.join_comps(self.__host.abs_root_path, *comps)
 
     def __list_cpaths_loop2(self, starting_comps=(), files_only=None, directories_only=None, depth=None, exclude_comps_tuples=(), checker=None):
         """
@@ -238,7 +257,7 @@ class PathTree(object):
         # new code p1: converting sting paths like ('x', 'a/b\\c') to ('x', 'a', 'b', 'c')
 
         absolute_root = self.__full_path(starting_comps)
-        absolute_site_root = self.__site.abs_site_path
+        absolute_site_root = self.__host.abs_root_path
         assert self.__fs.exists(absolute_root), "Absolute root must exist: %s" % absolute_root
 
         # new
@@ -268,7 +287,7 @@ class PathTree(object):
 
             if self.__fs.is_file(path_abs) and (files_only is True or files_only is None):
                 move_in = True
-                # path_obj = self.__CPath(self, self.__site, path_comps, is_file=True)
+                # path_obj = self.__CPath(self, self.__host, path_comps, is_file=True)
                 path_obj = self.create_cpath(path_comps, is_file=True)
                 if checker is not None and not checker(path_obj):
                     move_in = False
@@ -279,7 +298,7 @@ class PathTree(object):
                     files.append(path_obj)
 
             elif self.__fs.is_dir(path_abs) and (directories_only is True or directories_only is None):
-                # path_obj = self.__CPath(self, self.__site, path_comps, is_file=False)
+                # path_obj = self.__CPath(self, self.__host, path_comps, is_file=False)
                 path_obj = self.create_cpath(path_comps, is_file=False)
                 move_in = True
                 if checker is not None and not checker(path_obj):

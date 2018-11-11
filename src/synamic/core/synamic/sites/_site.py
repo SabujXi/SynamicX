@@ -13,6 +13,7 @@ from synamic.core.services.tasks import TasksService
 from synamic.core.services.marker import MarkerService
 from synamic.core.services.user import UserService
 from synamic.core.default_data import DefaultDataManager
+from synamic.core.contracts import SiteContract
 
 
 def _install_default_services(site):
@@ -20,8 +21,6 @@ def _install_default_services(site):
     # Event Bus
     self.add_service('event_bus', EventSystem)
 
-    # setting path tree
-    self.add_service('path_tree', PathTree)
     # markers
     self.add_service('markers', MarkerService)
     # menus
@@ -47,7 +46,7 @@ def _install_default_services(site):
     self.add_service('tasks', TasksService)
 
 
-class _Site:
+class _Site(SiteContract):
     def __init__(self, synamic, site_id, abs_path_to_site, parent_site=None, root_site=None):
         assert os.path.exists(abs_path_to_site)
         self.__synamic = synamic
@@ -74,9 +73,16 @@ class _Site:
         # Object Manager for site
         self.__object_manager_4_site = self.__synamic.object_manager.get_manager_for_site(self)
 
+        # setting path tree
+        self.__path_tree = PathTree.for_site(self)
+
         # Service container
         self.__services_container = {}
         _install_default_services(self)
+
+        # Add path tree as service.
+        # TODO: remove it later - keeping it now just to not crash the system.
+        self.__services_container['path_tree'] = self.__path_tree
 
         self.__is_loaded = False
 
@@ -89,9 +95,8 @@ class _Site:
         return self.__site_id
 
     @property
-    def abs_path(self):
+    def abs_root_path(self):
         return self.__abs_path_to_site
-    abs_site_path = abs_path
 
     @property
     def parent(self):
@@ -146,6 +151,10 @@ class _Site:
     @property
     def default_data(self) -> DefaultDataManager:
         return self.__synamic.default_data
+
+    @property
+    def path_tree(self):
+        return self.__path_tree
 
     @property
     def event_bus(self) -> EventSystem:

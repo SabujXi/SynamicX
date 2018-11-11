@@ -1,7 +1,8 @@
-from abc import abstractmethod, ABCMeta
+from abc import abstractmethod, ABC
+from .host import HostContract
 
 
-class SynamicContract(metaclass=ABCMeta):
+class SynamicContract(ABC, HostContract):
     @abstractmethod
     def load(self):
         pass
@@ -34,11 +35,6 @@ class SynamicContract(metaclass=ABCMeta):
     @property
     @abstractmethod
     def sites(self):
-        pass
-
-    @property
-    @abstractmethod
-    def root_path(self):
         pass
 
     @property

@@ -75,7 +75,7 @@ class Sites:
             assert parent_site_id is not None
             parent_site = self.get_by_id(parent_site_id)
             root_site = self.__root_site
-            site_root_abs_path = os.path.join(self.__synamic.root_path,
+            site_root_abs_path = os.path.join(self.__synamic.abs_root_path,
                                               *self.__get_real_site_path_comps(site_id.components))
             site = self.make_site(site_id, site_root_abs_path, parent_site=parent_site, root_site=root_site)
             self.add_site(site)

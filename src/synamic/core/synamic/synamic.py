@@ -14,6 +14,7 @@ from synamic.core.synamic.router import RouterService
 from synamic.core.default_data import DefaultDataManager
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.object_manager import ObjectManager
+from synamic.core.services.filesystem.path_tree import PathTree
 
 
 class Synamic(SynamicContract):
@@ -27,6 +28,8 @@ class Synamic(SynamicContract):
 
         # Object Manager
         self.__object_manager = ObjectManager(self)
+
+        self.__path_tree = PathTree(self)
 
         self.__sites = Sites(self, self.__root_site_root)
         self.__router = RouterService(self)
@@ -65,8 +68,12 @@ class Synamic(SynamicContract):
         return self.__sites
 
     @property
-    def root_path(self) -> str:
+    def abs_root_path(self) -> str:
         return self.__root_site_root
+
+    @property
+    def path_tree(self):
+        return self.__path_tree
 
     # @loaded
     @property
@@ -76,6 +83,3 @@ class Synamic(SynamicContract):
     @property
     def event_system(self):
         raise NotImplemented
-
-
-

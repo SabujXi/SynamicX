@@ -11,4 +11,8 @@ from .fs_backend import BaseFsBackendContract
 from .cfields import CFieldsContract
 from .url import ContentUrlContract
 from .content import ContentContract, CDocType
+
+# hosts
+from .host import HostContract
+from .site import SiteContract
 from .synamic import SynamicContract
