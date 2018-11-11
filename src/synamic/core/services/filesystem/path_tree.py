@@ -31,11 +31,6 @@ class PathTree(object):
 
         # default backend system
         self.__fs = FileSystemBackend()
-
-        # default configs
-        _dc = host.default_data.get_syd('configs')
-        self.__ignore_dirs_sw = _dc.get('ignore_dirs_sw', None)
-        self.__ignore_files_sw = _dc.get('ignore_files_sw', None)
         self.__is_loaded = False
 
     @classmethod
@@ -90,7 +85,7 @@ class PathTree(object):
         return str_comps
 
     @classmethod
-    def to_cpath_comps(cls, *path_comps):
+    def to_cpath_ccomps(cls, *path_comps):
         """Creates special cpath components that can have '' empty string on both ends
         To get components (without empty string on both ends) use path_comps property on cpath object"""
         comps = []
@@ -138,6 +133,19 @@ class PathTree(object):
 
         return tuple(comps)
 
+    @classmethod
+    def to_path_comps(cls, *path_comps):
+        """The one returned by CPath.path_comps"""
+        ccomps = cls.to_cpath_ccomps(*path_comps)
+        # remove empty string from both ends
+        if len(ccomps) > 1 and ccomps[-1] == '':
+            ccomps = ccomps[:-1]
+        if len(ccomps) > 1 and ccomps[0] == '':
+            ccomps = ccomps[1:]
+
+        comps = ccomps
+        return comps
+
     def create_cpath(self, *path_comps, is_file=False, forgiving=False):
         """
         Create a Content Path object.
@@ -145,7 +153,7 @@ class PathTree(object):
             This method is only for end user who do not know deep details or for from template or when you want a relaxed
             way of doing things * Must not use in synamic core development.*
         """
-        comps = self.to_cpath_comps(*path_comps)
+        comps = self.to_cpath_ccomps(*path_comps)
         if not is_file:  # directory
             if comps[-1] != '':
                 comps += ('', )
@@ -166,32 +174,32 @@ class PathTree(object):
         return self.create_cpath(*path_comps, is_file=False, forgiving=forgiving)
 
     def exists(self, *path) -> bool:
-        comps = self.to_cpath_comps(*path)
+        comps = self.to_cpath_ccomps(*path)
         """Checks existence relative to the root"""
-        return True if self.__fs.exists(self.__full_path(comps)) else False
+        return True if self.__fs.exists(self.__full_path__(comps)) else False
 
     def is_file(self, *path) -> bool:
-        comps = self.to_cpath_comps(*path)
-        fn = self.__full_path(comps)
+        comps = self.to_cpath_ccomps(*path)
+        fn = self.__full_path__(comps)
         return True if self.__fs.is_file(fn) else False
 
     def is_dir(self, *path) -> bool:
-        comps = self.to_cpath_comps(*path)
-        fn = self.__full_path(comps)
+        comps = self.to_cpath_ccomps(*path)
+        fn = self.__full_path__(comps)
         return True if self.__fs.is_dir(fn) else False
 
     def join(self, *content_paths):
-        comps = self.to_cpath_comps(*content_paths)
+        comps = self.to_cpath_ccomps(*content_paths)
         return self.create_cpath(comps)
 
     def open(self, file_path, *args, **kwargs):
-        comps = self.to_cpath_comps(file_path)
-        fn = self.__full_path(comps)
+        comps = self.to_cpath_ccomps(file_path)
+        fn = self.__full_path__(comps)
         return open(fn, *args, **kwargs)
 
     def makedirs(self, *dir_path):
-        comps = self.to_cpath_comps(*dir_path)
-        full_p = self.__full_path(comps)
+        comps = self.to_cpath_ccomps(*dir_path)
+        full_p = self.__full_path__(comps)
         self.__fs.makedirs(full_p)
 
     @staticmethod
@@ -200,7 +208,7 @@ class PathTree(object):
         Replacement for os path join as that discards empty string instead of putting a forward slash there"""
         _ = []
         for idx, comp in enumerate(comps):
-            assert type(comp) is str
+            assert isinstance(comp, str), f'Provided type {type(comp)}'
             while comp.endswith(('/', '\\')):
                 comp = comp[:-1]
             if idx > 0:
@@ -215,116 +223,37 @@ class PathTree(object):
         return '/'.join(_)
 
     def get_full_path(self, *comps) -> str:
-        comps = self.to_cpath_comps(*comps)
+        comps = self.to_cpath_ccomps(*comps)
         return self.join_comps(self.__host.abs_root_path, *comps)
 
-    def __full_path(self, comps):
+    def __full_path__(self, comps):
         # for internal use only where there is no normalization needed with self.to_cpath_comps
         """Comma separated arguments of path components or os.sep separated paths"""
         return self.join_comps(self.__host.abs_root_path, *comps)
 
-    def __list_cpaths_loop2(self, starting_comps=(), files_only=None, directories_only=None, depth=None, exclude_comps_tuples=(), checker=None):
-        """
-        A function to get all paths recursively starting from abs_root but returns a list of paths relative to the 
-        .root
-        prefix_relative_root is fixed on every recursion
-        BUT next_relative_root isn't
-        
-        exclude_comps_tuples: *components* list that are excluded from listing
-        checker: callables that accepts parameters: __ContentPath2 instance.
-        """
-        for comp in starting_comps:
-            assert type(comp) is str, "Components must be of type string. %s found" % str(type(comp))
-
-        for comps in exclude_comps_tuples:
-            assert type(comps) is tuple, "exclude_comps_tuples must contain tuple of strings as path. %s found" % str(type(comps))
-
-        # check that files only and directories only both are not set to the Truth value
-        if files_only is True:
-            assert directories_only is not True
-        if directories_only is True:
-            assert files_only is not True
-
-        # depth
-        assert depth is None or type(depth) is int, "Type of depth must be None or int, %s found with value %s" %(str(type(depth)), str(depth))
-        if depth is None:
-            depth = 2147483647
-
-        # old code p1
-        # for x in starting_comps:
-        #     assert '/' not in x and '\\' not in x
-
-        # new code p1: converting sting paths like ('x', 'a/b\\c') to ('x', 'a', 'b', 'c')
-
-        absolute_root = self.__full_path(starting_comps)
-        # absolute_site_root = self.__host.abs_root_path
-        assert self.__fs.exists(absolute_root), "Absolute root must exist: %s" % absolute_root
-
-        # new
-        to_travel = deque([((*starting_comps, comp), 1) for comp in self.__fs.listdir(absolute_root)])
-        directories = []
-        files = []
-
-        while len(to_travel) != 0:
-            path_comps_n_depth = to_travel.popleft()
-            path_comps = path_comps_n_depth[0]
-            path_depth = path_comps_n_depth[1]
-            if path_depth > depth:
-                break
-            path_base = path_comps[-1]
-            path_abs = self.__full_path(path_comps)
-
-            # skip paths of exclude dirs
-            do_continue = False
-            for exclude_comps in exclude_comps_tuples:
-                if path_depth == len(exclude_comps):
-                    # if self.norm_components(path_comps) == self.norm_components(exclude_comps):
-                    if path_comps == exclude_comps:
-                        do_continue = True
-                        break
-            if do_continue:
-                continue
-
-            if self.__fs.is_file(path_abs) and (files_only is True or files_only is None):
-                move_in = True
-                # path_obj = self.__CPath(self, self.__host, path_comps, is_file=True)
-                path_obj = self.create_cpath(path_comps, is_file=True)
-                if checker is not None and not checker(path_obj):
-                    move_in = False
-                elif path_base.startswith(self.__ignore_files_sw):
-                    move_in = False
-
-                if move_in:
-                    files.append(path_obj)
-
-            elif self.__fs.is_dir(path_abs) and (directories_only is True or directories_only is None):
-                # path_obj = self.__CPath(self, self.__host, path_comps, is_file=False)
-                path_obj = self.create_cpath(path_comps, is_file=False)
-                move_in = True
-                if checker is not None and not checker(path_obj):
-                    move_in = False
-                if path_base.startswith(self.__ignore_dirs_sw):
-                    move_in = False
-                if move_in:
-                    directories.append(path_obj)
-                    # Recurse
-                    to_travel.extend(tuple([((*path_comps, comp), path_depth + 1) for comp in self.__fs.listdir(path_abs)]))
-            else:
-                raise Exception("ContentPath is neither dir, nor file")
-        return directories, files
+    def __list_cpaths_loop2(self, starting_comps=(), files_only=None, directories_only=None, depth=None, exclude_cpaths=(), checker=None, respect_settings=True):
+        return self.__ListCPathsLoop(
+            self,
+            starting_comps=starting_comps,
+            files_only=files_only,
+            directories_only=directories_only,
+            depth=depth,
+            exclude_cpaths=exclude_cpaths,
+            checker=checker,
+            respect_settings=respect_settings)()
 
     def list_cpaths(self, initial_path_comps=(), files_only=None, directories_only=None, depth=None, exclude_compss=(), checker=None):
         if type(initial_path_comps) is self.__CPath:
             assert initial_path_comps.is_dir
             starting_comps = initial_path_comps.path_comps
         else:
-            starting_comps = self.to_cpath_comps(initial_path_comps)
+            starting_comps = self.to_cpath_ccomps(initial_path_comps)
         _exclude_compss = []
         for pc in exclude_compss:
-            _exclude_compss.append(self.to_cpath_comps(pc))
+            _exclude_compss.append(self.to_cpath_ccomps(pc))
         exclude_compss = tuple(_exclude_compss)
 
-        dirs, files = self.__list_cpaths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth, exclude_comps_tuples=exclude_compss, checker=checker)
+        dirs, files = self.__list_cpaths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth, exclude_cpaths=exclude_compss, checker=checker)
         return dirs, files
 
     def list_file_cpaths(self, initial_path_comps=(), depth=None, exclude_compss=(), checker=None):
@@ -341,6 +270,116 @@ class PathTree(object):
     def __set_fs__(self, fs_instance):
         assert isinstance(fs_instance, BaseFsBackendContract)
         self.__fs = fs_instance
+
+    class __ListCPathsLoop:
+        def __init__(self, path_tree, starting_comps=(), files_only=None, directories_only=None, depth=None, exclude_cpaths=None, checker=None, respect_settings=True):
+            self.path_tree = path_tree
+            self.starting_comps = None
+            self.files_only = files_only
+            self.directories_only = directories_only
+            self.depth = depth
+            self.exclude_cpaths = None
+            self.checker = checker
+            self.respect_settings = respect_settings
+
+            if starting_comps is None:
+                self.starting_comps = ()
+            else:
+                self.starting_comps = self.path_tree.to_path_comps(starting_comps)
+
+            for exclude_comps in exclude_cpaths:
+                assert type(exclude_comps) is tuple, f"exclude_cpaths must contain tuple of strings as path." \
+                                                     f" {exclude_comps} found"
+
+            # check that files only and directories only both are not set to the Truth value
+            if files_only is True:
+                assert directories_only is not True
+            if directories_only is True:
+                assert files_only is not True
+
+            # depth
+            assert isinstance(depth, (type(None), int)), f"Type of depth must be None or int, {type(depth)}" \
+                                                             f" found with value {depth}"
+            if depth is None:
+                self.depth = 2147483647
+
+            # exclude cpaths validation
+            _ = set()
+            if exclude_cpaths is None:
+                exclude_cpaths = set()
+            for exclude_cpath in exclude_cpaths:
+                assert self.path_tree.is_type_cpath(exclude_cpath)
+                _.add(exclude_cpath)
+            else:
+                self.exclude_cpaths = _
+
+            # default configs
+            _dc = self.path_tree.host.default_data.get_syd('configs')
+            self.__ignore_dirs_sw = _dc.get('ignore_dirs_sw', None)
+            self.__ignore_files_sw = _dc.get('ignore_files_sw', None)
+
+        def __call__(self, *args, **kwargs):
+            """
+                    A function to get all paths recursively starting from abs_root but returns a list of paths relative to the
+                    .root
+                    prefix_relative_root is fixed on every recursion
+                    BUT next_relative_root isn't
+
+                    exclude_comps_tuples: *components* list that are excluded from listing
+                    checker: callables that accepts parameters: __ContentPath2 instance.
+                    """
+            absolute_root = self.path_tree.__full_path__(self.starting_comps)
+            assert self.path_tree.fs.exists(absolute_root), f"Absolute root must exist: {absolute_root}"
+
+            # new
+            to_travel = deque([((*self.starting_comps, comp), 1) for comp in self.path_tree.fs.listdir(absolute_root)])
+            directories = []
+            files = []
+
+            while len(to_travel) != 0:
+                path_comps_n_depth = to_travel.popleft()
+                path_comps = path_comps_n_depth[0]
+                path_depth = path_comps_n_depth[1]
+                if path_depth > self.depth:
+                    break
+                path_base = path_comps[-1]
+                path_abs = self.path_tree.__full_path__(path_comps)
+
+                if self.path_tree.fs.is_file(path_abs) and (self.files_only in (True, None)):
+                    move_in = True
+                    path_obj = self.path_tree.create_cpath(path_comps, is_file=True)
+                    if self.checker is not None and not self.checker(path_obj):
+                        move_in = False
+
+                    elif self.respect_settings and path_base.startswith(self.__ignore_files_sw):
+                        move_in = False
+
+                    elif path_obj in self.exclude_cpaths:
+                        move_in = False
+
+                    if move_in:
+                        files.append(path_obj)
+
+                elif self.path_tree.fs.is_dir(path_abs) and (self.directories_only in (True, None)):
+                    path_obj = self.path_tree.create_cpath(path_comps, is_file=False)
+                    move_in = True
+                    if self.checker is not None and not self.checker(path_obj):
+                        move_in = False
+
+                    elif self.respect_settings and path_base.startswith(self.__ignore_dirs_sw):
+                        move_in = False
+
+                    elif path_obj in self.exclude_cpaths:
+                        move_in = False
+
+                    if move_in:
+                        directories.append(path_obj)
+                        # Recurse
+                        to_travel.extend(
+                            tuple([((*path_comps, comp), path_depth + 1) for comp in self.path_tree.fs.listdir(path_abs)]))
+                else:
+                    raise Exception(f"ContentPath is neither dir, nor file: {path_abs}")
+            return directories, files
 
     class __CPath:
         """
@@ -474,7 +513,7 @@ class PathTree(object):
 
         def join(self, *path_str_or_cmps, is_file=True):
             """Creates a new path joining to this one"""
-            comps = self.__path_tree.to_cpath_comps(*path_str_or_cmps) # [p for p in re.split(r'[\\/]+', path_str) if p != '']
+            comps = self.__path_tree.to_cpath_ccomps(*path_str_or_cmps) # [p for p in re.split(r'[\\/]+', path_str) if p != '']
             if self.is_dir:
                 new_path_comps = (*self.path_comps, *comps)
             else:
@@ -509,14 +548,14 @@ class PathTree(object):
             return regex.match(self.extension)
 
         def startswith(self, *comps):
-            ccomps = self.__path_tree.to_cpath_comps(comps)
+            ccomps = self.__path_tree.to_cpath_ccomps(comps)
             if not (len(self.path_comps) < len(ccomps)):
                 if self.path_comps[:len(ccomps)] == ccomps:
                     return True
             return False
 
         def endswith(self, *comps):
-            ccomps = self.__path_tree.to_cpath_comps(comps)
+            ccomps = self.__path_tree.to_cpath_ccomps(comps)
             if not (len(self.path_comps) < len(ccomps)):
                 if self.path_comps[-len(ccomps):] == ccomps:
                     return True

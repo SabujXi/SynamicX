@@ -42,6 +42,9 @@ class Sites:
     def make_id(self, comps):
         return _SiteId(comps)
 
+    def get_id_sep(self):
+        return _SiteId.get_id_sep()
+
     def make_site(self, site_id, site_root_path_abs, parent_site=None, root_site=None):
         """Only this method should know how to make a site - no direct _Site class instantiation"""
         site_id = self.make_id(site_id)
@@ -143,9 +146,9 @@ class _SiteId:
     __ws_pat = re.compile(r'\s', re.MULTILINE)
     __ids_sep = '::'
 
-    @property
-    def ids_sep(self):
-        return self.__ids_sep
+    @classmethod
+    def get_id_sep(cls):
+        return cls.__ids_sep
 
     def __init__(self, comps):
         _bk_comps = comps
