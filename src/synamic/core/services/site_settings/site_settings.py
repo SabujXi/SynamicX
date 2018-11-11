@@ -81,6 +81,7 @@ class SiteSettingsService:
 
         site_om = self.__site.object_manager
         settings_fn = 'settings.syd'
+
         site_settings_syd = site_om.get_syd(settings_fn)
 
         # all parent settings are merged
@@ -91,7 +92,9 @@ class SiteSettingsService:
             )
         parent_settings.reverse()
         parent_settings = [dirs_syd, configs_syd] + parent_settings
-        parent_settings.append(site_settings_syd)
+
+        if site_settings_syd is not None:
+            parent_settings.append(site_settings_syd)
 
         new_syd = system_settings_syd.new(*parent_settings)
         return new_syd

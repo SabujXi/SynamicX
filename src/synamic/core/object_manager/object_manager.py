@@ -229,14 +229,15 @@ class ObjectManager:
         return text
 
     def get_syd(self, site, path):
-        path_tree = self.get_path_tree(site)
+        path_tree = site.path_tree
         if not path_tree.is_type_cpath(path):
-            path = path_tree.create_file_cpath(path)
-
-        syd = self.__cache.get_syd(site, path, default=None)
-        if syd is None:
-            syd = SydParser(self.get_raw_data(site, path)).parse()
-            self.__cache.add_syd(site, path, syd)
+            cpath = path_tree.create_file_cpath(path)
+        else:
+            cpath = path
+        syd = self.__cache.get_syd(site, cpath, default=None)
+        if syd is None and cpath.exists():
+            syd = SydParser(self.get_raw_data(site, cpath)).parse()
+            self.__cache.add_syd(site, cpath, syd)
         return syd
 
     @staticmethod
