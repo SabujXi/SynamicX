@@ -7,11 +7,11 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-
-import os
 import re
 from collections import deque
-from collections.__init__ import deque
+from .backends import FileSystemBackend, BaseFsBackendContract
+
+
 regex_type = type(re.compile(""))
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 
@@ -26,11 +26,18 @@ class PathTree(object):
         # TODO: assert os.path.isdir(site.site_root), "FileTree.__init__: _root must be a directory, `%s`"
         #  % site.site_root
 
+        # default backend system
+        self.__fs = FileSystemBackend()
+
         # default configs
         _dc = site.default_data.get_syd('configs')
         self.__ignore_dirs_sw = _dc.get('ignore_dirs_sw', None)
         self.__ignore_files_sw = _dc.get('ignore_files_sw', None)
         self.__is_loaded = False
+
+    @property
+    def fs(self):
+        return self.__fs
 
     @property
     def is_loaded(self):
@@ -123,9 +130,9 @@ class PathTree(object):
             if comps[-1] != '':
                 comps += ('', )
         else:  # file
-            if not forgiving:
+            if not forgiving:  # is file & not forgiving
                 assert comps[-1] != ''
-            else:
+            else:  # is file & forgiving.
                 if len(comps) > 1 and comps[-1] == '':
                     comps = comps[:-1]
 
@@ -141,17 +148,17 @@ class PathTree(object):
     def exists(self, *path) -> bool:
         comps = self.to_cpath_comps(*path)
         """Checks existence relative to the root"""
-        return True if os.path.exists(self.__full_path(comps)) else False
+        return True if self.__fs.exists(self.__full_path(comps)) else False
 
     def is_file(self, *path) -> bool:
         comps = self.to_cpath_comps(*path)
         fn = self.__full_path(comps)
-        return True if os.path.isfile(fn) else False
+        return True if self.__fs.is_file(fn) else False
 
     def is_dir(self, *path) -> bool:
         comps = self.to_cpath_comps(*path)
         fn = self.__full_path(comps)
-        return True if os.path.isdir(fn) else False
+        return True if self.__fs.is_dir(fn) else False
 
     def join(self, *content_paths):
         comps = self.to_cpath_comps(*content_paths)
@@ -165,7 +172,7 @@ class PathTree(object):
     def makedirs(self, *dir_path):
         comps = self.to_cpath_comps(*dir_path)
         full_p = self.__full_path(comps)
-        os.makedirs(full_p)
+        self.__fs.makedirs(full_p)
 
     @staticmethod
     def join_comps(*comps):
@@ -231,10 +238,10 @@ class PathTree(object):
 
         absolute_root = self.__full_path(starting_comps)
         absolute_site_root = self.__site.abs_site_path
-        assert os.path.exists(absolute_root), "Absolute root must exist: %s" % absolute_root
+        assert self.__fs.exists(absolute_root), "Absolute root must exist: %s" % absolute_root
 
         # new
-        to_travel = deque([((*starting_comps, comp), 1) for comp in os.listdir(absolute_root)])
+        to_travel = deque([((*starting_comps, comp), 1) for comp in self.__fs.listdir(absolute_root)])
         directories = []
         files = []
 
@@ -258,7 +265,7 @@ class PathTree(object):
             if do_continue:
                 continue
 
-            if os.path.isfile(path_abs) and (files_only is True or files_only is None):
+            if self.__fs.is_file(path_abs) and (files_only is True or files_only is None):
                 move_in = True
                 # path_obj = self.__CPath(self, self.__site, path_comps, is_file=True)
                 path_obj = self.create_cpath(path_comps, is_file=True)
@@ -270,7 +277,7 @@ class PathTree(object):
                 if move_in:
                     files.append(path_obj)
 
-            elif os.path.isdir(path_abs) and (directories_only is True or directories_only is None):
+            elif self.__fs.is_dir(path_abs) and (directories_only is True or directories_only is None):
                 # path_obj = self.__CPath(self, self.__site, path_comps, is_file=False)
                 path_obj = self.create_cpath(path_comps, is_file=False)
                 move_in = True
@@ -281,7 +288,7 @@ class PathTree(object):
                 if move_in:
                     directories.append(path_obj)
                     # Recurse
-                    to_travel.extend(tuple([((*path_comps, comp), path_depth + 1) for comp in os.listdir(path_abs)]))
+                    to_travel.extend(tuple([((*path_comps, comp), path_depth + 1) for comp in self.__fs.listdir(path_abs)]))
             else:
                 raise Exception("ContentPath is neither dir, nor file")
         return directories, files
@@ -309,6 +316,10 @@ class PathTree(object):
 
     def is_type_cpath(self, other):
         return type(other) is self.__CPath
+
+    def __set_fs__(self, fs_instance):
+        assert isinstance(fs_instance, BaseFsBackendContract)
+        self.__fs = fs_instance
 
     class __CPath:
         """
@@ -518,7 +529,7 @@ class PathTree(object):
                     return None
 
         def getmtime(self):
-            return os.path.getmtime(self.abs_path)
+            return self.__path_tree.fs.getmtime(self.abs_path)
 
         @property
         def id(self):

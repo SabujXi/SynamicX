@@ -1,44 +1,71 @@
-class BaseBackend:
-    def __init__(self, path_tree):
-        self.__path_tree = path_tree
+import os
+import os.path
+import abc
 
-    @property
-    def path_tree(self):
-        return self.__path_tree
 
-    def open(self, cpath, *args, **kwargs):
+class BaseFsBackendContract(metaclass=abc.ABCMeta):
+    @abc.abstractmethod
+    def open(self, path, *args, **kwargs):
         """Return a file object"""
-        raise NotImplemented
 
-    def exists(self, cpath):
-        raise NotImplemented
+    @abc.abstractmethod
+    def exists(self, path):
+        """Checks existence of path"""
 
-    def is_file(self, cpath):
-        pass
+    @abc.abstractmethod
+    def is_file(self, path):
+        """Checks if it is a file"""
 
-    def is_dir(self, cpath):
-        pass
+    @abc.abstractmethod
+    def is_dir(self, path):
+        """Checks if it is a dir"""
 
-    def listdir(self, cpath):
-        raise NotImplemented
+    @abc.abstractmethod
+    def listdir(self, path):
+        """Lists a directory"""
 
-    def makedirs(self, cpath):
-        raise NotImplemented
+    @abc.abstractmethod
+    def makedirs(self, path):
+        """Makes directories recursively"""
 
-    def getmtime(self, cpath):
-        raise NotImplemented
+    @abc.abstractmethod
+    def getmtime(self, path):
+        """Get modification? time"""
 
-    def remove(self, cpath):
-        raise NotImplemented
+    @abc.abstractmethod
+    def remove(self, path):
+        """Removes the path"""
 
 
-class FileSystemBackend(BaseBackend):
+class FileSystemBackend(BaseFsBackendContract):
+    def open(self, path, *args, **kwargs):
+        return open(path, *args, **kwargs)
+
+    def exists(self, path):
+        return os.path.exists(path)
+
+    def is_file(self, path):
+        return os.path.isfile(path)
+
+    def is_dir(self, path):
+        return os.path.isdir(path)
+
+    def listdir(self, path):
+        return os.listdir(path)
+
+    def makedirs(self, path):
+        return os.makedirs(path)
+
+    def getmtime(self, path):
+        return os.path.getmtime(path)
+
+    def remove(self, path):
+        return os.remove(path)
+
+
+class InMemoryBackend(BaseFsBackendContract):
     pass
 
 
-class InMemoryBackend(BaseBackend):
-    pass
-
-
-class FileSystemRedirectBackend(BaseBackend):
+class FileSystemRedirectBackend(BaseFsBackendContract):
     pass
