@@ -16,7 +16,8 @@ __all__ = [
     'SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
     'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
     'SynamicInvalidNumberFormat', 'SynamicModelParsingError', 'SynamicInvalidDateTimeFormat',
-    'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError'
+    'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError',
+    'SynamicSydParseError'
 ]
 
 
@@ -48,20 +49,20 @@ def get_source_snippet_from_text(text, line_no, limit=10):
 
     half_limit = limit//2
     half_limit_l = half_limit
-    if line_no >= half_limit:
+    if line_no > half_limit:
         half_limit_l = line_no - half_limit
     else:
         half_limit_l = 1
     res = []
     res.extend(
-        ['....' + line for line in lines[half_limit_l - 1:line_no - 1]]
+        ['.... ' + line for line in lines[half_limit_l - 1:line_no - 1]]
     )
 
     error_line = lines[line_no - 1]
-    res.append('->..' + error_line)
+    res.append('->.. ' + error_line)
 
     res.extend(
-        ['....' + line for line in lines[line_no:line_no + half_limit]]
+        ['.... ' + line for line in lines[line_no:line_no + half_limit]]
     )
     return '\n'.join(res)
 
@@ -176,6 +177,10 @@ class SynamicInvalidCPathComponentError(SynamicError):
 
 class SynamicPathDoesNotExistError(SynamicError):
     """When the path is non existent"""
+
+
+class SynamicSydParseError(SynamicError):
+    """Syd parse error in curlybrace parser."""
 
 
 class LogicalError(SynamicError):

@@ -157,6 +157,7 @@ import pprint
 import datetime
 import numbers
 from synamic.core.standalones.functions.date_time import DtPatterns, parse_date, parse_time, parse_datetime
+from synamic.exceptions import SynamicSydParseError, get_source_snippet_from_text
 
 
 # patterns
@@ -791,7 +792,12 @@ class SydParser:
                     is_multiline = False
             else:
                 self.__dprint("error in line: %s" % line)
-                raise Exception('Expected key match.\n%s' % self.__fmt_error_msg)
+                err = SynamicSydParseError(
+                    f'Syd Parsing key match error:\n{self.__fmt_error_msg}\n'
+                    f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+                )
+                raise err
+
         # self.__dprint("\nKEY: %s" % str(key))
         # self.__dprint("\nLINE END: %s" % line[end_pos:])
         # process multi line block
@@ -820,7 +826,11 @@ class SydParser:
                 self.__process_block(key, block_type)
                 self.__leave_state(_ParseState.processing_list)
             else:
-                raise Exception("Something is horribly wrong.\n%s" % self.__fmt_error_msg)
+                err = SynamicSydParseError(
+                    f'Syd Parsing error - Something is horribly wrong:\n{self.__fmt_error_msg}\n'
+                    f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+                )
+                raise err
         # inline list
         elif inline_list_match:
             content = inline_list_match.group('content')
@@ -840,14 +850,21 @@ class SydParser:
             # must not increment as it it is inline: X self.current_line_no += 1
             self.__leave_state(_ParseState.processing_inline)
         else:
-            raise Exception("Could not parse.\n%s" % self.__fmt_error_msg)
-            #  else.
+            err = SynamicSydParseError(
+                f'Syd Parsing error - could not parse:\n{self.__fmt_error_msg}\n'
+                f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+            )
+            raise err
 
     def __process_datum_ml_string(self, end_pos, key, multiline_token):  # (1.1)
         line = self.__lines[self.__current_line_no - 1]
         line_end = line[end_pos:].lstrip()
         if not line_end.startswith('{'):
-            raise Exception('...')
+            err = SynamicSydParseError(
+                f'Syd Parsing error - ...:\n{self.__fmt_error_msg}\n'
+                f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+            )
+            raise err
         else:
             lines = []
             line_end = line_end[1:]
@@ -856,7 +873,12 @@ class SydParser:
             if line_end.strip() == '' or self.__is_comment(line_end):
                 pass  # ignore empty line or comment for the first line.
             else:
-                raise Exception("Multiline string starting line cannot contain data (only comment or blank)")
+                err = SynamicSydParseError(
+                    f'Syd Parsing error - Multiline string starting line cannot contain data (only comment or blank)'
+                    f':\n{self.__fmt_error_msg}\n'
+                    f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+                )
+                raise err
 
             # now collect lines until you get a } on a single line.
             # if a line contains only one } and you want to make that literal then escape it with \
@@ -873,7 +895,13 @@ class SydParser:
 
                 lines.append(line)
                 if self.__current_line_no == len(self.__lines):
-                    raise Exception('End of text but no end to the newline found')
+                    err = SynamicSydParseError(
+                        f'Syd Parsing error - End of text but no end to the newline found'
+                        f':\n{self.__fmt_error_msg}\n'
+                        f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+                    )
+                    raise err
+
                     # process lines
                     # > if is_multiline == '~~'
                     # blah blah blah
@@ -924,7 +952,11 @@ class SydParser:
         try:
             return self.convert_to_scalar_values(text, key, processing_inline_list=processing_inline_list)
         except ValueError as ve:
-            raise Exception(ve.args[0] % self.__fmt_error_msg)
+            err = SynamicSydParseError(
+                f'Syd Parsing error - value error ({ve.args[0]}):\n{self.__fmt_error_msg}\n'
+                f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+            )
+            raise err
 
     @staticmethod
     def __extract_key(text):
@@ -967,7 +999,11 @@ class SydParser:
                 # so this is a block
                 return True, lstripped_text[0]
             else:
-                raise Exception('Something is horribly wrong!')
+                err = SynamicSydParseError(
+                    f'Syd Parsing error - Something is horribly wrong!:\n{self.__fmt_error_msg}\n'
+                    f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+                )
+                raise err
         return False, None
 
     @staticmethod
@@ -1048,8 +1084,12 @@ class SydParser:
                         text = text[next_stop:]
                 else:
                     if text.strip() != '':
-                        raise ValueError("We are not processing inline list, but still there are some data left after"
-                                         " converting one, %s")
+                        err = SynamicSydParseError(
+                            f'Syd Parsing error - We are not processing inline list, but still there are some data left'
+                            f' after converting one:\n{self.__fmt_error_msg}\n'
+                            f'Details:\n{get_source_snippet_from_text(self.__text, self.__current_line_no, limit=10)}'
+                        )
+                        raise err
             else:
                 orig_end = text
                 next_stop = len(text)
