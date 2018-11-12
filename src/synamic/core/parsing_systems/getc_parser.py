@@ -1,6 +1,8 @@
 import sly
 from sly import Lexer, Parser
 from collections import namedtuple
+from synamic.exceptions import SynamicGetCParsingError
+from synamic.core.object_manager.query import generate_error_message
 
 UrlStruct = namedtuple('UrlStruct', ('scheme', 'site_sep', 'keys', 'path'))
 
@@ -9,29 +11,19 @@ def parse_getc(text) -> UrlStruct:
     """
     """
     text = text.strip()
-    parser = GetCParser()
+    parser = GetCParser(text)
     lexer = GetCLexer()
     try:
-        if text == '':
-            res = None
-        else:
-            res = parser.parse(lexer.tokenize(text))
+        res = parser.parse(lexer.tokenize(text))
     except sly.lex.LexError as e:
-        txt_rest = e.text
-        err_before_txt = '_' * (len(text) - len(txt_rest))
-        err_after_txt = '^' * len(txt_rest)
-        err_txt = '\n' + text + '\n' + err_before_txt + err_after_txt
+        text_rest = e.text
+        err_txt = generate_error_message(text, text_rest)
 
-        raise GetCParsingError(
-            ('Lexical error at index: %s' % e.error_index) +
-            err_txt
+        raise SynamicGetCParsingError(
+            f'Lexical error at index: {e.error_index}\nDetails: {err_txt}'
         )
     else:
         return res
-
-
-class GetCParsingError(Exception):
-    pass
 
 
 class GetCLexer(Lexer):
@@ -45,6 +37,9 @@ class GetCLexer(Lexer):
 
 
 class GetCParser(Parser):
+    def __init__(self, text):
+        self.__text = text
+
     # Get the token list from the lexer (required)
     tokens = GetCLexer.tokens
 
@@ -76,14 +71,20 @@ class GetCParser(Parser):
             assert len(p) == 3
             return p[0], p[2][0]
 
-    def error(self, token):
-        if not token:
-            err = GetCParsingError(
-                "EOF before tokens could be parsed sensibly"
+    def error(self, p):
+        text = self.__text
+        if not p:
+            text_rest = ''
+            err_txt = generate_error_message(text, text_rest)
+            err = SynamicGetCParsingError(
+                f"GetC End of param text before tokens could be parsed sensibly.\nDetails: {err_txt}"
             )
         else:
-            err = GetCParsingError(
-                f"Parsing error at token: {token.type} -> {token.value}. Error at index {token.index}"
+            text_rest = self.__text[p.index:]
+            err_txt = generate_error_message(text, text_rest)
+            err = SynamicGetCParsingError(
+                f"GetC param Parsing error at token: {p.type} -> {p.value}."
+                f" Error at index {p.index}.\nDetails:{err_txt}"
             )
         raise err
 
@@ -97,7 +98,7 @@ if __name__ == '__main__':
         if text:
             try:
                 res = parse_getc(text)
-            except GetCParsingError as e:
-                print(e.args[0])
+            except SynamicGetCParsingError as e:
+                print(e.message)
             else:
                 print(res)

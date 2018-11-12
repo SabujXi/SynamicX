@@ -58,9 +58,10 @@ class SimpleQueryParser:
         parser = QueryParser(text)
         try:
             if text == '':
-                res = (None, None)
+                res = self.Query(None, None)
             else:
                 res = parser.parse(lexer.tokenize(text))
+
             if len(res) == 1:
                 if isinstance(res[0], self.QuerySortBy):
                     query = self.Query(node=None, sort=res[0])
@@ -69,13 +70,13 @@ class SimpleQueryParser:
             else:
                 assert len(res) > 1
                 query = self.Query(node=res[0], sort=res[1])
-
-            return query
         except sly.lex.LexError as e:
             err_txt = generate_error_message(text, e.text)
             raise SynamicQueryParsingError(
                 f'Lexical error at index: {e.error_index}\nDetails:{err_txt}'
             )
+        else:
+            return query
 
 
 class QueryNode:

@@ -11,7 +11,7 @@ import os
 import collections
 import jinja2.exceptions
 
-__all__ = ['SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError']
+__all__ = ['SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError']
 
 
 def format_msg_map(msg_map):
@@ -110,7 +110,11 @@ Details:
 
 
 class SynamicQueryParsingError(SynamicError):
-    pass
+    """Raised when there is an error in lexing or parsing query string."""
+
+
+class SynamicGetCParsingError(SynamicError):
+    """Raised when there is an error in lexing or parsing param string of getc()"""
 
 
 class LogicalError(SynamicError):
@@ -142,16 +146,4 @@ class InvalidFileNameFormat(SynamicError):
 
 
 class DuplicateContentId(SynamicError):
-    pass
-
-
-class InvalidModuleType(SynamicError):
-    pass
-
-
-class DuplicateModule(SynamicError):
-    pass
-
-
-class CircularDependency(SynamicError):
     pass

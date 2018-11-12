@@ -6,7 +6,8 @@ from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
-from synamic.core.parsing_systems.getc_parser import parse_getc, GetCParsingError
+from synamic.core.parsing_systems.getc_parser import parse_getc
+from synamic.exceptions import SynamicGetCParsingError
 
 
 class ObjectManager:
@@ -291,12 +292,11 @@ class ObjectManager:
         """
         For: curl:// url:// cfields:// content:// etc.
         """
-        try:
-            url_struct = parse_getc(url_str)
-        except GetCParsingError as e:
-            raise Exception(f"Invalid url_str/GerCParsingError: {e.args[0]}")
+        url_struct = parse_getc(url_str)
         result = None
         if url_struct.scheme in ('cfields', 'curl', 'geturl', 'url', 'content', 'cpath'):
+            if not url_struct.keys:
+                raise SynamicGetCParsingError(f'Malformated getc param: {url_str}')
             key = url_struct.keys[0]  # TODO: add support for more chained keys later.
             path = url_struct.path
             assert key is not None and path is not None
