@@ -8,8 +8,7 @@
     status: "Development"
 """
 
-import configparser, json, toml
-from synamic.core.standalones.functions.yaml_processor import load_yaml
+import json
 from synamic.core.standalones.functions.decorators import not_loaded
 
 
@@ -35,34 +34,6 @@ class FieldsData(Data):
         return str(self.__ord_dict)
 
 
-class IniData(Data):
-    def __init__(self, safeConfig: configparser.ConfigParser):
-        self.__safe_config = safeConfig
-
-    def get(self, item, default=None):
-        try:
-            section, option = item.split('.')
-        except ValueError:
-            # raise Exception('You are using a ini data and you must provide a section and a option')
-            return default
-        try:
-            value = self.__safe_config.get(section, option)
-        except configparser.NoSectionError:
-            return default
-        except configparser.NoOptionError:
-            return default
-        return value
-
-    def ini_get(self, section, option, default):
-        try:
-            value = self.__safe_config.get(section, option)
-        except configparser.NoSectionError:
-            return default
-        except configparser.NoOptionError:
-            return default
-        return value
-
-
 def get_from_dict(dict_map, dotted_keys, default):
     keys = dotted_keys.split('.')
     if len(keys) == 1:
@@ -81,17 +52,6 @@ def get_from_dict(dict_map, dotted_keys, default):
         return last_value
 
 
-class TomlData(Data):
-    def __init__(self, dict_obj):
-        self.__dict_obj = dict_obj
-
-    def get(self, item, default=None):
-        return get_from_dict(self.__dict_obj, item, default)
-
-    def __str__(self):
-        return str(self.__dict_obj)
-
-
 class JsonData(Data):
     def __init__(self, objdict):
         assert type(objdict) is dict
@@ -104,40 +64,13 @@ class JsonData(Data):
         return str(self.__obj_dict)
 
 
-class YamlData(Data):
-    def __init__(self, loaded_obj):
-        self.__loaded_obj = loaded_obj
-
-    def __str__(self):
-        return str(self.__loaded_obj)
-
-    def get(self, item, default=None):
-        return self._get_from_obj(self.__loaded_obj, item, default)
-
-    @staticmethod
-    def _get_from_obj(map_obj, dotted_keys, default):
-        keys = dotted_keys.split('.')
-        if len(keys) == 1:
-            return map_obj.get(keys[0], default)
-        else:
-            last_value = map_obj
-            for key in keys:
-                try:
-                    last_value = last_value.get(key, default)
-                except AttributeError:
-                    last_value = default
-                    break
-
-            if last_value is map_obj or last_value is None:
-                last_value = default
-            return last_value
-
-
 class DataService:
     """
     Currently supports: 
-    - site field parser data (xxx.data.txt)
+    - syd (xxx.syd)
     - json (xxx.json)
+
+    Supports have been removed for: (As I want to keep things clean and before syd like stuffs with lot of features including all those data type and conversions were not in synamic)
     - yaml (xxx.yaml, xxx.yml)
     - ini (xxx.ini)
     - toml (xxx.toml)
@@ -179,21 +112,6 @@ class DataService:
             elif file_path.basename.endswith('.json'):
                 data_obj = JsonData(json.loads(self._get_file_content(file_path)))
                 data_name = file_path.basename[:-len('.json')]
-
-            elif file_path.basename.endswith('.ini'):
-                cp = configparser.ConfigParser()
-                cp.read_string(self._get_file_content(file_path))
-                data_obj = IniData(cp)
-                data_name = file_path.basename[:-len('.ini')]
-
-            elif file_path.basename.endswith('.toml'):
-                data_obj = TomlData(toml.loads(self._get_file_content(file_path)))
-                data_name = file_path.basename[:-len('.toml')]
-
-            elif file_path.basename.endswith('.yaml') or file_path.basename.endswith('.yml'):
-                ext = '.yaml' if file_path.basename.endswith('.yaml') else '.yml'
-                data_obj = YamlData(load_yaml(self._get_file_content(file_path)))
-                data_name = file_path.basename[:-len(ext)]
             else:
                 # discard it
                 continue
