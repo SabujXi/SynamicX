@@ -7,15 +7,16 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
+import os
 import collections
 import jinja2.exceptions
 
 __all__ = ['SynamicError', 'SynamicTemplateError']
 
 
-def format_msg_map(map):
+def format_msg_map(msg_map):
     lines = []
-    for key, value in map.items():
+    for key, value in msg_map.items():
         if isinstance(value, str) and '\n' in value:
             value = '\n' + value
         lines.append(
@@ -24,6 +25,34 @@ def format_msg_map(map):
     if lines:
         lines.append('\n')
     return '\n'.join(lines)
+
+
+def get_source_snippet(fn, line_no, limit=10):
+    if os.path.exists(fn):
+        with open(fn, encoding='utf-8') as f:
+            source = f.read()
+    else:
+        source = ''
+    lines = source.splitlines()
+
+    half_limit = limit//2
+    half_limit_l = half_limit
+    if line_no >= half_limit:
+        half_limit_l = line_no - half_limit
+    else:
+        half_limit_l = 1
+    res = []
+    res.extend(
+        ['...' + line for line in lines[half_limit_l - 1:line_no - 1]]
+    )
+
+    error_line = lines[line_no - 1]
+    res.append('-> ' + error_line)
+
+    res.extend(
+        ['...' + line for line in lines[line_no:line_no + half_limit]]
+    )
+    return '\n'.join(res)
 
 
 class SynamicError(Exception):
@@ -52,6 +81,7 @@ class SynamicTemplateError(SynamicError):
             error_map['Line No'] = jinja_ex.lineno
             error_map['Template Name'] = jinja_ex.name
             error_map['File Name'] = jinja_ex.filename
+            error_map['Source'] = get_source_snippet(jinja_ex.filename, jinja_ex.lineno, limit=10)
         elif isinstance(jinja_ex, jinja2.exceptions.TemplateRuntimeError):
             self.error_type = 'Template Runtime Error'
             self.message = self.message
