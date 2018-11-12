@@ -7,7 +7,7 @@ from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
 from synamic.core.parsing_systems.getc_parser import parse_getc
-from synamic.exceptions import SynamicGetCParsingError
+from synamic.exceptions import SynamicGetCParsingError, GetCError
 
 
 class ObjectManager:
@@ -333,7 +333,7 @@ class ObjectManager:
         if result is not None:
             return result
         else:
-            raise Exception(f"Not found for getc ->  {url_str}")
+            raise GetCError(f"Not found for getc ->  {url_str}")
 
     def __getc(self, site, key, path, default=None):
         content_service = site.get_service('contents')

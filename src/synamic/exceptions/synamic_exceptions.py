@@ -11,7 +11,8 @@ import os
 import collections
 import jinja2.exceptions
 
-__all__ = ['SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError']
+__all__ = ['SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
+           'GetCError']
 
 
 def format_msg_map(msg_map):
@@ -115,6 +116,10 @@ class SynamicQueryParsingError(SynamicError):
 
 class SynamicGetCParsingError(SynamicError):
     """Raised when there is an error in lexing or parsing param string of getc()"""
+
+
+class GetCError(SynamicError):
+    """Desired result was not found with GetCError"""
 
 
 class LogicalError(SynamicError):
