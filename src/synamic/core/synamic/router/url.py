@@ -40,10 +40,6 @@ class ContentUrl:
                 res_url_path_comps.extend(cls.__str_path_to_comps(_comps))
             elif isinstance(_comps, (list, tuple)):
                 res_url_path_comps.extend(cls.__sequence_to_comps(_comps))
-            # elif type(_comps) is cls:
-            #     res_url_path_comps.extend(_comps.path_components)
-            # unlike path component url component should not allow anothe url in to components
-            # as different site may be involved
             else:
                 raise Exception('Invalid argument for url component: %s' % str(url_path_comps))
 

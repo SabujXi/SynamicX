@@ -11,6 +11,8 @@
 
 import re
 import datetime
+from synamic.exceptions import SynamicInvalidDateTimeFormat
+
 
 _datetime_pattern = re.compile(r"^\s*(?P<year>\d{4})-(?P<month>\d{1,2})-(?P<date>\d{1,2})\s*(\s+"
                                r"(?P<hour>\d{1,2}):(?P<minute>\d{1,2})(:(?P<second>\d{1,2}))?\s*"
@@ -44,7 +46,8 @@ def parse_datetime(txt) -> datetime.datetime:
     elif type(txt) is not ReMatchType:
         txt = txt.strip()
         m = _datetime_pattern.match(txt)
-        assert m, "Datetime format did not match"
+        if not m:
+            raise SynamicInvalidDateTimeFormat(f"DateTime format did not match for text: {txt}")
     else:
         m = txt
         assert m.re is DtPatterns.datetime
@@ -58,7 +61,8 @@ def parse_datetime(txt) -> datetime.datetime:
 
     # 24 hour conversion
     if am_pm:
-        assert hour < 13, 'Hour cannot be greater than 12 when am/pm specified: %s' % txt
+        if not hour < 13:
+            raise SynamicInvalidDateTimeFormat(f"Hour cannot be greater than 12 when am/pm specified: {txt}")
         if am_pm == "PM":
             hour = 12 + hour
 
@@ -72,7 +76,8 @@ def parse_date(txt) -> datetime.date:
     elif type(txt) is not ReMatchType:
         txt = txt.strip()
         m = _date_pattern.match(txt)
-        assert m, "Date format did not match"
+        if not m:
+            raise SynamicInvalidDateTimeFormat(f"Date format did not match for text: {txt}")
     else:
         m = txt
         assert m.re is DtPatterns.date
@@ -90,7 +95,8 @@ def parse_time(txt) -> datetime.time:
     elif type(txt) is not ReMatchType:
         txt = txt.strip()
         m = _time_pattern.match(txt)
-        assert m, "Time format did not match"
+        if not m:
+            raise SynamicInvalidDateTimeFormat(f"Time format did not match with text: {txt}")
     else:
         m = txt
         assert m.re is DtPatterns.time

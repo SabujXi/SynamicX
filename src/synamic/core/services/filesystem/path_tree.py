@@ -12,6 +12,7 @@ from collections import deque
 from synamic.core.contracts import BaseFsBackendContract
 from .backends import FileSystemBackend
 from synamic.core.contracts import HostContract, SiteContract, SynamicContract
+from synamic.exceptions import SynamicInvalidCPathComponentError
 
 
 regex_type = type(re.compile(""))
@@ -81,7 +82,10 @@ class PathTree(object):
             elif isinstance(path_comp, (list, tuple)):
                 str_comps.extend(cls.__sequence_path_to_comps(path_comp))
             else:
-                raise Exception('Invalid component type for path: %s' % str(type(path_comp)))
+                raise SynamicInvalidCPathComponentError(
+                    f'Invalid component type for path: {type(path_comp)} whose value is {path_comp}'
+                )
+
         return str_comps
 
     @classmethod
@@ -99,7 +103,10 @@ class PathTree(object):
                 # and i cannot check the validity now.
                 comps.extend(path_comp.path_comps)
             else:
-                raise Exception("Path comps must be list, tuple, string or __CPath object when it is not string: %s" % type(path_comp))
+                raise SynamicInvalidCPathComponentError(
+                    f"Path comps must be list, tuple, string or __CPath object when it is not string: {type(path_comp)}"
+                    f" where value is {path_comp}"
+                )
 
         # remove empty '' part except for the first and last one
         _ = []

@@ -45,7 +45,6 @@ class SynamicTemplateService:
 
     @loaded
     def render(self, template_name, context=None, **kwargs):
-        assert self.__is_loaded, "Render cannot work until the template module_object is loaded"
         context = {} if context is None else context
         context.update(kwargs)
 

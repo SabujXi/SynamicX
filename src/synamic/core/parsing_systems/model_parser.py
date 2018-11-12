@@ -1,4 +1,5 @@
 import re
+from synamic.exceptions import SynamicModelParsingError, get_source_snippet_from_text
 _key_pattern = re.compile(r'^[a-z0-9_]+(\.[a-z0-9_]+)*$', re.I)
 
 
@@ -93,12 +94,19 @@ class ModelParser:
                 # process
                 key_value = line.split(':', 1)
                 if len(key_value) == 1:
-                    raise Exception('Parsing error of model %s at line %d' % (model_name, line_no))
+                    source_snippet = get_source_snippet_from_text(model_text, line_no, limit=10)
+                    raise SynamicModelParsingError(f'Parsing error of model {model_name} at line {line_no}\n'
+                                                   f'Details:\n{source_snippet}')
                 else:
                     key, value = key_value
                     key = key.strip()
                     value = value.strip()
-                    assert _key_pattern.match(key), 'Key %s in model %s did not match with key pattern' % (key, model_name)
+
+                    if not _key_pattern.match(key):
+                        source_snippet = get_source_snippet_from_text(model_text, line_no, limit=10)
+                        raise SynamicModelParsingError(f'Key {key} in model {model_name} did not match with key '
+                                                       f'pattern at line no {line_no}\n'
+                                                       f'Details:\n{source_snippet}')
 
                     parts = value.split('|')
                     parts = [part.strip() for part in parts]

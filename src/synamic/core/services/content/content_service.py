@@ -19,6 +19,7 @@ from synamic.core.services.content.marked_content import MarkedContent
 from synamic.core.services.content.paginated_content import PaginationPage
 from synamic.core.contracts.cfields import CFieldsContract
 from .chapters import Chapter
+from synamic.exceptions import SynamicSettingsError
 
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
@@ -164,7 +165,9 @@ class _ContentFields(CFieldsContract):
             query_str = pagination_field['query']
             per_page = pagination_field.get('per_page', None)
             if per_page is not None:
-                assert isinstance(per_page, int), f'{type(per_page)}: {per_page}'
+                if not isinstance(per_page, int):
+                    raise SynamicSettingsError(f'Specified per page is not a positive integer number;'
+                                               f' Type {type(per_page)} of per_page value {per_page}')
                 per_page = per_page
             else:
                 per_page = per_page_4m_settings

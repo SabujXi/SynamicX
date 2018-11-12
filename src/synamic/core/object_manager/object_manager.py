@@ -340,7 +340,10 @@ class ObjectManager:
         getc_key, getc_path = key, path
 
         result_cfields = default
-        assert getc_key in ('file', 'sass', 'id')
+        if getc_key not in ('file', 'sass', 'id'):
+            raise SynamicGetCError(
+                f'GetC key error. Currently only file, sass, id keys are allowed, but key {getc_key} was provided'
+            )
         if getc_key == 'file':
             file_cpath = site.get_service('path_tree').create_file_cpath(getc_path)
             marked_cfields = self.__cache.get_marked_cfields_by_cpath(site, file_cpath, None)
@@ -393,7 +396,12 @@ class ObjectManager:
         return marker
 
     def get_markers(self, site, marker_type):
-        assert marker_type in {'single', 'multiple', 'hierarchical'}
+        allowed_marker_types = {'single', 'multiple', 'hierarchical'}
+        if marker_type not in allowed_marker_types:
+            raise SynamicMarkerNotFound(
+                f'Marker of type {marker_type} is not allowed. Only allowed markers are'
+                f' {", ".join(allowed_marker_types)}'
+            )
         _ = []
         for marker in self.__cache.get_markers(site):
             if marker.type == marker_type:

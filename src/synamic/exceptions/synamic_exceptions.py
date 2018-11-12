@@ -11,9 +11,13 @@ import os
 import collections
 import jinja2.exceptions
 
-__all__ = ['SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
-           'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
-           'SynamicInvalidNumberFormat']
+__all__ = [
+    'get_source_snippet_from_file', 'get_source_snippet_from_text',
+    'SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
+    'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
+    'SynamicInvalidNumberFormat', 'SynamicModelParsingError', 'SynamicInvalidDateTimeFormat',
+    'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError'
+]
 
 
 def format_msg_map(msg_map):
@@ -29,12 +33,17 @@ def format_msg_map(msg_map):
     return '\n'.join(lines)
 
 
-def get_source_snippet(fn, line_no, limit=10):
+def get_source_snippet_from_file(fn, line_no, limit=10):
     if os.path.exists(fn):
         with open(fn, encoding='utf-8') as f:
             source = f.read()
     else:
         source = ''
+    return get_source_snippet_from_text(source, line_no, limit=limit)
+
+
+def get_source_snippet_from_text(text, line_no, limit=10):
+    source = text
     lines = source.splitlines()
 
     half_limit = limit//2
@@ -93,7 +102,7 @@ class SynamicTemplateError(SynamicError):
             error_map['Line No'] = jinja_ex.lineno
             error_map['Template Name'] = jinja_ex.name
             error_map['File Name'] = jinja_ex.filename
-            error_map['Source'] = get_source_snippet(jinja_ex.filename, jinja_ex.lineno, limit=10)
+            error_map['Source'] = get_source_snippet_from_file(jinja_ex.filename, jinja_ex.lineno, limit=10)
         elif isinstance(jinja_ex, jinja2.exceptions.TemplateRuntimeError):
             self.error_type = 'Template Runtime Error'
             self.message = self.message
@@ -147,6 +156,26 @@ class SynamicMarkNotFound(SynamicError):
 
 class SynamicInvalidNumberFormat(SynamicError):
     """When number format is invalid"""
+
+
+class SynamicInvalidDateTimeFormat(SynamicError):
+    """When date, time or datetime is invalid"""
+
+
+class SynamicModelParsingError(SynamicError):
+    """When model cannot be parsed properly"""
+
+
+class SynamicSettingsError(SynamicError):
+    """Error related to settings and settings values"""
+
+
+class SynamicInvalidCPathComponentError(SynamicError):
+    """When a component passed to the cpath processing code is invalid."""
+
+
+class SynamicPathDoesNotExistError(SynamicError):
+    """When the path is non existent"""
 
 
 class LogicalError(SynamicError):
