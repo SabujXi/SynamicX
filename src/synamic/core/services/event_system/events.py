@@ -1,5 +1,5 @@
 from synamic.core.services.event_system.event_types import EventTypes
-from synamic.core.exceptions.synamic_exceptions import LogicalError
+from synamic.exceptions.synamic_exceptions import LogicalError
 
 
 def _not_completed_decorator(method):

@@ -14,6 +14,7 @@ from synamic.core.services.template.template_tags import GetCExtension, ResizeIm
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.standalones.functions.parent_config_splitter import parent_config_str_splitter
 from .loaders import SynamicJinjaFileSystemLoader
+from synamic.exceptions import SynamicTemplateError
 
 
 class SynamicTemplateService:
@@ -48,11 +49,12 @@ class SynamicTemplateService:
         context = {} if context is None else context
         context.update(kwargs)
 
-        is_from_parent, template_name = parent_config_str_splitter(template_name)
+        # is_from_parent, template_name = parent_config_str_splitter(template_name)
 
-        if is_from_parent:
-            result = self.__site.template_service.render(template_name, context=context)
-        else:
-            _template = self.__template_env.get_template(template_name)
-            result = _template.render(context)
+        try:
+            template = self.__template_env.get_template(template_name)
+            result = template.render(context)
+        except jinja2.exceptions.TemplateError as e:
+            raise SynamicTemplateError(e)
+
         return result

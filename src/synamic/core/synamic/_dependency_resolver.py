@@ -9,7 +9,7 @@
 """
 
 
-from synamic.core.exceptions import CircularDependency
+from synamic.exceptions import CircularDependency
 
 
 def create_dep_list(mods: dict):
