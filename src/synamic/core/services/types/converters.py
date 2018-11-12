@@ -3,6 +3,8 @@ from synamic.core.standalones.functions.date_time import parse_datetime, parse_d
 from .types import Html, Markdown
 import re
 import datetime
+from synamic.exceptions import SynamicMarkNotFound
+from synamic.exceptions import SynamicInvalidNumberFormat
 
 
 class _Pat:
@@ -158,7 +160,7 @@ class NumberConverter(ConverterCallable):
             return txt
         m_number = _Pat.number_pat.match(txt)
         if not m_number:
-            raise Exception("Invalid number format: `%s`" % txt)
+            raise SynamicInvalidNumberFormat(f"Invalid number format: {txt}")
         else:
             sign_str = m_number.group('sign')
             int_str = m_number.group('int')
@@ -433,7 +435,7 @@ class MarkTypeConverter(ConverterCallable):
         title = txt.strip()
         mark = type_marker.get_mark_by_title(title, None)
         if mark is None:
-            raise Exception('Mark does not exist: %s' % title)
+            raise SynamicMarkNotFound(f'Mark with title {title} does not exist')
         return mark
 
 

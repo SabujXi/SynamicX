@@ -10,6 +10,7 @@
 
 from synamic.core.standalones.functions.decorators import not_loaded, loaded
 from .builtin_processors import _builtin_processor_classes
+from synamic.exceptions import SynamicPreProcessorNotFound
 
 
 class PreProcessorService:
@@ -55,7 +56,7 @@ class PreProcessorService:
     def get_processor(self, processor_name, default=None, error_out=True):
         processor = self.__name_to_processor.get(processor_name, None)
         if processor is None and error_out is True:
-            raise Exception('Processor %s could not be found' % processor_name)
+            raise SynamicPreProcessorNotFound(f'Processor {processor_name} could not be found')
         elif processor is None:
             return default
         else:

@@ -12,7 +12,8 @@ import collections
 import jinja2.exceptions
 
 __all__ = ['SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
-           'GetCError']
+           'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
+           'SynamicInvalidNumberFormat']
 
 
 def format_msg_map(msg_map):
@@ -67,6 +68,16 @@ class SynamicError(Exception):
         return repr(self.__str__())
 
 
+class SynamicErrors(SynamicError):
+    def __init__(self, message, *synamic_errors):
+        messages_for_errors = ''
+        for err in synamic_errors:
+            assert isinstance(err, SynamicError)
+            messages_for_errors += f'\n{err.__class__}:\n' + err.message
+
+        self.message = message + '\n' + messages_for_errors
+
+
 class SynamicTemplateError(SynamicError):
     def __init__(self, jinja_ex):
         assert isinstance(jinja_ex, jinja2.exceptions.TemplateError),\
@@ -118,8 +129,24 @@ class SynamicGetCParsingError(SynamicError):
     """Raised when there is an error in lexing or parsing param string of getc()"""
 
 
-class GetCError(SynamicError):
-    """Desired result was not found with GetCError"""
+class SynamicGetCError(SynamicError):
+    """Desired result was not found with SynamicGetCError"""
+
+
+class SynamicPreProcessorNotFound(SynamicError):
+    """Raised when pre processor not found"""
+
+
+class SynamicMarkerNotFound(SynamicError):
+    """Marker not found"""
+
+
+class SynamicMarkNotFound(SynamicError):
+    """Mark Not found"""
+
+
+class SynamicInvalidNumberFormat(SynamicError):
+    """When number format is invalid"""
 
 
 class LogicalError(SynamicError):

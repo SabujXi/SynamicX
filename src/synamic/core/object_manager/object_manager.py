@@ -7,7 +7,7 @@ from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
 from synamic.core.parsing_systems.getc_parser import parse_getc
-from synamic.exceptions import SynamicGetCParsingError, GetCError
+from synamic.exceptions import SynamicGetCParsingError, SynamicGetCError, SynamicMarkNotFound, SynamicMarkerNotFound
 
 
 class ObjectManager:
@@ -333,7 +333,7 @@ class ObjectManager:
         if result is not None:
             return result
         else:
-            raise GetCError(f"Not found for getc ->  {url_str}")
+            raise SynamicGetCError(f"Not found for getc ->  {url_str}")
 
     def __getc(self, site, key, path, default=None):
         content_service = site.get_service('contents')
@@ -389,7 +389,7 @@ class ObjectManager:
     def get_marker(self, site, marker_id):
         marker = self.__cache.get_marker(site, marker_id, default=None)
         if marker is None:
-            raise Exception('Marker does not exist: %s' % marker_id)
+            raise SynamicMarkerNotFound(f'Marker does not exist: {marker_id}')
         return marker
 
     def get_markers(self, site, marker_type):
