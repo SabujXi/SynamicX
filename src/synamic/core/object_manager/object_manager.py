@@ -7,7 +7,15 @@ from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
 from synamic.core.parsing_systems.getc_parser import parse_getc
-from synamic.exceptions import SynamicGetCParsingError, SynamicGetCError, SynamicMarkNotFound, SynamicMarkerNotFound
+from synamic.exceptions import (
+    SynamicGetCParsingError,
+    SynamicGetCError,
+    SynamicMarkNotFound,
+    SynamicMarkerNotFound,
+    SynamicSydParseError,
+    SynamicErrors,
+    SynamicFSError
+)
 
 
 class ObjectManager:
@@ -55,14 +63,22 @@ class ObjectManager:
             content_cdir = path_tree.create_dir_cpath(content_dir)
             # for content
             if content_cdir.exists():  # check content dir existence before proceeding
-                file_paths = content_cdir.list_files()
-                for file_path in file_paths:
-                    if file_path.extension.lower() in {'md', 'markdown'}:
-                        text = self.get_raw_data(site, file_path)
-                        front_matter, body = content_splitter(file_path, text)
+                file_cpaths = content_cdir.list_files()
+                for file_cpath in file_cpaths:
+                    if file_cpath.extension.lower() in {'md', 'markdown'}:
+                        text = self.get_raw_data(site, file_cpath)
+                        front_matter, body = content_splitter(file_cpath, text)
                         del body
-                        fields_syd = self.make_syd(front_matter)
-                        cfields = content_service.build_cfields(fields_syd, file_path)
+                        try:
+                            fields_syd = self.make_syd(front_matter)
+                        except SynamicSydParseError as e:
+                            raise SynamicErrors(
+                                f'Synamic Syd parsing error during parsing front matter of file: '
+                                f'{file_cpath.relative_path}\n'
+                                f'<This error occurred during caching the cfileds of marked contents>',
+                                e
+                            )
+                        cfields = content_service.build_cfields(fields_syd, file_cpath)
                         self.__cache.add_marked_cfields(site, cfields)
                     else:
                         # No need to cache anything about static file.
@@ -237,7 +253,14 @@ class ObjectManager:
             cpath = path
         syd = self.__cache.get_syd(site, cpath, default=None)
         if syd is None and cpath.exists():
-            syd = SydParser(self.get_raw_data(site, cpath)).parse()
+            try:
+                syd = SydParser(self.get_raw_data(site, cpath)).parse()
+            except (SynamicSydParseError, SynamicFSError) as e:
+                raise SynamicErrors(
+                    f'Synamic error during parsing syd file: '
+                    f'{cpath.relative_path}',
+                    e
+                )
             self.__cache.add_syd(site, cpath, syd)
         return syd
 

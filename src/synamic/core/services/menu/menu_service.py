@@ -8,6 +8,7 @@
     status: "Development"
 """
 from synamic.core.standalones.functions.decorators import not_loaded
+from synamic.exceptions import SynamicSydParseError, SynamicErrors, SynamicFSError
 
 
 class _Menu:
@@ -67,7 +68,13 @@ class MenuService:
         path_tree = self.__site.get_service('path_tree')
         fn = name + '.syd'
         path = path_tree.create_file_cpath(self.__menu_dir, fn)
-        syd = self.__site.object_manager.get_syd(path)
+        try:
+            syd = self.__site.object_manager.get_syd(path)
+        except (SynamicSydParseError, SynamicFSError) as e:
+            raise SynamicErrors(
+                f"Synamic error during making menu object. Error occurred for menu named {name}",
+                e
+            )
 
         menu_obj = _Menu(
             self.__site,

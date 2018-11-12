@@ -694,7 +694,8 @@ class SydParser:
     @property
     def __fmt_error_msg(self):
         line = self.__lines[self.__current_line_no - 1]
-        return "Line no: %s\n" "Line: %s\n%s" % (self.__current_line_no, line, str(self.__parse_states))
+        return f"Line no: {self.__current_line_no}\n"\
+            f"Line: {line}\nCurrent Processing States Stack: {', '.join(str(state) for state in self.__parse_states)}"
 
     def __enter_state(self, state: _ParseState):
         self.__parse_states.append(state)

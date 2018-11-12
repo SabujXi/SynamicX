@@ -13,11 +13,11 @@ import jinja2.exceptions
 
 __all__ = [
     'get_source_snippet_from_file', 'get_source_snippet_from_text',
-    'SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
+    'SynamicError', 'SynamicErrors', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
     'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
     'SynamicInvalidNumberFormat', 'SynamicModelParsingError', 'SynamicInvalidDateTimeFormat',
     'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError',
-    'SynamicSydParseError'
+    'SynamicSydParseError', 'SynamicFSError'
 ]
 
 
@@ -83,7 +83,7 @@ class SynamicErrors(SynamicError):
         messages_for_errors = ''
         for err in synamic_errors:
             assert isinstance(err, SynamicError)
-            messages_for_errors += f'\n{err.__class__}:\n' + err.message
+            messages_for_errors += f'\n{err.__class__.__name__}:\n{"-" * len(err.__class__.__name__)}\n' + err.message
 
         self.message = message + '\n' + messages_for_errors
 
@@ -91,7 +91,7 @@ class SynamicErrors(SynamicError):
 class SynamicTemplateError(SynamicError):
     def __init__(self, jinja_ex):
         assert isinstance(jinja_ex, jinja2.exceptions.TemplateError),\
-            f'Exception instance passed to {self.__class__} must be of jinja2.TemplateError'
+            f'Exception instance passed to {self.__class__.__name__} must be of jinja2.TemplateError'
         self.error_map = error_map = collections.OrderedDict()
         self.error_type = None
         self.message = None
@@ -181,6 +181,10 @@ class SynamicPathDoesNotExistError(SynamicError):
 
 class SynamicSydParseError(SynamicError):
     """Syd parse error in curlybrace parser."""
+
+
+class SynamicFSError(SynamicError):
+    """Synamic file system error"""
 
 
 class LogicalError(SynamicError):
