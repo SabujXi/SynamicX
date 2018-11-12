@@ -12,12 +12,14 @@ import collections
 import jinja2.exceptions
 
 __all__ = [
+    # functions
     'get_source_snippet_from_file', 'get_source_snippet_from_text',
+    # exception classes
     'SynamicError', 'SynamicErrors', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
     'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
     'SynamicInvalidNumberFormat', 'SynamicModelParsingError', 'SynamicInvalidDateTimeFormat',
     'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError',
-    'SynamicSydParseError', 'SynamicFSError'
+    'SynamicSydParseError', 'SynamicFSError', 'SynamicDataError'
 ]
 
 
@@ -86,6 +88,7 @@ class SynamicErrors(SynamicError):
             messages_for_errors += f'\n{err.__class__.__name__}:\n{"-" * len(err.__class__.__name__)}\n' + err.message
 
         self.message = message + '\n' + messages_for_errors
+        self.errors = synamic_errors
 
 
 class SynamicTemplateError(SynamicError):
@@ -185,6 +188,10 @@ class SynamicSydParseError(SynamicError):
 
 class SynamicFSError(SynamicError):
     """Synamic file system error"""
+
+
+class SynamicDataError(SynamicError):
+    """Exception for data in data service"""
 
 
 class LogicalError(SynamicError):

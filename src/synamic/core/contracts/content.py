@@ -21,10 +21,10 @@ class CDocType(enum.Enum):
     HTML_DOCUMENT = "HTML_DOCUMENT"
     GENERATED_HTML_DOCUMENT = "GENERATED_HTML_DOCUMENT"
 
-    NOURL_DOCUMENT = "NOURL_DOCUMENT"
     META_DOCUMENT = "META_DOCUMENT"
+    NOURL_DOCUMENT = "NOURL_DOCUMENT"
     DIRECTORY = "DIRECTORY"
-    NONE = "NONE"
+    UNSPECIFIED = "UNSPECIFIED"
 
     @classmethod
     def is_binary(cls, other, not_generated=False):

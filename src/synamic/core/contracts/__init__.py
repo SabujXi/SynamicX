@@ -11,6 +11,7 @@ from .fs_backend import BaseFsBackendContract
 from .cfields import CFieldsContract
 from .url import ContentUrlContract
 from .content import ContentContract, CDocType
+from .data import DataContract
 
 # hosts
 from .host import HostContract

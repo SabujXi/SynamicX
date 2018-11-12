@@ -7,61 +7,66 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-
 import json
-from synamic.core.standalones.functions.decorators import not_loaded
+from synamic.core.standalones.functions.decorators import not_loaded, loaded
+from synamic.core.contracts import DataContract
+from synamic.exceptions import SynamicError, SynamicErrors, SynamicDataError
 
 
-class Data:
-    def get(self, item, default=None):
-        raise NotImplemented
+class JsonData(DataContract):
+    def __init__(self, data_name, json_map):
+        self.__name = data_name
+        self.__json_map = json_map
+
+    def get_data_name(self):
+        return self.__name
+
+    @property
+    def origin(self):
+        return self.__json_map
+
+    def get(self, key, default=None):
+        return self.__json_map.get(key, default=default)
+
+    def __getitem__(self, item):
+        return self.get(item, default=None)
+
+    def __getattr__(self, key):
+        return self.get(key, default=None)
+
+    def __str__(self):
+        return str(self.__json_map)
+
+    def __repr__(self):
+        return repr(self.__json_map)
+
+
+class SydData(DataContract):
+    def __init__(self, name, syd):
+        self.__name = name
+        self.__syd = syd
+
+    def get_data_name(self):
+        return self.__name
+
+    @property
+    def origin(self):
+        return self.__syd
+
+    def get(self, key, default=None):
+        return self.__syd.get(key, default=default)
 
     def __getitem__(self, item):
         return self.get(item, None)
 
+    def __getattr__(self, key):
+        return self.get(key, None)
+
+    def __str__(self):
+        return str(self.__syd)
+
     def __repr__(self):
-        return repr(self.__str__())
-
-
-class FieldsData(Data):
-    def __init__(self, ord_dict):
-        self.__ord_dict = ord_dict
-
-    def get(self, item, default=None):
-        return self.__ord_dict.get(item, default)
-
-    def __str__(self):
-        return str(self.__ord_dict)
-
-
-def get_from_dict(dict_map, dotted_keys, default):
-    keys = dotted_keys.split('.')
-    if len(keys) == 1:
-        return dict_map.get(keys[0], default)
-    else:
-        last_value = dict_map
-        for key in keys:
-            if type(last_value) is dict:
-                last_value = last_value.get(key)
-            else:
-                last_value = default
-                break
-
-        if last_value is dict_map or last_value is None:
-            last_value = default
-        return last_value
-
-
-class JsonData(Data):
-    def __init__(self, objdict):
-        assert type(objdict) is dict
-        self.__obj_dict = objdict
-
-    def get(self, item, default=None):
-        return get_from_dict(self.__obj_dict, item, default)
-
-    def __str__(self):
-        return str(self.__obj_dict)
+        return repr(self.__syd)
 
 
 class DataService:
@@ -77,54 +82,52 @@ class DataService:
     """
     def __init__(self, site):
         self.__site = site
-        self.__data_name_map = {}
         self.__is_loaded = False
-        self.__service_home_path = None
-        self.__site.register_path(self.service_home_path)
 
-    @property
-    def service_home_path(self):
-        if self.__service_home_path is None:
-            self.__service_home_path = self.__site.path_tree.create_cpath(('meta', 'data'))
-        return self.__service_home_path
+        data_dir = site.default_data.get_syd('dirs')['metas.data']
+        self.__data_cdir = site.path_tree.create_dir_cpath(data_dir)
+        self.__available_extensions = ('.syd', '.json')
 
     @property
     def is_loaded(self):
         return self.__is_loaded
 
-    def _get_file_content(self, fp):
-        file_path = fp
-        with file_path.open('r', encoding='utf-8') as f:
-            model_txt = f.read()
-        return model_txt
-
     @not_loaded
     def load(self):
-        file_paths = self.service_home_path.list_files()
-
-        for file_path in file_paths:
-            if file_path.basename.endswith('.data.txt'):
-                root_field = FieldParser(self._get_file_content(file_path)).parse()
-                field_dict = root_field.to_dict_ordinary()
-                data_obj = FieldsData(field_dict)
-                data_name = file_path.basename[:-len('.data.txt')]
-
-            elif file_path.basename.endswith('.json'):
-                data_obj = JsonData(json.loads(self._get_file_content(file_path)))
-                data_name = file_path.basename[:-len('.json')]
-            else:
-                # discard it
-                continue
-
-            self.__data_name_map[data_name] = data_obj
-
         self.__is_loaded = True
 
-    def get(self, data_name):
-        return self.__data_name_map.get(data_name, {})
+    @loaded
+    def make_data(self, data_name):
+        syd_data_cfile = self.__data_cdir.join(f'{data_name}.syd', is_file=True)
+        json_data_cfile = self.__data_cdir.join(f'{data_name}.json', is_file=True)
+        res = None
+        try:
+            if syd_data_cfile.exists():
+                syd = self.__site.object_manager.get_syd(syd_data_cfile)
+                res = SydData(data_name, syd)
+            elif json_data_cfile.exists():
+                json_text = self.__site.object_manager.get_raw_text_data(json_data_cfile)
+                json_obj = json.loads(json_text)
+                res = JsonData(data_name, json_obj)
+        except SynamicError as e:
+            raise SynamicErrors(
+                f'Data could not be made for data name {data_name}\n'
+                f'One or both of the files tried: {syd_data_cfile.abs_path}, {json_data_cfile.abs_path}',
+                e
+            )
 
-    def __getitem__(self, item):
-        return self.get(item)
+        if res is None:
+            raise SynamicDataError(
+                f'Data could not be made for data name {data_name}'
+            )
+        return res
 
-    def __getattr__(self, item):
-        return self.get(item)
+    @loaded
+    def get_data_names(self):
+        names = []
+        if self.__data_cdir.exists():
+            data_file_cpaths = self.__data_cdir.list_files(checker=lambda cp: cp.basename.lower().endswith(self.__available_extensions))
+            for file_cpath in data_file_cpaths:
+                basename_wo_ext = file_cpath.basename_wo_ext
+                names.append(basename_wo_ext)
+        return names

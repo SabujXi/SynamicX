@@ -90,7 +90,7 @@ class ContentUrl:
 
         return tuple(res_url_path_comps)
 
-    def __init__(self, site, url_path_comps, for_cdoctype=None):
+    def __init__(self, site, url_path_comps, for_cdoctype=CDocType.UNSPECIFIED):
         """
         append_slash is only for dynamic contents and only when the url_path_comps is being passed as sting (not: list, tuple, content path)
         So, we are not persisting that data
@@ -99,7 +99,10 @@ class ContentUrl:
         
         if we indicate ...
         """
-
+        assert isinstance(for_cdoctype, CDocType), \
+            f'cURL without a CDocType specified is not acceptable. When you are not going to use the url for final url '\
+            f'generation (e.g. for query by url only) you should specify CDocType.UNSPECIFIED\n'\
+            f'The type you provided was {type(for_cdoctype)} with the value {for_cdoctype}'
         # TODO: make appending slash system  settings based.
         if CDocType.is_html(for_cdoctype):
             self.__url_path_comps = self.path_to_components(

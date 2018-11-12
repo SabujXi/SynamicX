@@ -479,6 +479,17 @@ class PathTree(object):
             return self.path_comps[-1]
 
         @property
+        def basename_wo_ext(self):
+            if self.is_file:
+                base, dot, ext = self.basename.rpartition('.')
+                if dot == '':
+                    base = ext
+                    ext = ''
+            else:
+                base = self.basename
+            return base
+
+        @property
         def dirname_comps(self):
             """
             Relative dirname

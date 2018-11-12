@@ -22,7 +22,7 @@ class RouterService:
         else:
             # step 1: search for static/binary file in file system with the path components : TODO: do for static.
             # step 2 if 1 fails: search for non-static content and in this case the url is already cached.
-            cdoctype = CDocType.GENERATED_TEXT_DOCUMENT
+            cdoctype = CDocType.UNSPECIFIED
             curl = self.make_url(site, path_components, cdoctype)
             if special_components:
                 print(f'Special Components: {special_components}')
@@ -96,5 +96,5 @@ class RouterService:
                 return None
 
     @classmethod
-    def make_url(cls, site, url_path_comps, for_cdoctype=None):
+    def make_url(cls, site, url_path_comps, for_cdoctype=CDocType.UNSPECIFIED):
         return ContentUrl(site, url_path_comps, for_cdoctype=for_cdoctype)

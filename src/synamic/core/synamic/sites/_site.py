@@ -12,6 +12,7 @@ from synamic.core.services.pre_processor import PreProcessorService
 from synamic.core.services.tasks import TasksService
 from synamic.core.services.marker import MarkerService
 from synamic.core.services.user import UserService
+from synamic.core.services.data import DataService
 from synamic.core.default_data import DefaultDataManager
 from synamic.core.contracts import SiteContract
 
@@ -42,6 +43,9 @@ def _install_default_services(site):
 
     self.add_service('image_resizer', ImageResizerService)
     self.add_service('pre_processor', PreProcessorService)
+
+    # data
+    self.add_service('data', DataService)
 
     self.add_service('tasks', TasksService)
 

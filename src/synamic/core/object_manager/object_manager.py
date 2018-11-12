@@ -45,15 +45,16 @@ class ObjectManager:
     def load(self):
         self.__is_loaded = True
 
-    def _reload_for(self, site):
+    def __reload_for__(self, site):
         self.__cache.clear_cache(site)
-        self._load_for(site)
+        self.__load_for__(site)
 
-    def _load_for(self, site):
+    def __load_for__(self, site):
         self.__cache_markers(site)
         self.__cache_marked_cfields(site)
         self.__cache_pre_processed_contents(site)
         self.__cache_menus(site)
+        self.__cache_data(site)
 
     def __cache_marked_cfields(self, site):
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
@@ -66,7 +67,7 @@ class ObjectManager:
                 file_cpaths = content_cdir.list_files()
                 for file_cpath in file_cpaths:
                     if file_cpath.extension.lower() in {'md', 'markdown'}:
-                        text = self.get_raw_data(site, file_cpath)
+                        text = self.get_raw_text_data(site, file_cpath)
                         front_matter, body = content_splitter(file_cpath, text)
                         del body
                         try:
@@ -109,6 +110,13 @@ class ObjectManager:
         for menu_name in menu_names:
             menu = menu_service.make_menu(menu_name)
             self.__cache.add_menu(site, menu_name, menu)
+
+    def __cache_data(self, site):
+        data_service = site.get_service('data')
+        data_names = data_service.get_data_names()
+        for data_name in data_names:
+            data_instance = data_service.make_data(data_name)
+            self.__cache.add_data(site, data_instance)
 
     def make_url_for_marked_content(self, site, file_cpath, path=None, slug=None, for_cdoctype=CDocType.TEXT_DOCUMENT):
         if path is not None:
@@ -237,11 +245,11 @@ class ObjectManager:
     def empty_syd():
         return SydParser('').parse()
 
-    def get_raw_data(self, site, path) -> str:
+    def get_raw_text_data(self, site, path, encoding='utf-8') -> str:
         path_tree = self.get_path_tree(site)
         if not path_tree.is_type_cpath(path):
             path = path_tree.create_file_cpath(path)
-        with path.open('r', encoding='utf-8') as f:
+        with path.open('r', encoding=encoding) as f:
             text = f.read()
         return text
 
@@ -254,7 +262,7 @@ class ObjectManager:
         syd = self.__cache.get_syd(site, cpath, default=None)
         if syd is None and cpath.exists():
             try:
-                syd = SydParser(self.get_raw_data(site, cpath)).parse()
+                syd = SydParser(self.get_raw_text_data(site, cpath)).parse()
             except (SynamicSydParseError, SynamicFSError) as e:
                 raise SynamicErrors(
                     f'Synamic error during parsing syd file: '
@@ -280,7 +288,7 @@ class ObjectManager:
             user_model_cpath = path_tree.create_file_cpath(model_dir, model_name + '.model')
 
             if user_model_cpath.exists():
-                user_model = ModelParser.parse(model_name, self.get_raw_data(site, user_model_cpath))
+                user_model = ModelParser.parse(model_name, self.get_raw_text_data(site, user_model_cpath))
             else:
                 user_model = None
 
@@ -303,7 +311,7 @@ class ObjectManager:
             return processed_model
 
     def get_content_parts(self, site, content_path):
-        text = self.get_raw_data(site, content_path)
+        text = self.get_raw_text_data(site, content_path)
         front_matter, body = content_splitter(content_path, text)
         front_matter_syd = self.make_syd(front_matter)  # Or take it from cache.
         return front_matter_syd, body
@@ -441,6 +449,9 @@ class ObjectManager:
 
     def get_menu(self, site, menu_name, default=None):
         return self.__cache.get_menu(site, menu_name, default=default)
+
+    def get_data(self, site, data_name, default=None):
+        return self.__cache.get_data(site, data_name, default=default)
 
     @staticmethod
     def __convert_section_value(section, content_model):
@@ -587,12 +598,12 @@ class ObjectManager:
         @loaded
         def reload(self):
             self.__is_loaded = False
-            self.__object_manager._reload_for(self.site)
+            self.__object_manager.__reload_for__(self.site)
             self.__is_loaded = True
 
         @not_loaded
         def load(self):
-            self.__object_manager._load_for(self.site)
+            self.__object_manager.__load_for__(self.site)
             self.__is_loaded = True
 
         @property
@@ -616,6 +627,9 @@ class ObjectManager:
 
             # users
             self.__users_cachemap = defaultdict(dict)
+
+            # data
+            self.__data = defaultdict(dict)
 
             # >>>>>>>>
             # CONTENTS
@@ -714,6 +728,12 @@ class ObjectManager:
         def get_user(self, site, user_id, default=None):
             return self.__users_cachemap[site.id].get(user_id, default)
 
+        def add_data(self, site, data):
+            self.__data[site.id][data.get_data_name()] = data
+
+        def get_data(self, site, data_name, default=None):
+            return self.__data[site.id].get(data_name, default=default)
+
         def clear_content_cache(self, site):
             self.__pre_processed_cachemap[site.id].clear()
             self.__marked_contents_cachemap[site.id].clear()
@@ -737,6 +757,9 @@ class ObjectManager:
         def clear_users(self, site):
             self.__users_cachemap[site.id].clear()
 
+        def clear_data(self, site):
+            self.__data[site.id].clear()
+
         def clear_cache(self, site):
             """Clear all"""
             self.clear_content_cache(site)
@@ -745,3 +768,4 @@ class ObjectManager:
             self.clear_menus_cache(site)
             self.clear_model(site)
             self.clear_users(site)
+            self.clear_data(site)
