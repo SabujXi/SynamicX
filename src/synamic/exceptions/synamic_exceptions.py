@@ -11,7 +11,7 @@ import os
 import collections
 import jinja2.exceptions
 
-__all__ = ['SynamicError', 'SynamicTemplateError']
+__all__ = ['SynamicError', 'SynamicTemplateError', 'SynamicQueryParsingError']
 
 
 def format_msg_map(msg_map):
@@ -43,14 +43,14 @@ def get_source_snippet(fn, line_no, limit=10):
         half_limit_l = 1
     res = []
     res.extend(
-        ['...' + line for line in lines[half_limit_l - 1:line_no - 1]]
+        ['....' + line for line in lines[half_limit_l - 1:line_no - 1]]
     )
 
     error_line = lines[line_no - 1]
-    res.append('-> ' + error_line)
+    res.append('->..' + error_line)
 
     res.extend(
-        ['...' + line for line in lines[line_no:line_no + half_limit]]
+        ['....' + line for line in lines[line_no:line_no + half_limit]]
     )
     return '\n'.join(res)
 
@@ -107,6 +107,10 @@ Error Type: {self.error_type}
 Details:
 {str(jinja_ex)}
 """
+
+
+class SynamicQueryParsingError(SynamicError):
+    pass
 
 
 class LogicalError(SynamicError):

@@ -1,8 +1,16 @@
 import operator
-from sly import Lexer, Parser
 import sly
+from sly import Lexer, Parser
+from synamic.exceptions import SynamicQueryParsingError
 from synamic.core.parsing_systems.curlybrace_parser import SydParser  #covert_one_value
 from collections import namedtuple
+
+
+def generate_error_message(text, text_rest):
+    err_before_txt = '_' * (len(text) - len(text_rest))
+    err_after_txt = '^' * len(text_rest)
+    err_txt = '\n' + text + '\n' + err_before_txt + err_after_txt
+    return err_txt
 
 
 class SimpleQueryParser:
@@ -45,9 +53,9 @@ class SimpleQueryParser:
         """
         title == something | type in go, yes & age > 6
         """
-        parser = QueryParser()
-        lexer = QueryLexer()
         text = self.__txt.strip()
+        lexer = QueryLexer()
+        parser = QueryParser(text)
         try:
             if text == '':
                 res = (None, None)
@@ -64,25 +72,10 @@ class SimpleQueryParser:
 
             return query
         except sly.lex.LexError as e:
-            txt_rest = e.text
-            err_before_txt = '_' * (len(text) - len(txt_rest))
-            err_after_txt = '^' * len(txt_rest)
-            err_txt = '\n' + text + '\n' + err_before_txt + err_after_txt
-
-            raise QueryLexingError(
-                ('Lexical error at index: %s' % e.error_index) +
-                err_txt
+            err_txt = generate_error_message(text, e.text)
+            raise SynamicQueryParsingError(
+                f'Lexical error at index: {e.error_index}\nDetails:{err_txt}'
             )
-        except QueryParsingError:
-            raise
-
-
-class QueryLexingError(Exception):
-    pass
-
-
-class QueryParsingError(Exception):
-    pass
 
 
 class QueryNode:
@@ -157,6 +150,9 @@ class QueryLexer(Lexer):
 
 
 class QueryParser(Parser):
+    def __init__(self, text):
+        self.__text = text
+
     # Get the token list from the lexer (required)
     tokens = {*QueryLexer.tokens, *QueryValueLexer.tokens}
     precedence = [
@@ -197,17 +193,20 @@ class QueryParser(Parser):
         left_section, right_section = p[0], p[2]
         return QueryNode(p[1], left_section, right_section)
 
-    def error(self, token):
-        self.restart()
-        if not token:
-            err = QueryParsingError(
-                "EOF before tokens could be parsed sensibly"
+    def error(self, p):
+        text = self.__text
+        if not p:
+            text_rest = ''
+            err_txt = generate_error_message(text, text_rest)
+            err = SynamicQueryParsingError(
+                f'End of query string before tokens could be parsed sensibly.\nDetails:{err_txt}'
             )
         else:
-            err = QueryParsingError(
-                "Parsing error at token: %s" % token.type
+            text_rest = self.__text[p.index:]
+            err_txt = generate_error_message(text, text_rest)
+            err = SynamicQueryParsingError(
+                f'Parsing error at token {p.type}.\nDetails:{err_txt}'
             )
-        self.restart()
         raise err
 
 
@@ -220,7 +219,7 @@ if __name__ == '__main__':
         if text:
             try:
                 res = SimpleQueryParser(text).parse()
-            except (QueryParsingError, QueryLexingError) as e:
-                print(e.args[0])
+            except SynamicQueryParsingError as e:
+                print(e.message)
             else:
                 print(res)
