@@ -9,6 +9,7 @@
 """
 
 import re
+import datetime
 from collections import OrderedDict
 import mimetypes
 from synamic.core.contracts.content import CDocType
@@ -190,28 +191,38 @@ class _ContentFields(CFieldsContract):
     def get(self, key, default=None):
         raw_value = self.__raw_cfields.get(key, None)
         if raw_value is None:
-            return default
-
-        value = self.__converted_values.get(key, None)
-        if value is None:
-            # special conversions
-            if key in ('pagination', 'chapters'):
-                if key == 'pagination':
-                    pagination_field = raw_value
-                    paginations, paginated_contents = self.__convert_pagination(pagination_field)
-                    value = paginations[0]
-                elif key == 'chapters':
-                    content_service = self.__site.get_service('contents')
-                    chapters = content_service.build_chapters(raw_value)
-                    value = chapters
-            # normal conversions through converter or else raw value
+            if key == 'created_on':
+                value = datetime.datetime.fromtimestamp(self.cpath.getctime())
+            elif key == 'updated_on':
+                updated_on = datetime.datetime.fromtimestamp(self.cpath.getmtime())
+                created_on = self.get('created_on')
+                assert created_on
+                if updated_on < created_on:
+                    updated_on = created_on
+                value = updated_on
             else:
-                model_field = self.__cmodel.get(key, None)
-                if model_field is not None:
-                    value = model_field.converter(raw_value)
+                return default
+        else:
+            value = self.__converted_values.get(key, None)
+            if value is None:
+                # special conversions
+                if key in ('pagination', 'chapters'):
+                    if key == 'pagination':
+                        pagination_field = raw_value
+                        paginations, paginated_contents = self.__convert_pagination(pagination_field)
+                        value = paginations[0]
+                    elif key == 'chapters':
+                        content_service = self.__site.get_service('contents')
+                        chapters = content_service.build_chapters(raw_value)
+                        value = chapters
+                # normal conversions through converter or else raw value
                 else:
-                    value = raw_value
-            self.__converted_values[key] = value
+                    model_field = self.__cmodel.get(key, None)
+                    if model_field is not None:
+                        value = model_field.converter(raw_value)
+                    else:
+                        value = raw_value
+        self.__converted_values[key] = value
         return value
 
     def set(self, key, value):

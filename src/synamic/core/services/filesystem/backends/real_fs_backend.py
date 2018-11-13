@@ -75,6 +75,16 @@ class FileSystemBackend(BaseFsBackendContract):
             )
         return res
 
+    def getctime(self, path):
+        try:
+            res = os.path.getctime(path)
+        except (OSError, IOError) as e:
+            raise SynamicFSError(
+                f'Synamic File System Error (occurred during getctime on path: {path}):\n'
+                f'{str(e)}'
+            )
+        return res
+
     def remove(self, path):
         try:
             res = os.remove(path)

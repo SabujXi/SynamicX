@@ -599,6 +599,9 @@ class PathTree(object):
         def getmtime(self):
             return self.__path_tree.fs.getmtime(self.abs_path)
 
+        def getctime(self):
+            return self.__path_tree.fs.getctime(self.abs_path)
+
         @property
         def id(self):
             return '/'.join(self.path_comps)

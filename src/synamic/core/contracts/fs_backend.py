@@ -31,5 +31,9 @@ class BaseFsBackendContract(metaclass=abc.ABCMeta):
         """Get modification? time"""
 
     @abc.abstractmethod
+    def getctime(self, path):
+        """Get last metadata change or creation time (on windows)"""
+
+    @abc.abstractmethod
     def remove(self, path):
         """Removes the path"""
