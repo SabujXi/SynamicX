@@ -58,6 +58,7 @@ class ObjectManager:
         self.__cache_data(site)
 
     def __cache_marked_cfields(self, site):
+        marked_extensions = site.default_data.get_syd('configs')['marked_extensions']
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
             content_service = site.get_service('contents')
             path_tree = self.get_path_tree(site)
@@ -67,7 +68,7 @@ class ObjectManager:
             if content_cdir.exists():  # check content dir existence before proceeding
                 file_cpaths = content_cdir.list_files()
                 for file_cpath in file_cpaths:
-                    if file_cpath.extension.lower() in {'md', 'markdown'}:
+                    if file_cpath.extension.lower() in marked_extensions:
                         text = self.get_raw_text_data(site, file_cpath)
                         front_matter, body = content_splitter(file_cpath, text)
                         del body
@@ -120,6 +121,7 @@ class ObjectManager:
             self.__cache.add_data(site, data_instance)
 
     def make_url_for_marked_content(self, site, file_cpath, path=None, slug=None, for_cdoctype=CDocType.TEXT_DOCUMENT):
+        nourl_content_dirs_sw = self.get_site_settings(site)['nourl_content_dirs_sw']
         if path is not None:
             #  discard everything and keep it. No processing needed.
             pass
@@ -132,7 +134,7 @@ class ObjectManager:
             # instead of hard coded.
             _ = []
             for ccomp in cpath_comps:
-                if not ccomp.startswith('_'):
+                if not ccomp.startswith(nourl_content_dirs_sw):
                     _.append(ccomp)
 
             cpath_comps = _
@@ -146,7 +148,7 @@ class ObjectManager:
             # instead of hard coded.
             _ = []
             for ccomp in cpath_comps:
-                if not ccomp.startswith('_'):
+                if not ccomp.startswith(nourl_content_dirs_sw):
                     _.append(ccomp)
 
             cpath_comps = _
@@ -232,13 +234,14 @@ class ObjectManager:
             return content_service.build_static_content(path)
 
     def get_static_file_paths(self, site):
+        marked_extensions = site.default_data.get_syd('config')['marked_extensions']
         paths = []
         path_tree = site.get_service('path_tree')
         contents_dir = site.default_data.get_syd('dirs')['contents.contents']
         contents_cdir = path_tree.create_dir_cpath(contents_dir)
 
         if contents_cdir.exists():
-            for path in contents_cdir.list_cpaths(checker=lambda cp: cp.basename.endswith(('.md', '.markdown'))):
+            for path in contents_cdir.list_cpaths(checker=lambda cp: cp.extension in marked_extensions):
                 paths.append(path)
         return paths
 
@@ -320,7 +323,26 @@ class ObjectManager:
     def get_path_tree(self, site):
         return site.get_service('path_tree')
 
-    def getc(self, site, url_str):
+    def get_curl_by_filename(self, site, filename, relative_cpath=None, default=None):
+        if relative_cpath is None:
+            cpath = site.path_tree.create_file_cpath(filename)
+        else:
+            if filename.startswith(('/', '\\')):
+                cpath = site.path_tree.create_file_cpath(filename)
+            else:
+                cpath = relative_cpath.join(filename, is_file=True)
+        if not cpath.exists():
+            return default
+        content = self.__cache.get_marked_content_by_cpath(site, cpath, default=None)
+        if content is None:
+            pre_content = self.__cache.get_pre_processed_content_by_cpath(site, cpath, default=None)
+        else:
+            return content.curl
+        if pre_content is None:
+            static_content = site.get_service('contents').build_static_content(cpath)
+            return static_content.curl
+
+    def getc(self, site, url_str, relative_cpath=None):
         """
         For: curl:// url:// cfields:// content:// etc.
         """
@@ -361,6 +383,10 @@ class ObjectManager:
                         if marked_cfields is not None:
                             result = self.get_marked_content(site, marked_cfields.cpath)
         else:
+            if not url_struct.scheme:
+                curl = self.get_curl_by_filename(site, url_str, relative_cpath=relative_cpath)
+                if curl:
+                    url_str = curl.url
             return url_str
         if result is not None:
             return result

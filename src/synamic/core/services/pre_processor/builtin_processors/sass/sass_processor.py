@@ -35,7 +35,8 @@ class SASSProcessor:
             for file_cpath in sass_file_cpaths:
                 scss_basename = file_cpath.basename
                 if file_cpath.extension.lower() in {'scss'}:
-                    if not scss_basename.lower().startswith('_'):
+                    nourl_content_dirs_sw = self.__site.object_manager.get_site_settings()['nourl_content_dirs_sw']
+                    if not scss_basename.lower().startswith(nourl_content_dirs_sw):
                         # partial file in not not condition, ignore it.
                         curl = self.get_css_curl(file_cpath)
                         cdoctype = CDocType.GENERATED_TEXT_DOCUMENT

@@ -8,6 +8,8 @@ ignore_files_sw: ${ ignore_dirs_sw }
 
 nourl_content_dirs_sw: _
 
+# markdown/etc marked extensions
+marked_extensions: (md, markdown)
 
 # children sites dir name
 subsites_dir: sites

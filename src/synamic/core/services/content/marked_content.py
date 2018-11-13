@@ -41,14 +41,18 @@ class MarkedContent(ContentContract):
 
             model_field = self.__cmodel.get(body_field_key)
             if model_field is not None:
-                body = model_field.converter(self.__body_text)
+                body = model_field.converter(self.__body_text, value_pack={
+                    'toc': toc,
+                    'from_cpath': self.cpath
+                })
 
             # try with markdown renderer
             else:
                 markdown_renderer = self.__site.get_service('types').get_converter('markdown')
 
                 body = markdown_renderer(self.__body_text, value_pack={
-                    'toc': toc
+                    'toc': toc,
+                    'from_cpath': self.cpath
                 })
             self.__toc = toc
             self.__body = body

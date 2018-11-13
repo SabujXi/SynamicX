@@ -9,7 +9,7 @@
 """
 
 from markupsafe import Markup
-from synamic.core.standalones.functions.md import render_markdown
+from synamic.core.standalones.functions.md import render_content_markdown
 
 
 class Html:
@@ -58,7 +58,7 @@ class Markdown:
     @property
     def rendered_markdown(self):
         if self.__rendered_text is None:
-            self.__rendered_text = render_markdown(self.__site, self.__md_str, value_pack=self.__value_pack)
+            self.__rendered_text = render_content_markdown(self.__site, self.__md_str, value_pack=self.__value_pack)
         return self.__rendered_text
 
     @property

@@ -250,7 +250,8 @@ class __SydData:
 
 class SydScalar(__SydData):
     def __init__(self, key, value, datatype, parent_container=None, converter=None, converted_value=None):
-        assert '.' not in key
+        if key is not None:
+            assert '.' not in key, f'Key {key} is invalid where value is {value}'
         assert isinstance(value, syd_to_py_types[datatype])
         self.__key = key
         self.__value = value
