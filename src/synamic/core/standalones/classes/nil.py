@@ -43,5 +43,8 @@ class _Nil:
     def __repr__(self):
         return ''
 
+    def __getattr__(self, item):
+        return self
+
 
 Nil = _Nil()

@@ -41,16 +41,20 @@ def _s2int(txt):
 
 
 def parse_datetime(txt) -> datetime.datetime:
-    if type(txt) is datetime.datetime:
+    if isinstance(txt, datetime.datetime):
         return txt
-    elif type(txt) is not ReMatchType:
+    elif isinstance(txt, str):
         txt = txt.strip()
         m = _datetime_pattern.match(txt)
         if not m:
             raise SynamicInvalidDateTimeFormat(f"DateTime format did not match for text: {txt}")
-    else:
+    elif type(txt) is ReMatchType:
         m = txt
         assert m.re is DtPatterns.datetime
+    else:
+        raise SynamicInvalidDateTimeFormat(f"Invalid DateTime data for conversion provided, provided type is "
+                                           f"{type(txt)} and string representation is {str(txt)}")
+
     year = _s2int(m.group('year'))
     month = _s2int(m.group('month'))
     date = _s2int(m.group('date'))
@@ -63,7 +67,7 @@ def parse_datetime(txt) -> datetime.datetime:
     if am_pm:
         if not hour < 13:
             raise SynamicInvalidDateTimeFormat(f"Hour cannot be greater than 12 when am/pm specified: {txt}")
-        if am_pm == "PM":
+        if am_pm.upper() == "PM":
             hour = 12 + hour
 
     dt = datetime.datetime(year, month, date, hour, minute, second)
@@ -71,16 +75,19 @@ def parse_datetime(txt) -> datetime.datetime:
 
 
 def parse_date(txt) -> datetime.date:
-    if type(txt) is datetime.date:
+    if isinstance(txt, datetime.date):
         return txt
-    elif type(txt) is not ReMatchType:
+    elif isinstance(txt, str):
         txt = txt.strip()
         m = _date_pattern.match(txt)
         if not m:
             raise SynamicInvalidDateTimeFormat(f"Date format did not match for text: {txt}")
-    else:
+    elif type(txt) is ReMatchType:
         m = txt
         assert m.re is DtPatterns.date
+    else:
+        raise SynamicInvalidDateTimeFormat(f"Invalid Date data for conversion provided, provided type is {type(txt)}"
+                                           f" and string representation is {str(txt)}")
     year = _s2int(m.group('year'))
     month = _s2int(m.group('month'))
     date = _s2int(m.group('date'))
@@ -90,16 +97,19 @@ def parse_date(txt) -> datetime.date:
 
 
 def parse_time(txt) -> datetime.time:
-    if type(txt) is datetime.time:
+    if isinstance(txt, datetime.time):
         return txt
-    elif type(txt) is not ReMatchType:
+    elif isinstance(txt, str):
         txt = txt.strip()
         m = _time_pattern.match(txt)
         if not m:
             raise SynamicInvalidDateTimeFormat(f"Time format did not match with text: {txt}")
-    else:
+    elif type(txt) is ReMatchType:
         m = txt
         assert m.re is DtPatterns.time
+    else:
+        raise SynamicInvalidDateTimeFormat(f"Invalid DateTime data for conversion provided, provided type is "
+                                           f"{type(txt)} and string representation is {str(txt)}")
     hour = _s2int(m.group('hour')) if m.group('hour') else 0
     minute = _s2int(m.group('minute')) if m.group('minute') else 0
     second = _s2int(m.group('second')) if m.group('second') else 0
@@ -107,7 +117,7 @@ def parse_time(txt) -> datetime.time:
 
     # 24 hour conversion
     if am_pm:
-        if am_pm == "PM":
+        if am_pm.upper() == "PM":
             hour = 12 + hour
 
     t = datetime.time(hour, minute, second)

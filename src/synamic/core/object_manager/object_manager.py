@@ -16,6 +16,7 @@ from synamic.exceptions import (
     SynamicErrors,
     SynamicFSError
 )
+from synamic import Nil
 
 
 class ObjectManager:

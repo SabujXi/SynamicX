@@ -14,7 +14,7 @@ class Hashable:
         return self.__id
 
     @property
-    def object(self):
+    def origin(self):
         return self.__obj
 
     def __eq__(self, other):

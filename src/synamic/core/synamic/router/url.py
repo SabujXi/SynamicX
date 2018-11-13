@@ -79,6 +79,12 @@ class ContentUrl:
         # relative url in this function.
         elif res_url_path_comps[0] != '':
             res_url_path_comps.insert(0, '')
+            # TODO: unlike file system path, this last '' should be removed for len(comps) > 1
+            # HTML (both gen & non-gen) cdoctype url that does not end with a file extension will have /index.html (take
+            # from settings) as real file system url and for browser (client) representation it will end with /.
+            # So, for html cdoctype'd urls that have a file extension (place checking so that it does not exceed
+            # certain length + the last comp does not start with a dot '.' )
+            #  will not end with / for client representation.
 
         # ['', ''] issue
         if list(res_url_path_comps) == ['', '']:  # eg ['', ''] == '/'.split('/')
