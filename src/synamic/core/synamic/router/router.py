@@ -87,8 +87,7 @@ class RouterService:
             contents_dir = self.__synamic.default_data.get_syd('dirs')['contents.contents']
             contents_dir_cpath = site.object_manager.get_path_tree().create_dir_cpath(contents_dir)
 
-            curl = curl.clone()
-            curl.__set_for_cdoctype__(CDocType.GENERATED_BINARY_DOCUMENT)
+            curl = curl.clone(CDocType.GENERATED_BINARY_DOCUMENT)
 
             fs_path = curl.to_file_system_path
             fs_path = fs_path.rstrip('/\\')

@@ -123,8 +123,9 @@ class ContentUrl:
         self.__path_components_w_site = None
         self.__url_str = None
 
-    def clone(self):
-        return self.__class__(self.__site, self.__url_path_comps, for_cdoctype=self.__for_cdoctype)
+    def clone(self, for_cdoctype=CDocType.UNSPECIFIED):
+        """Besides copying, usable when trying different type of content in router. e.g. static content need path gen"""
+        return self.__class__(self.__site, self.__url_path_comps, for_cdoctype=for_cdoctype)
 
     @property
     def for_site(self):
@@ -273,11 +274,6 @@ class ContentUrl:
 
     def __hash__(self):
         return hash(self.path_components_w_site)
-
-    def __set_for_cdoctype__(self, for_c_doctype):
-        """Usable when trying different type of content in router. e.g. static content need path gen"""
-        assert isinstance(for_c_doctype, CDocType)
-        self.__for_cdoctype = for_c_doctype
 
     @classmethod
     def parse_requested_url(cls, synamic, url_str):
