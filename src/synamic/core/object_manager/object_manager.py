@@ -522,6 +522,8 @@ class ObjectManager:
         if sort is not None:
             def sorting_key_func(f):
                 value = f[sort.by_key]
+                if value is None:
+                    value = Nil
                 return value
             result = sorted(
                 result,
