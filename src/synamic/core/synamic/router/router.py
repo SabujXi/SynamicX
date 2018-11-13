@@ -86,6 +86,10 @@ class RouterService:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
             contents_dir = self.__synamic.default_data.get_syd('dirs')['contents.contents']
             contents_dir_cpath = site.object_manager.get_path_tree().create_dir_cpath(contents_dir)
+
+            curl = curl.clone()
+            curl.__set_for_cdoctype__(CDocType.GENERATED_BINARY_DOCUMENT)
+
             fs_path = curl.to_file_system_path
             fs_path = fs_path.rstrip('/\\')
             file_cpath = contents_dir_cpath.join(fs_path, is_file=True)

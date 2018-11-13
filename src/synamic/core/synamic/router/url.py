@@ -123,6 +123,9 @@ class ContentUrl:
         self.__path_components_w_site = None
         self.__url_str = None
 
+    def clone(self):
+        return self.__class__(self.__site, self.__url_path_comps, for_cdoctype=self.__for_cdoctype)
+
     @property
     def for_site(self):
         return self.__site
@@ -131,7 +134,16 @@ class ContentUrl:
     def for_cdoctype(self):
         return self.__for_cdoctype
 
-    def join(self, url_comps: Union[str, list, tuple], for_cdoctype=None):
+    @staticmethod
+    def __join_path_comps(comps):
+        # comps must be a result of to_path_components/self.__url_path_comps
+        if comps == ('',):
+            path_str = '/'
+        else:
+            path_str = '/'.join(comps)
+        return path_str
+
+    def join(self, url_comps: Union[str, list, tuple], for_cdoctype=CDocType.UNSPECIFIED):
         this_comps = self.__url_path_comps
         other_comps = self.path_to_components(url_comps)
 
@@ -170,6 +182,7 @@ class ContentUrl:
 
     @property
     def path_as_str(self):
+        assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__path_str is None:
             comps = self.path_components
             if comps == ('', ):
@@ -181,26 +194,25 @@ class ContentUrl:
 
     @property
     def path_as_str_w_site(self):
+        assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__path_str is None:
-            comps = self.path_components_w_site
-            if comps == ('', ):
-                path_str = '/'
-            else:
-                path_str = '/'.join(comps)
-            self.__path_str = path_str
+            self.__path_str = self.__join_path_comps(self.path_components_w_site)
         return self.__path_str
 
     @property
     def path_as_str_encoded(self):
+        assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         return urllib.parse.quote_plus(self.path_as_str, safe='/:#', encoding='utf-8')
 
     @property
     def path_as_str_w_site_encoded(self):
+        assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         return urllib.parse.quote_plus(self.path_as_str_w_site, safe='/:#', encoding='utf-8')
 
     @property
     def url(self):
         """URL with host name, port, path"""
+        assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__url_str is None:
             ss = self.__site.object_manager.get_site_settings()
             host_scheme = ss['host_scheme']
@@ -210,12 +222,13 @@ class ContentUrl:
                 port_part = ':' + port
             else:
                 port_part = ''
-            _ = host_scheme + '://' + hostname + port_part + self.path_as_str
+            _ = host_scheme + '://' + hostname + port_part + self.path_as_str_w_site
             self.__url_str = _
         return self.__url_str
 
     @property
     def url_encoded(self):
+        assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         return urllib.parse.quote_plus(self.url, safe='/:#', encoding='utf-8')
 
     @property
@@ -245,7 +258,10 @@ class ContentUrl:
         )
 
     def __str__(self):
-        return self.path_as_str_w_site
+        # same as self.path_as_str_w_site, but cannot use that property due to CDocType check issue.
+        # keep this method synced with self.path_as_str_w_site
+        path_str = self.__join_path_comps(self.path_components_w_site)
+        return f'CURL: {path_str}'
 
     def __repr__(self):
         return repr(self.__str__())
@@ -257,6 +273,11 @@ class ContentUrl:
 
     def __hash__(self):
         return hash(self.path_components_w_site)
+
+    def __set_for_cdoctype__(self, for_c_doctype):
+        """Usable when trying different type of content in router. e.g. static content need path gen"""
+        assert isinstance(for_c_doctype, CDocType)
+        self.__for_cdoctype = for_c_doctype
 
     @classmethod
     def parse_requested_url(cls, synamic, url_str):
