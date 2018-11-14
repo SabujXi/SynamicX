@@ -455,11 +455,22 @@ class ObjectManager:
         """Method primarily for router.get()"""
         pass
 
-    def get_marker(self, site, marker_id):
+    def get_marker(self, site, marker_id, default=None, error_out=False):
         marker = self.__cache.get_marker(site, marker_id, default=None)
-        if marker is None:
+        if marker is None and error_out:
             raise SynamicMarkerNotFound(f'Marker does not exist: {marker_id}')
-        return marker
+        else:
+            if marker is None:
+                return default
+            else:
+                return marker
+
+    def get_marker_by_slug(self, site, slug, default=None):
+        markers = self.get_markers(site)
+        for marker in markers:
+            if marker.get('slug', default=None) == slug:
+                return marker
+        return default
 
     def get_markers_by_type(self, site, marker_type):
         allowed_marker_types = {'single', 'multiple', 'hierarchical'}

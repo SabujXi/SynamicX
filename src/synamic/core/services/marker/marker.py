@@ -83,8 +83,11 @@ class _Mark:
             url_partition_comp = site_settings['url_partition_comp']
             mark_url_comp = self.__site.system_settings['mark_url_comp']
             cdoctype = CDocType.GENERATED_HTML_DOCUMENT
+            marker_slug = self.__marker.get('slug', None)
+            if marker_slug is None:
+                marker_slug = self.__marker.id
             curl = self.__site.synamic.router.make_url(
-                self.__site, f'/{url_partition_comp}/{mark_url_comp}/{self.__marker.id}/{self.id}', for_cdoctype=cdoctype
+                self.__site, f'/{url_partition_comp}/{mark_url_comp}/{marker_slug}/{self.id}', for_cdoctype=cdoctype
             )
             mimetype = 'text/html'
             sf = synthetic_fields = content_service.make_synthetic_cfields(
@@ -155,7 +158,7 @@ class _Mark:
 
 
 class Marker:
-    def __init__(self, site, marker_id, marker_type, marker_title, marker_mark_maps):
+    def __init__(self, site, marker_id, marker_type, marker_title, marker_mark_maps, origin_syd):
         assert marker_type in {'single', 'multiple', 'hierarchical'}
         self.__site = site
         self.__id = marker_id
@@ -169,7 +172,7 @@ class Marker:
         self.__marks = []
         __marks = []
         self.__process_marks_list(marker_mark_maps, __marks, parent=None)
-
+        self.__origin_syd = origin_syd
         for mark in __marks:
             self.add_mark(mark)
 
@@ -237,6 +240,9 @@ class Marker:
                 _mark_maps = _mark.marks
                 if _mark_maps is not None:
                     self.__process_marks_list(_mark_maps, res_mark_objs, _mark)
+
+    def get(self, key, default=None):
+        return self.__origin_syd.get(key, default=default)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

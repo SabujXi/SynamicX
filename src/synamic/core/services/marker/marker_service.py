@@ -17,7 +17,7 @@ class MarkerService:
         marker_type = syd['type']
         marker_title = syd.get('title', marker_type)
         marker_mark_maps = syd['marks']
-        marker = Marker(self.__site, marker_id, marker_type, marker_title, marker_mark_maps)
+        marker = Marker(self.__site, marker_id, marker_type, marker_title, marker_mark_maps, syd)
         return marker
 
     def get_marker_ids(self):

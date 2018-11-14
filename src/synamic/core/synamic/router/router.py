@@ -44,10 +44,13 @@ class RouterService:
                     if len(special_components) < 3:
                         return None
                     else:
-                        marker_id = special_components[1]
+                        marker_id_or_slug = special_components[1]
                         mark_id = special_components[2]
-                        marker = site.object_manager.get_marker(marker_id)
-                        # print(f'{marker}')
+                        marker = site.object_manager.get_marker(marker_id_or_slug, default=None)
+                        if marker is None:
+                            marker = site.object_manager.get_marker_by_slug(marker_id_or_slug)
+                        if marker is None:
+                            return None
                         mark = marker.get_mark_by_id(mark_id)
                         if mark is None:
                             return None
