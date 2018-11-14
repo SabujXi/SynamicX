@@ -199,6 +199,12 @@ class _Site(SiteContract):
     def site_wrapper(self):
         return _SiteWrapper(self)
 
+    def __getattr__(self, service_name):
+        return self.get_service(service_name, error_out=True)
+
+    def __getitem__(self, service_name):
+        return self.get_service(service_name, error_out=True)
+
     def __str__(self):
         return 'Site: ' + str(self.id) + ' <- ' + (str(self.parent.id.components) if self.has_parent else str(None)) \
                + ' [parent]'
