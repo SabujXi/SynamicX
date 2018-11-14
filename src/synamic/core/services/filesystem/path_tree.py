@@ -160,18 +160,18 @@ class PathTree(object):
             This method is only for end user who do not know deep details or for from template or when you want a relaxed
             way of doing things * Must not use in synamic core development.*
         """
-        comps = self.to_cpath_ccomps(*path_comps)
+        ccomps = self.to_cpath_ccomps(*path_comps)
         if not is_file:  # directory
-            if comps[-1] != '':
-                comps += ('', )
+            if ccomps[-1] != '':
+                ccomps += ('', )
         else:  # file
             if not forgiving:  # is file & not forgiving
-                assert comps[-1] != ''
+                assert ccomps[-1] != ''
             else:  # is file & forgiving.
-                if len(comps) > 1 and comps[-1] == '':
-                    comps = comps[:-1]
+                if len(ccomps) > 1 and ccomps[-1] == '':
+                    ccomps = ccomps[:-1]
 
-        path_obj = self.__CPath(self, self.__host, comps, is_file=is_file)
+        path_obj = self.__CPath(self, self.__host, ccomps, is_file=is_file)
         return path_obj
 
     def create_file_cpath(self, *path_comps, forgiving=False):
@@ -454,6 +454,10 @@ class PathTree(object):
             return tuple(self.__path_comps)
 
         @property
+        def path_comps_w_site(self):
+            return (*self.__site.id.components, *self.__path_comps[1:])
+
+        @property
         def cpath_comps(self):
             """Special cpath comps that can have '' empty string on both ends - path tree's to components make this
             special components"""
@@ -501,7 +505,8 @@ class PathTree(object):
             if self.is_file:
                 dotted_parts = self.basename.rsplit(".", maxsplit=dot_count)
                 if not len(dotted_parts) < dot_count + 1:
-                    return ".".join(dotted_parts[-dot_count:])
+                    ext = ".".join(dotted_parts[-dot_count:])
+                    return ext
             return ''
 
         def list_cpaths(self, files_only=None, depth=None, exclude_compss=(), checker=None):
@@ -528,6 +533,10 @@ class PathTree(object):
         def open(self, mode, *args, **kwargs):
             assert self.is_file, 'Cannot call open() on a directory: %s' % self.relative_path
             return self.__path_tree.open(self.__cpath_special_comps, mode, *args, **kwargs)
+
+        def makedirs(self):
+            assert self.is_dir
+            return self.__path_tree.fs.makedirs(self.abs_path)
 
         def join(self, *path_str_or_cmps, is_file=True):
             """Creates a new path joining to this one"""

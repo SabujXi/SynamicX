@@ -233,15 +233,15 @@ class ObjectManager:
             content_service = site.get_service('contents')
             return content_service.build_static_content(path)
 
-    def get_static_file_paths(self, site):
-        marked_extensions = site.default_data.get_syd('config')['marked_extensions']
+    def get_static_file_cpaths(self, site):
+        marked_extensions = site.default_data.get_syd('configs')['marked_extensions']
         paths = []
         path_tree = site.get_service('path_tree')
         contents_dir = site.default_data.get_syd('dirs')['contents.contents']
         contents_cdir = path_tree.create_dir_cpath(contents_dir)
 
         if contents_cdir.exists():
-            for path in contents_cdir.list_cpaths(checker=lambda cp: cp.extension in marked_extensions):
+            for path in contents_cdir.list_files(checker=lambda cp: cp.extension not in marked_extensions):
                 paths.append(path)
         return paths
 
@@ -466,10 +466,13 @@ class ObjectManager:
                 _.append(marker)
         return _
 
-    def get_all_cached_marked_fields(self, site):
+    def get_all_cached_marked_cfields(self, site):
         # TODO: logic for cached content metas
         # - when to use it when not (when not cached)
         return self.__cache.get_all_marked_cfields(site)
+
+    def get_all_pre_processed_contents(self, site):
+        return self.__cache.get_all_pre_processed_content(site)
 
     def get_marked_cpath_by_curl(self, site, curl, default=None):
         return self.__cache.get_marked_cpath_by_curl(site, curl, default=default)
@@ -686,6 +689,9 @@ class ObjectManager:
             res = self.__cpath_to_pre_processed_contents[site.id].get(cpath, default)
             return res
 
+        def get_all_pre_processed_content(self, site):
+            return tuple(self.__pre_processed_cachemap[site.id].values())
+
         def add_marked_content(self, site, marked_content):
             # TODO: set limit to 100 or so
             self.__marked_contents_cachemap[site.id][marked_content.curl] = marked_content
@@ -798,3 +804,65 @@ class ObjectManager:
             self.clear_model(site)
             self.clear_users(site)
             self.clear_data(site)
+
+    def build(self, site):
+        output_dir = self.__synamic.default_data.get_syd('dirs')['outputs.outputs']
+        output_cdir = self.__synamic.path_tree.create_dir_cpath(output_dir)
+
+        # marked
+        all_cfields = self.get_all_cached_marked_cfields(site)
+        for cfields in all_cfields:
+            cpath = cfields.cpath
+            curl = cfields.curl
+            content = self.get_marked_content(site, cpath)
+            print(f'Writing {curl.url}')
+            with content.get_stream() as fr:
+                c_out_dir, fn = curl.to_dirfn_pair_w_site
+                c_out_cdir = output_cdir.join(c_out_dir, is_file=False)
+                if not c_out_cdir.exists():
+                    c_out_cdir.makedirs()
+                c_out_cfile = c_out_cdir.join(fn, is_file=True)
+                with c_out_cfile.open('wb') as fw:
+                    data = fr.read(1024)
+                    while data:
+                        fw.write(data)
+                        data = fr.read(1024)
+
+        # generated
+        all_pre_content = self.get_all_pre_processed_contents(site)
+        for content in all_pre_content:
+            curl = content.curl
+            print(f'Writing {curl.url}')
+            with content.get_stream() as fr:
+                c_out_dir, fn = curl.to_dirfn_pair_w_site
+                c_out_cdir = output_cdir.join(c_out_dir, is_file=False)
+                if not c_out_cdir.exists():
+                    c_out_cdir.makedirs()
+                c_out_cfile = c_out_cdir.join(fn, is_file=True)
+                with c_out_cfile.open('wb') as fw:
+                    data = fr.read(1024)
+                    while data:
+                        fw.write(data)
+                        data = fr.read(1024)
+
+        content_service = site.get_service('contents')
+        # static
+        all_static_cpaths = self.get_static_file_cpaths(site)
+        print(f'static cpaths: {all_static_cpaths}')
+        for cpath in all_static_cpaths:
+            print(f'Static cpath {cpath}')
+            content = content_service.build_static_content(cpath)
+            curl = content.curl
+            print(f'Writing {curl.url}')
+            with content.get_stream() as fr:
+                c_out_dir, fn = curl.to_dirfn_pair_w_site
+                c_out_cdir = output_cdir.join(c_out_dir, is_file=False)
+                if not c_out_cdir.exists():
+                    c_out_cdir.makedirs()
+                c_out_cfile = c_out_cdir.join(fn, is_file=True)
+                with c_out_cfile.open('wb') as fw:
+                    data = fr.read(1024)
+                    while data:
+                        fw.write(data)
+                        data = fr.read(1024)
+

@@ -139,6 +139,12 @@ class Sites:
                         subsite_id
                     )
 
+    @loaded
+    def build(self):
+        for site_id, site in self.__sites_map.items():
+            print(f'>>> Building Site: {site_id}\n\n')
+            site.object_manager.build()
+
 
 class _SiteId:
     __path_pat_split_by = re.compile(r'[\\/]')

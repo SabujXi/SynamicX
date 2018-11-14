@@ -12,6 +12,7 @@ import re
 import urllib.parse
 from typing import Union
 from synamic.core.contracts import CDocType
+ext_pattern = re.compile(r'.+(\.[a-zA-Z0-9]{1,8})')
 
 
 class ContentUrl:
@@ -205,6 +206,7 @@ class ContentUrl:
 
     @property
     def to_file_system_path(self):
+        # TODO: make it dirfn based
         p = self.path_as_str
         if CDocType.is_html(self.__for_cdoctype):
             index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
@@ -220,12 +222,14 @@ class ContentUrl:
 
     @property
     def to_cpath(self):
+        # TODO: make it dirfn based
         return self.__site.path_tree.create_file_cpath(
             self.to_file_system_path
         )
 
     @property
     def to_cpath_w_site(self):
+        # TODO: make it dirfn based
         return self.__site.synamic.path_tree.create_file_cpath(
             self.to_file_system_path
         )
@@ -233,6 +237,8 @@ class ContentUrl:
     @property
     def to_dirfn_pair(self):
         path_comps = self.path_components
+        if ext_pattern.match(path_comps[-1]):
+            return path_comps[:-1], path_comps[-1]
         if CDocType.is_html(self.__for_cdoctype):
             index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
             return path_comps, index_file_name
@@ -242,6 +248,8 @@ class ContentUrl:
     @property
     def to_dirfn_pair_w_site(self):
         path_comps = self.path_components_w_site
+        if ext_pattern.match(path_comps[-1]):
+            return path_comps[:-1], path_comps[-1]
         if CDocType.is_html(self.__for_cdoctype):
             index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
             return path_comps, index_file_name
