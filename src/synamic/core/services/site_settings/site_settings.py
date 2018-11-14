@@ -17,18 +17,28 @@ class _SiteSettings:
 
     @property
     def site_address(self):
-        # TODO: calculate dev server address when dev server running.
         if self.__site_address is None:
-            site_address = self.get('site_address', None)
-            if site_address is None:
-                host_port = self['host_port']
-                host_scheme = self['host_scheme']
-                hostname = self['hostname']
-                host_base_path = self['host_base_path'].strip('/')
-                port_str = f':{host_port}' if host_port else ''
-                host_base_path_str = f'{host_base_path}'
+            # calculate dev server address when dev server running.
+            if self.__site.synamic.dev_params.get('host', None):
+                dev_params = self.__site.synamic.dev_params
+                host_scheme = 'http'
+                hostname = dev_params.get('host')
+                port = str(dev_params.get('port', '8080'))
+                port_str = f':{port}'
+                host_base_path_str = ''
                 site_address = host_scheme + "://" + hostname + port_str + host_base_path_str
-                self.__site_address = site_address
+            # calculate from settings/configs
+            else:
+                site_address = self.get('site_address', None)
+                if site_address is None:
+                    host_port = self['host_port']
+                    host_scheme = self['host_scheme']
+                    hostname = self['hostname']
+                    host_base_path = self['host_base_path'].strip('/')
+                    port_str = f':{host_port}' if host_port else ''
+                    host_base_path_str = f'{host_base_path}'
+                    site_address = host_scheme + "://" + hostname + port_str + host_base_path_str
+            self.__site_address = site_address
         else:
             site_address = self.__site_address
         return site_address

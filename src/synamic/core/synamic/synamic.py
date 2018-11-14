@@ -39,6 +39,9 @@ class Synamic(SynamicContract):
             'backend': 'file'
         }
 
+        # dev server param
+        self.__dev_params = {}
+
         self.__is_loaded = False
 
     @property
@@ -83,3 +86,10 @@ class Synamic(SynamicContract):
     @property
     def event_system(self):
         raise NotImplemented
+
+    def set_dev_params(self, **paras):
+        self.__dev_params.update(paras)
+
+    @property
+    def dev_params(self):
+        return self.__dev_params.copy()

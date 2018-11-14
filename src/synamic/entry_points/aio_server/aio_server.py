@@ -7,12 +7,13 @@ app = web.Application()
 app.router.add_route('GET', '/{tail:.*}', synamic_handler)
 
 
-def serve(root_dir: str):
+def serve(root_dir: str, host='localhost', port='8080'):
     assert os.path.exists(root_dir)
 
     # bootstrap(site_root)
     synamic = Synamic(root_dir)
+    synamic.set_dev_params(host=host, port=port)
     synamic.load()
     #  synamic.sites.load()
     app.synamic = synamic
-    web.run_app(app)
+    web.run_app(app, host=host, port=port)
