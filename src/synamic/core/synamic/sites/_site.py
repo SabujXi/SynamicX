@@ -92,6 +92,8 @@ class _Site(SiteContract):
         # TODO: remove it later - keeping it now just to not crash the system.
         self.__services_container['path_tree'] = self.__path_tree
 
+        self.__menus_wrapper = MenusWrapper(self.__object_manager_4_site)
+
         self.__is_loaded = False
 
     @property
@@ -169,6 +171,10 @@ class _Site(SiteContract):
         return self.object_manager.get_site_settings()
 
     @property
+    def menu(self):
+        return self.__menus_wrapper
+
+    @property
     def path_tree(self):
         return self.__path_tree
 
@@ -220,3 +226,34 @@ class _SiteWrapper:
                 return getattr(self.__site, key)
             except AttributeError:
                 raise AttributeError('%s key was not found on site' % key)
+
+
+class _SiteStuffWrapper:
+    def __init__(self, origin_object):
+        self.__origin_object__ = origin_object
+
+    def get(self, key, default=None):
+        return self.__origin_object__.get(key, default=default)
+
+    def __getattr__(self, key):
+        return self.get(key)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+
+class MenusWrapper:
+    def __init__(self, object_manager):
+        self.__object_manager = object_manager
+
+    def all(self):
+        return self.__object_manager.get_menus()
+
+    def get(self, key, default=None):
+        return self.__object_manager.get_menu(key, default=default)
+
+    def __getattr__(self, key):
+        return self.get(key)
+
+    def __getitem__(self, key):
+        return self.get(key)
