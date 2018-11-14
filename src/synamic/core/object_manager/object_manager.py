@@ -53,9 +53,9 @@ class ObjectManager:
     def __load_for__(self, site):
         self.__cache_markers(site)
         self.__cache_marked_cfields(site)
-        self.__cache_pre_processed_contents(site)
         self.__cache_menus(site)
         self.__cache_data(site)
+        self.__cache_pre_processed_contents(site)
 
     def __cache_marked_cfields(self, site):
         marked_extensions = site.default_data.get_syd('configs')['marked_extensions']
@@ -105,6 +105,14 @@ class ObjectManager:
             generated_contents = pre_processor.get_generated_contents()
             for generated_content in generated_contents:
                 self.__cache.add_pre_processed_content(site, generated_content, generated_content.source_cpath)
+
+        # TODO: keep sitemap here forever? IT will not make the system happy... it should be created before byproduct
+        # ...or even after.
+        # TODO: also, provide some mechanism to add content to sitemap dynamically.
+        # TODO: so this is not the place for sitemap.
+        sitemap_service = site.get_service('sitemap')
+        sitemap_content = sitemap_service.make_sitemap(self.query_cfields(site, ':sortby updated_on desc'))
+        self.__cache.add_pre_processed_content(site, sitemap_content)
 
     def __cache_menus(self, site):
         menu_service = site.get_service('menus')
@@ -848,12 +856,12 @@ class ObjectManager:
         content_service = site.get_service('contents')
         # static
         all_static_cpaths = self.get_static_file_cpaths(site)
-        print(f'static cpaths: {all_static_cpaths}')
+        print(f'static cpaths: {all_static_cpaths} for site {site.id}')
         for cpath in all_static_cpaths:
-            print(f'Static cpath {cpath}')
+            print(f'Static cpath {cpath} for site {site.id}')
             content = content_service.build_static_content(cpath)
             curl = content.curl
-            print(f'Writing {curl.url}')
+            print(f'Writing {curl.url} for site {site.id}')
             with content.get_stream() as fr:
                 c_out_dir, fn = curl.to_dirfn_pair_w_site
                 c_out_cdir = output_cdir.join(c_out_dir, is_file=False)

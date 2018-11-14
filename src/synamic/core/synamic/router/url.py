@@ -13,6 +13,7 @@ import urllib.parse
 from typing import Union
 from synamic.core.contracts import CDocType
 ext_pattern = re.compile(r'.+(\.[a-zA-Z0-9]{1,8})')
+# used to check whether an url has an ext so that if it is html cdoctype /index.html is not used.
 
 
 class ContentUrl:

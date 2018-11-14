@@ -15,6 +15,7 @@ from synamic.core.services.user import UserService
 from synamic.core.services.data import DataService
 from synamic.core.default_data import DefaultDataManager
 from synamic.core.contracts import SiteContract
+from synamic.core.services.sitemap import SitemapService
 
 
 def _install_default_services(site):
@@ -48,6 +49,9 @@ def _install_default_services(site):
     self.add_service('data', DataService)
 
     self.add_service('tasks', TasksService)
+
+    # sitemap
+    self.add_service('sitemap', SitemapService)
 
 
 class _Site(SiteContract):
