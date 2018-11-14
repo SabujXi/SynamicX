@@ -4,6 +4,7 @@ public interfaces.
 """
 import os
 import re
+import shutil
 from collections import OrderedDict
 from synamic.core.synamic.sites._site import _Site
 from synamic.core.default_data._manager import DefaultDataManager
@@ -141,6 +142,25 @@ class Sites:
 
     @loaded
     def build(self):
+        # clean output directory
+
+        output_dir = self.__synamic.system_settings['dirs.outputs.outputs']
+        output_cdir = self.__synamic.path_tree.create_dir_cpath(output_dir)
+        if not output_cdir.exists():
+            output_cdir.makedirs()
+        output_abs_path = output_cdir.abs_path
+        except_root_paths = ('.git', '.gitignore', '.gitattributes')
+        print(f'Removing paths from {output_abs_path} with some exceptions to {except_root_paths}')
+        for o_basename in os.listdir(output_abs_path):
+            full_path = os.path.join(output_abs_path, o_basename)
+            if o_basename not in except_root_paths:
+                print(f'Removing {full_path}')
+                if os.path.isfile(full_path):
+                    os.remove(full_path)
+                else:
+                    shutil.rmtree(full_path)
+
+        # build sites
         build_succeeded = True
         for site_id, site in self.__sites_map.items():
             print(f'>>> Building Site: {site_id}\n\n')
