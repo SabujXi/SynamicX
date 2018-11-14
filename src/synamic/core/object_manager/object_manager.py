@@ -488,6 +488,9 @@ class ObjectManager:
     def get_menu(self, site, menu_name, default=None):
         return self.__cache.get_menu(site, menu_name, default=default)
 
+    def get_menus(self, site):
+        return self.__cache.get_menus(site)
+
     def get_data(self, site, data_name, default=None):
         return self.__cache.get_data(site, data_name, default=default)
 
@@ -593,6 +596,9 @@ class ObjectManager:
             if user is not None:
                 self.__cache.add_user(site, user)
         return user
+
+    def get_users(self, site):
+        return self.__cache.get_users(site)
 
     def sites_up(self, site, param_w_site_sep):
         _ = []

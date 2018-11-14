@@ -93,6 +93,7 @@ class _Site(SiteContract):
         self.__services_container['path_tree'] = self.__path_tree
 
         self.__menus_wrapper = MenusWrapper(self.__object_manager_4_site)
+        self.__users_wrapper = UsersWrapper(self.__object_manager_4_site)
 
         self.__is_loaded = False
 
@@ -175,6 +176,10 @@ class _Site(SiteContract):
         return self.__menus_wrapper
 
     @property
+    def user(self):
+        return self.__users_wrapper
+
+    @property
     def path_tree(self):
         return self.__path_tree
 
@@ -251,6 +256,23 @@ class MenusWrapper:
 
     def get(self, key, default=None):
         return self.__object_manager.get_menu(key, default=default)
+
+    def __getattr__(self, key):
+        return self.get(key)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+
+class UsersWrapper:
+    def __init__(self, object_manager):
+        self.__object_manager = object_manager
+
+    def all(self):
+        return self.__object_manager.get_users()
+
+    def get(self, key, default=None):
+        return self.__object_manager.get_user(key, default=default)
 
     def __getattr__(self, key):
         return self.get(key)
