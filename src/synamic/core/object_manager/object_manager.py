@@ -461,7 +461,7 @@ class ObjectManager:
             raise SynamicMarkerNotFound(f'Marker does not exist: {marker_id}')
         return marker
 
-    def get_markers(self, site, marker_type):
+    def get_markers_by_type(self, site, marker_type):
         allowed_marker_types = {'single', 'multiple', 'hierarchical'}
         if marker_type not in allowed_marker_types:
             raise SynamicMarkerNotFound(
@@ -473,6 +473,9 @@ class ObjectManager:
             if marker.type == marker_type:
                 _.append(marker)
         return _
+
+    def get_markers(self, site):
+        return self.__cache.get_markers(site)
 
     def get_all_cached_marked_cfields(self, site):
         # TODO: logic for cached content metas
@@ -826,78 +829,8 @@ class ObjectManager:
         output_dir = self.__synamic.system_settings['dirs.outputs.outputs']
         output_cdir = self.__synamic.path_tree.create_dir_cpath(output_dir)
 
-        # marked
-        all_cfields = self.get_all_cached_marked_cfields(site)
-        for cfields in all_cfields:
-            cpath = cfields.cpath
-            curl = cfields.curl
-            content = self.get_marked_content(site, cpath)
-            print(f'Writing {curl.url}')
-            with content.get_stream() as fr:
-                c_out_dir, fn = curl.to_dirfn_pair_w_site
-                c_out_cdir = output_cdir.join(c_out_dir, is_file=False)
-                if not c_out_cdir.exists():
-                    c_out_cdir.makedirs()
-                c_out_cfile = c_out_cdir.join(fn, is_file=True)
-                with c_out_cfile.open('wb') as fw:
-                    data = fr.read(1024)
-                    while data:
-                        fw.write(data)
-                        data = fr.read(1024)
-
-        # generated/pre-processed
-        all_pre_content = self.get_all_pre_processed_contents(site)
-        for content in all_pre_content:
-            curl = content.curl
-            print(f'Writing {curl.url}')
-            with content.get_stream() as fr:
-                c_out_dir, fn = curl.to_dirfn_pair_w_site
-                c_out_cdir = output_cdir.join(c_out_dir, is_file=False)
-                if not c_out_cdir.exists():
-                    c_out_cdir.makedirs()
-                c_out_cfile = c_out_cdir.join(fn, is_file=True)
-                with c_out_cfile.open('wb') as fw:
-                    data = fr.read(1024)
-                    while data:
-                        fw.write(data)
-                        data = fr.read(1024)
-
-        content_service = site.get_service('contents')
-        # static
-        all_static_cpaths = self.get_static_file_cpaths(site)
-        print(f'static cpaths: {all_static_cpaths} for site {site.id}')
-        for cpath in all_static_cpaths:
-            print(f'Static cpath {cpath} for site {site.id}')
-            content = content_service.build_static_content(cpath)
-            curl = content.curl
-            print(f'Writing {curl.url} for site {site.id}')
-            with content.get_stream() as fr:
-                c_out_dir, fn = curl.to_dirfn_pair_w_site
-                c_out_cdir = output_cdir.join(c_out_dir, is_file=False)
-                if not c_out_cdir.exists():
-                    c_out_cdir.makedirs()
-                c_out_cfile = c_out_cdir.join(fn, is_file=True)
-                with c_out_cfile.open('wb') as fw:
-                    data = fr.read(1024)
-                    while data:
-                        fw.write(data)
-                        data = fr.read(1024)
-
-
-        # TODO: build marker, user contents
-        markers = self.__cache.get_markers(site)
-        users = self.__cache.get_users(site)
-        # TODO: do not get from cache like this, get from om
-        meta_contents = []
-        for marker in markers:
-            marks = marker.marks
-            for mark in marks:
-                meta_contents.append(mark.content)
-
-        for user in users:
-            meta_contents.append(user.content)
-
-        for content in meta_contents:
+        citer = CIter(site)
+        for content in citer:
             curl = content.curl
             print(f'Writing {curl.url}')
             with content.get_stream() as fr:
@@ -912,3 +845,86 @@ class ObjectManager:
                         fw.write(data)
                         data = fr.read(1024)
         return True
+
+
+class CIter:
+    def __init__(self, site):
+        self.__site = site
+
+    def __make_clist(self):
+        # marked
+        clist = []
+
+        all_cfields = self.__site.object_manager.get_all_cached_marked_cfields()
+        all_pre_content = self.__site.object_manager.get_all_pre_processed_contents()
+        all_static_cpaths = self.__site.object_manager.get_static_file_cpaths()
+        all_users = self.__site.object_manager.get_users()
+        all_marks = []
+
+        for marker in self.__site.object_manager.get_markers():
+            marks = marker.marks
+            for mark in marks:
+                all_marks.append(mark.content)
+
+        clist.extend(all_cfields)
+        clist.extend(all_pre_content)
+        clist.extend(all_static_cpaths)
+        clist.extend(all_users)
+        clist.extend(all_marks)
+
+        return clist
+
+    def __iter__(self):
+        return self.__CListIterator(self.__make_clist(), self.__site)
+
+    class __CListIterator:
+        def __init__(self, clist, site):
+            self.__clist = clist
+            self.__idx = 0
+            self.__site = site
+
+            self.__content_service = self.__site.get_service('contents')
+            self.__markers_service = self.__site.get_service('markers')
+            self.__users_service = self.__site.get_service('users')
+            self.__path_tree = self.__site.path_tree
+
+        def __next__(self):
+            if self.__idx >= len(self.__clist):
+                del self.__clist
+                del self.__site
+                del self.__content_service
+                del self.__markers_service
+                del self.__users_service
+                del self.__path_tree
+                raise StopIteration
+
+            elem = self.__clist[self.__idx]
+            self.__idx += 1
+
+            # marked content
+            if self.__content_service.is_type_cfields(elem):
+                cfields = elem
+                content = self.__site.object_manager.get_marked_content(cfields.cpath)
+
+            elif self.__content_service.is_type_generated_content(elem):
+                content = elem
+
+            # static content
+            elif self.__path_tree.is_type_cpath(elem):
+                cpath = elem
+                content = self.__content_service.build_static_content(cpath)
+
+            # user
+            elif self.__users_service.is_type_user(elem):
+                user = elem
+                content = user.content
+
+            # mark
+            elif self.__markers_service.is_type_mark(elem):
+                mark = elem
+                content = mark.content
+
+            else:
+                raise Exception(f'Something impossible happened or you introduced a bug.')
+
+            return content

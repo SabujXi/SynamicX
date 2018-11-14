@@ -49,6 +49,10 @@ class ContentService:
     def is_type_synthetic_cfields(cls, other):
         return isinstance(other, _SyntheticContentFields)
 
+    @classmethod
+    def is_type_generated_content(cls, other):
+        return isinstance(other, GeneratedContent)
+
     def build_cfields(self, fields_syd, file_cpath):
         # get dir meta syd
         # """It should not live here as it is compile time dependency"""

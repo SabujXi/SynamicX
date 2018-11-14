@@ -52,6 +52,10 @@ class UserService:
                     user_ids.append(menu_name)
         return tuple(user_ids)
 
+    @classmethod
+    def is_type_user(cls, other):
+        return isinstance(other, cls.__User)
+
     class __User:
         def __init__(self, site, user_id, user_fields=None):
             self.__site = site

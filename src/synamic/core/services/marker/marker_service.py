@@ -1,4 +1,5 @@
 from synamic.core.services.marker.marker import Marker
+from .marker import _Mark
 
 
 class MarkerService:
@@ -32,3 +33,5 @@ class MarkerService:
         ids = tuple(_)
         return ids
 
+    def is_type_mark(self, other):
+        return isinstance(other, _Mark)
