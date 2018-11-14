@@ -1,20 +1,23 @@
-# ignore_dirs_starting_with: In any place: directories and files starting with the following string will be ignored from processing.
+configs: {
 
-ignore_dirs_sw: .
-ignore_files_sw: ${ ignore_dirs_sw }
+    # ignore_dirs_starting_with: In any place: directories and files starting with the following string will be ignored from processing.
 
-# if a directory inside the contents folder starts with the following char then it will not result in url for that dir
-# others directories will result in url path components
+    ignore_dirs_sw: .
+    ignore_files_sw: ${ ignore_dirs_sw }
 
-nourl_content_dirs_sw: _
+    # if a directory inside the contents folder starts with the following char then it will not result in url for that dir
+    # others directories will result in url path components
 
-# markdown/etc marked extensions
-marked_extensions: (md, markdown)
+    nourl_content_dirs_sw: _
 
-# children sites dir name
-subsites_dir: sites
+    # markdown/etc marked extensions
+    marked_extensions: (md, markdown)
 
-# Dynamic content directory meta.
-# metas are just like compile time dependencies.
-# during content/fields loading those values will be inserted into the contents.
-dir_meta_file_name: .meta.syd
+    # children sites dir name
+    subsites_dir: sites
+
+    # Dynamic content directory meta.
+    # metas are just like compile time dependencies.
+    # during content/fields loading those values will be inserted into the contents.
+    dir_meta_file_name: .meta.syd
+}

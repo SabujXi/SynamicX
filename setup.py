@@ -24,9 +24,11 @@ setup(
         'Jinja2>=2.10',
         'MarkupSafe>=1.0',
         'mistune>=0.8.3',
-        'ruamel.yaml>=0.15.34'
+        'Pillow>=5.2.0',
+        'sly>=0.3',
+        'aiohttp>=3.4.4',
     ],
-    python_requires='>=3.5',
+    python_requires='>=3.6',
     long_description=long_description
 )
 

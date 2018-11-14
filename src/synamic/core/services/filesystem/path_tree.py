@@ -321,7 +321,7 @@ class PathTree(object):
                 self.exclude_cpaths = _
 
             # default configs
-            _dc = self.path_tree.host.default_data.get_syd('configs')
+            _dc = self.path_tree.host.system_settings['configs']
             self.__ignore_dirs_sw = _dc.get('ignore_dirs_sw', None)
             self.__ignore_files_sw = _dc.get('ignore_files_sw', None)
 

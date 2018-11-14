@@ -58,11 +58,11 @@ class ObjectManager:
         self.__cache_pre_processed_contents(site)
 
     def __cache_marked_cfields(self, site):
-        marked_extensions = site.default_data.get_syd('configs')['marked_extensions']
+        marked_extensions = site.system_settings['configs.marked_extensions']
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
             content_service = site.get_service('contents')
             path_tree = self.get_path_tree(site)
-            content_dir = site.synamic.default_data.get_syd('dirs')['contents.contents']
+            content_dir = site.synamic.system_settings['dirs.contents.contents']
             content_cdir = path_tree.create_dir_cpath(content_dir)
             # for content
             if content_cdir.exists():  # check content dir existence before proceeding
@@ -129,7 +129,7 @@ class ObjectManager:
             self.__cache.add_data(site, data_instance)
 
     def make_url_for_marked_content(self, site, file_cpath, path=None, slug=None, for_cdoctype=CDocType.TEXT_DOCUMENT):
-        nourl_content_dirs_sw = self.get_site_settings(site)['nourl_content_dirs_sw']
+        nourl_content_dirs_sw = self.get_site_settings(site)['configs.nourl_content_dirs_sw']
         if path is not None:
             #  discard everything and keep it. No processing needed.
             pass
@@ -198,7 +198,7 @@ class ObjectManager:
         content_service = site.get_service('contents')
         if isinstance(path, str):
             path_tree = self.get_path_tree(site)
-            contents_cdir = path_tree.create_dir_cpath(site.default_data.get_syd('dirs')['contents.contents'])
+            contents_cdir = path_tree.create_dir_cpath(site.system_settings['dirs.contents.contents'])
             file_cpath = contents_cdir.join(path, is_file=True)
         else:
             file_cpath = path
@@ -242,10 +242,10 @@ class ObjectManager:
             return content_service.build_static_content(path)
 
     def get_static_file_cpaths(self, site):
-        marked_extensions = site.default_data.get_syd('configs')['marked_extensions']
+        marked_extensions = site.system_settings['configs.marked_extensions']
         paths = []
         path_tree = site.get_service('path_tree')
-        contents_dir = site.default_data.get_syd('dirs')['contents.contents']
+        contents_dir = site.system_settings['dirs.contents.contents']
         contents_cdir = path_tree.create_dir_cpath(contents_dir)
 
         if contents_cdir.exists():
@@ -295,7 +295,7 @@ class ObjectManager:
         if processed_model is None:
             types = site.get_service('types')
 
-            model_dir = site.synamic.default_data.get_syd('dirs')['metas.models']
+            model_dir = site.synamic.system_settings['dirs.metas.models']
             path_tree = site.get_service('path_tree')
             user_model_cpath = path_tree.create_file_cpath(model_dir, model_name + '.model')
 
@@ -817,7 +817,7 @@ class ObjectManager:
             self.clear_data(site)
 
     def build(self, site):
-        output_dir = self.__synamic.default_data.get_syd('dirs')['outputs.outputs']
+        output_dir = self.__synamic.system_settings['dirs.outputs.outputs']
         output_cdir = self.__synamic.path_tree.create_dir_cpath(output_dir)
 
         # marked

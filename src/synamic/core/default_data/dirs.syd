@@ -1,67 +1,67 @@
 // any directory or CONTENT file starting with _ underscore in content directory will not result in URL - otherwise they will.
 // files and directories starting with . dots will be ignored
 
-#   dirs {
+dirs {
 
-# contents
-contents {
-    contents: /contents
+    # contents
+    contents {
+        contents: /contents
 
-    # statics
-    statics: ${ contents }/statics
+        # statics
+        statics: ${ contents }/statics
 
-    # assets / pre-process that will be pre-processed or so
-    pre_process: ${ contents }/.pre_process
+        # assets / pre-process that will be pre-processed or so
+        pre_process: ${ contents }/.pre_process
+    }
+
+    # meta
+    metas: {
+        metas: /metas
+        models: ${ metas }/models
+        menus: ${ metas }/menus
+        markers: ${ metas }/markers
+        users: ${ metas }/users
+        data: ${ metas }/data
+    }
+
+    # templates
+    templates: {
+        templates: /templates
+    }
+
+    # multi site
+    sites: {
+        sites: /sites
+    }
+
+    # upload
+    uploads: {
+        uploads: /uploads
+    }
+
+    # output
+    outputs: {
+        outputs: /_outputs
+    }
+
+    # cache
+    cache: {
+        cache: /_cache
+    }
+
+    # extras
+    configs: {
+        configs: /configs
+    }
+
+    # direct files/root files: no matter what their extensions are, they will be directly copied to the root
+    # so these are not static, neither dynamic files. They are just files that should be copied.
+    # so the file name directly maps to the url
+    # if another url collides with another one then an error will be reported.
+    # these files are not put in db if db backend is used.
+    // idea DUMPED as the contents dir will handle all the contents from static, pre process to marked.
+    # root_files: {
+    #    root_files: /root_files
+    # }
+
 }
-
-# meta
-metas: {
-    metas: /metas
-    models: ${ metas }/models
-    menus: ${ metas }/menus
-    markers: ${ metas }/markers
-    users: ${ metas }/users
-    data: ${ metas }/data
-}
-
-# templates
-templates: {
-    templates: /templates
-}
-
-# multi site
-sites: {
-    sites: /sites
-}
-
-# upload
-uploads: {
-    uploads: /uploads
-}
-
-# output
-outputs: {
-    outputs: /_outputs
-}
-
-# cache
-cache: {
-    cache: /_cache
-}
-
-# extras
-configs: {
-    configs: /configs
-}
-
-# direct files/root files: no matter what their extensions are, they will be directly copied to the root
-# so these are not static, neither dynamic files. They are just files that should be copied.
-# so the file name directly maps to the url
-# if another url collides with another one then an error will be reported.
-# these files are not put in db if db backend is used.
-// idea DUMPED as the contents dir will handle all the contents from static, pre process to marked.
-# root_files: {
-#    root_files: /root_files
-# }
-
-# }

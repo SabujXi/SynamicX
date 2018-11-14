@@ -84,7 +84,7 @@ class RouterService:
             return pre_processed_content
         else:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
-            contents_dir = self.__synamic.default_data.get_syd('dirs')['contents.contents']
+            contents_dir = self.__synamic.system_settings['dirs.contents.contents']
             contents_dir_cpath = site.object_manager.get_path_tree().create_dir_cpath(contents_dir)
 
             curl = curl.clone(CDocType.GENERATED_BINARY_DOCUMENT)

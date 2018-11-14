@@ -7,7 +7,7 @@ class SynamicJinjaFileSystemLoader(BaseLoader):
 
     def get_source(self, environment, template):
         site_id_sep = self.__site.synamic.sites.get_id_sep()
-        template_dir = self.__site.default_data.get_syd('dirs')['templates.templates']
+        template_dir = self.__site.system_settings['dirs.templates.templates']
         site = self.__site
         path_tree = site.path_tree
         template_cdir = path_tree.create_dir_cpath(template_dir)

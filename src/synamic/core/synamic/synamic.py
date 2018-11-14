@@ -72,6 +72,10 @@ class Synamic(SynamicContract):
         return self.__object_manager
 
     @property
+    def system_settings(self):
+        return self.__default_data.get_system_settings()
+
+    @property
     # @loaded
     def sites(self):
         return self.__sites

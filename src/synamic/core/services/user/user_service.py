@@ -15,7 +15,7 @@ class UserService:
     def __init__(self, site):
         self.__site = site
         self.__is_loaded = False
-        self.__menu_dir = self.__site.default_data.get_syd('dirs').get('metas.users')
+        self.__menu_dir = self.__site.system_settings['dirs.metas.users']
 
     @property
     def is_loaded(self):

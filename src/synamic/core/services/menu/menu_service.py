@@ -53,7 +53,7 @@ class MenuService:
     def __init__(self, site):
         self.__site = site
         self.__is_loaded = False
-        self.__menu_dir = self.__site.default_data.get_syd('dirs').get('metas.menus')
+        self.__menu_dir = self.__site.system_settings['dirs.metas.menus']
 
     @property
     def is_loaded(self):

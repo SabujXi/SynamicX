@@ -291,7 +291,7 @@ class ContentUrl:
         # del path_segments[0]
         # partition at special url comp
         site_ids_comps = sorted([site_id.components for site_id in synamic.sites.ids], key=len, reverse=True)
-        url_partition_comp = synamic.default_data.get_syd('settings')['url_partition_comp']
+        url_partition_comp = synamic.system_settings['url_partition_comp']
 
         site_id_components, path_components, special_components = [], [], []
         #  extract out site id.

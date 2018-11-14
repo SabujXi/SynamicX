@@ -51,7 +51,7 @@ class _SiteSettings:
         value = self.__syd.get(dotted_key, default=default)
         if value == default:
             # try in system
-            value = self.__site.default_data.get_syd('settings').get(dotted_key, default)
+            value = self.__site.system_settings.get(dotted_key, default)
         return value
 
     def __getitem__(self, item):
@@ -91,9 +91,7 @@ class SiteSettingsService:
         self.__is_loaded = True
 
     def make_site_settings(self):
-        system_settings_syd = self.__site.default_data.get_syd('settings')
-        dirs_syd = self.__site.default_data.get_syd('dirs')
-        configs_syd = self.__site.default_data.get_syd('configs')
+        system_settings = self.__site.system_settings
 
         # all parent settings are merged
         parent_settings_syd = []
@@ -104,7 +102,6 @@ class SiteSettingsService:
             )
             site = site.parent
         parent_settings_syd.reverse()
-        parent_settings_syd = [dirs_syd, configs_syd] + parent_settings_syd
 
         # site specific settings and private settings.
         site_om = self.__site.object_manager
@@ -120,7 +117,7 @@ class SiteSettingsService:
             )
 
         # construct final syd
-        new_syd = system_settings_syd.new(*parent_settings_syd)
+        new_syd = system_settings.new(*parent_settings_syd)
         # construct site settings object
         site_settings = _SiteSettings(self.__site, new_syd)
         return site_settings

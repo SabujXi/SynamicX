@@ -12,9 +12,9 @@ class FireBaseUploader:
 
     def upload(self):
         path_tree = self.__synamic.path_tree
-        output_dir = self.__synamic.default_data.get_syd('dirs')['outputs.outputs']
+        output_dir = self.__synamic.system_settings['dirs.outputs.outputs']
         output_cdir = path_tree.create_dir_cpath(output_dir)
-        extras_dir = self.__synamic.default_data.get_syd('dirs')['configs.configs']
+        extras_dir = self.__synamic.system_settings['dirs.configs.configs']
         extras_cdir = path_tree.create_dir_cpath(extras_dir)
         firebase_json_cfile = extras_cdir.join('firebase/firebase.json', is_file=True)
         firebase_rc_cfile = extras_cdir.join('firebase/.firebaserc', is_file=True)
@@ -22,12 +22,16 @@ class FireBaseUploader:
         # checking for firebase files
         if not firebase_json_cfile.exists() or not firebase_rc_cfile.exists():
             print(f'Error: firebase.json and .firebaserc file must exists in extras: '
-                  f'{firebase_json_cfile.abs_path} {firebase_rc_cfile.abs_path}')
+                  f'{firebase_json_cfile.abs_path} {firebase_rc_cfile.abs_path}', file=sys.stderr)
             return False
         root_site_settings = self.__synamic.sites.root_site.object_manager.get_site_settings()
-        firebase_projce_name = root_site_settings.get('firebase.project_name', None)
+
+        # firebase project name
+        firebase_projce_name = os.getenv('FIREBASE_PROJECT_NAME', None)
         if firebase_projce_name is None:
-            print(f'Firebase project_name is not specified in site settings under firebase key')
+            firebase_projce_name = root_site_settings.get('firebase.FIREBASE_PROJECT_NAME', None)
+        if firebase_projce_name is None:
+            print(f'Firebase project_name is not specified in environment, neither in site settings under firebase key', file=sys.stderr)
             return False
 
         # firebase ci token
@@ -36,14 +40,14 @@ class FireBaseUploader:
             firebase_ci_token = root_site_settings.get('firebase.FIREBASE_CI_TOKEN', None)
 
         if firebase_ci_token is None:
-            print(f'FIREBASE_CI_TOKEN not found in environment, neither in settings')
+            print(f'FIREBASE_CI_TOKEN not found in environment, neither in settings', file=sys.stderr)
             return False
 
         # build first
         print(f'Building the sites before uploading')
         build_succeeded = self.__synamic.sites.build()
         if not build_succeeded:
-            print(f'Building failed. Not uploading. See error log.')
+            print(f'Building failed. Not uploading. See error log.', file=sys.stderr)
             return False
 
         # write config files
@@ -78,4 +82,4 @@ class FireBaseUploader:
         sys.stdout.write(cp.stdout)
         sys.stderr.write(ansi_escape.sub('', cp.stderr))
         if cp.returncode != 0:
-            print(f'Upload was not successful, returned with code {cp.returncode}')
+            print(f'Upload was not successful, returned with code {cp.returncode}', file=sys.stderr)

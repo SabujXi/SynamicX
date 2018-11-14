@@ -53,7 +53,7 @@ class ContentService:
         # get dir meta syd
         # """It should not live here as it is compile time dependency"""
         # each field from meta syd will be converted with individual content model and site type system.
-        dir_meta_file_name = self.__site.default_data.get_syd('configs')['dir_meta_file_name']
+        dir_meta_file_name = self.__site.system_settings['configs.dir_meta_file_name']
         _syd = self.__site.object_manager.empty_syd()
         parent_cpaths = file_cpath.parent_cpaths
         for dir_cpath in parent_cpaths:
