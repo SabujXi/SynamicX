@@ -136,8 +136,23 @@ class _Mark:
             self.__content = content
         return content
 
+    @property
     def contents(self):
-        raise NotImplemented
+        contents = self.__site.object_manager.query_contents(
+            f'{self.marker.id} contains {self.title} :sortby created_on desc'
+        )
+        # all_cfields = self.__site.object_manager.get_all_cached_marked_cfields()
+        # for cfields in all_cfields:
+        #     marks = getattr(cfields, self.marker.id)
+        #     print(marks)
+        #     if marks:
+        #         for mark in marks:
+        #             if mark == self:
+        #                 contents.append(
+        #                     self.object_manager.get_marked_content(cfields.cpath)
+        #                 )
+        print(contents)
+        return tuple(contents)
 
     def __eq__(self, other):
         if not isinstance(other, self.__class__):

@@ -131,15 +131,16 @@ class QueryLexer(Lexer):
     ignore_ws = r'\s'
     SORT_BY = r':sortby\s+'
 
-    @_(r'[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*')
-    def KEY(self, t):
-        return t
-
-    @_(r'>|<|==|!=|>=|<=|\s*in|!in|\s*contains|!contains')
+    @_(r'>|<|==|!=|>=|<=|\s+in|!in|\s+contains|!contains')
     def COMP_OP(self, t):
         self.begin(QueryValueLexer)
         t.value = t.value.strip()
         return t
+
+    KEY = r'[a-zA-Z_][a-zA-Z0-9_]*(\.[a-zA-Z_][a-zA-Z0-9_]*)*'
+
+    KEY['contains'] = 'COMP_OP'
+    KEY['in'] = 'COMP_OP'
 
     @_(r'&')
     def AND(self, t):
