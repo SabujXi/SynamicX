@@ -347,7 +347,7 @@ class SydScalar(__SydData):
 
 
 class SydContainer(__SydData):
-    def __init__(self, key, is_list=False, parent_container=None, converter=None, converted_value=None):
+    def __init__(self, key, is_list=False, parent_container=None, converter=None, converted_value=None, read_only=False):
         self.__key = key
         self.__is_list = is_list
         self.__map = {}
@@ -355,15 +355,16 @@ class SydContainer(__SydData):
         self.__parent_container = None  # parent_container from init will be set through a method below.
         self.__converter = converter
         self.__converted_value = converted_value
+        self.__read_only = read_only
 
         self.syd_set_parent(parent_container)
 
-    def clone(self, parent_container=None, converter=None, converted_value=None):
+    def clone(self, parent_container=None, converter=None, converted_value=None, read_only=False):
         if converter is None:
             converter = self.__converter
         if converted_value is None:
             converted_value = self.__converted_value
-        cln = self.__class__(self.__key, self.__is_list, parent_container=parent_container, converter=converter, converted_value=converted_value)
+        cln = self.__class__(self.__key, self.__is_list, parent_container=parent_container, converter=converter, converted_value=converted_value, read_only=read_only)
         for e in self.__list:
             cln.add(e.clone())
         return cln
@@ -495,6 +496,7 @@ class SydContainer(__SydData):
         return value
 
     def add(self, syd):
+        assert not self.__read_only
         self.__list.append(syd)
         if not self.is_list:
             idx = len(self.__list) - 1
@@ -512,6 +514,7 @@ class SydContainer(__SydData):
         Sets py value as converted to existing key
         BUT for non existing value it creates scalar of only allowed type.
         """
+        assert not self.__read_only
         try:
             syd = self.syd_get_original(key, multi=False)
             syd.set_converted(py_value)
@@ -533,6 +536,7 @@ class SydContainer(__SydData):
             parent_container.add(syd_scalar)
 
     def __setitem__(self, key, value):
+        assert not self.__read_only
         self.set(key, value)
 
     def __remove__from__self(self, key):
@@ -558,6 +562,7 @@ class SydContainer(__SydData):
             self.__map = new_map
 
     def __delitem__(self, key):
+        assert not self.__read_only
         assert type(key) in (int, str), 'Only integer and string keys are accepted, you provide key of type: %s' % str(
             type(key))
         key = str(key)

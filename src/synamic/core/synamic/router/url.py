@@ -46,7 +46,7 @@ class ContentUrl:
         # ignore empty ones
         _ = []
         for idx, comp in enumerate(res_url_path_comps):
-            if idx in (0, len(res_url_path_comps) - 1):  # sparing the first and last empty string only
+            if idx == 0:  # sparing the first empty string only
                 _.append(comp)
             else:
                 if comp != '':
@@ -77,18 +77,13 @@ class ContentUrl:
 
         # comps should begin with empty string ... we can only handle site root absolute url as there is no context for
         # relative url in this function.
-        elif res_url_path_comps[0] != '':
-            res_url_path_comps.insert(0, '')
-            # TODO: unlike file system path, this last '' should be removed for len(comps) > 1
-            # HTML (both gen & non-gen) cdoctype url that does not end with a file extension will have /index.html (take
-            # from settings) as real file system url and for browser (client) representation it will end with /.
-            # So, for html cdoctype'd urls that have a file extension (place checking so that it does not exceed
-            # certain length + the last comp does not start with a dot '.' )
-            #  will not end with / for client representation.
-
-        # ['', ''] issue
-        if list(res_url_path_comps) == ['', '']:  # eg ['', ''] == '/'.split('/')
-            res_url_path_comps = ['']
+        # TODO: DONE: unlike file system path, this last '' should be removed for len(comps) > 1
+        # Done by ignoring all empty comps except for the first one -. see above
+        # HTML (both gen & non-gen) cdoctype url that does not end with a file extension will have /index.html (take
+        # from settings) as real file system url and for browser (client) representation it will end with /.
+        # So, for html cdoctype'd urls that have a file extension (place checking so that it does not exceed
+        # certain length + the last comp does not start with a dot '.' )
+        #  will not end with / for client representation.
 
         # validating
         for idx, url_comp in enumerate(res_url_path_comps):
@@ -109,22 +104,13 @@ class ContentUrl:
             f'cURL without a CDocType specified is not acceptable. When you are not going to use the url for final url '\
             f'generation (e.g. for query by url only) you should specify CDocType.UNSPECIFIED\n'\
             f'The type you provided was {type(for_cdoctype)} with the value {for_cdoctype}'
-        # TODO: make appending slash system  settings based.
-        if CDocType.is_html(for_cdoctype):
-            self.__url_path_comps = self.path_to_components(
-                url_path_comps, '/'
-            )
-        else:
-            self.__url_path_comps = self.path_to_components(
-                url_path_comps
-            )
+        assert CDocType.is_text(for_cdoctype) or CDocType.is_binary(for_cdoctype) or\
+            for_cdoctype == CDocType.UNSPECIFIED
 
         self.__site = site
+        self.__url_path_comps = self.path_to_components(url_path_comps)
         self.__for_cdoctype = for_cdoctype
-        # TODO: fix this
-        # assert type(self.__for_cdoctype) is CDocType
-        # assert CDocType.is_text(self.__for_cdoctype) or CDocType.is_binary(self.__for_cdoctype) or\
-        #     self.__for_cdoctype == CDocType.DIRECTORY
+        
         self.__path_str = None
         self.__path_components_w_site = None
         self.__url_str = None
@@ -141,38 +127,29 @@ class ContentUrl:
     def for_cdoctype(self):
         return self.__for_cdoctype
 
-    @staticmethod
-    def __join_path_comps(comps):
+    def __join_path_comps_for_url(self, comps):
         # comps must be a result of to_path_components/self.__url_path_comps
-        if comps == ('',):
+        if comps == ('',) or len(comps) == 0:
             path_str = '/'
         else:
+            comps = list(comps)
+            if CDocType.is_html(self.for_cdoctype):
+                if comps[-1] != '':
+                    comps.append('')
+            else:
+                if comps[-1] == '':
+                    del comps[-1]
             path_str = '/'.join(comps)
         return path_str
 
     def join(self, url_comps: Union[str, list, tuple], for_cdoctype=CDocType.UNSPECIFIED):
         this_comps = self.__url_path_comps
-        other_comps = self.path_to_components(url_comps)
+        other_comps = url_comps
+        comps = (*this_comps, *other_comps)
 
-        this_end = this_comps[-1]
-        other_start = other_comps[0]
-
-        if this_end != '' and other_start != '':
-            comps = this_comps[:-1] + (this_end + other_start,) + other_comps[1:]
-        elif this_end == '' or other_start == '':
-            if this_end == '' and other_start == '':
-                res_comp = ''
-            elif this_end == '':
-                res_comp = other_start
-            else:
-                assert other_start == ''
-                res_comp = this_end
-            comps = this_comps[:-1] + (res_comp,) + other_comps[1:]
-        else:
-            comps = this_comps + other_comps
         if for_cdoctype is None:
             for_cdoctype = self.__for_cdoctype
-        return self.__class__(self.__site, comps, for_cdoctype)
+        return self.__class__(self.__site, comps, for_cdoctype=for_cdoctype)
 
     @property
     def path_components(self):
@@ -191,19 +168,14 @@ class ContentUrl:
     def path_as_str(self):
         assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__path_str is None:
-            comps = self.path_components
-            if comps == ('', ):
-                path_str = '/'
-            else:
-                path_str = '/'.join(comps)
-            self.__path_str = path_str
+            self.__path_str = self.__join_path_comps_for_url(self.path_components)
         return self.__path_str
 
     @property
     def path_as_str_w_site(self):
         assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__path_str is None:
-            self.__path_str = self.__join_path_comps(self.path_components_w_site)
+            self.__path_str = self.__join_path_comps_for_url(self.path_components_w_site)
         return self.__path_str
 
     @property
@@ -222,15 +194,8 @@ class ContentUrl:
         assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__url_str is None:
             ss = self.__site.object_manager.get_site_settings()
-            host_scheme = ss['host_scheme']
-            hostname = ss['hostname']
-            port = str(ss['host_port'])
-            if port:
-                port_part = ':' + port
-            else:
-                port_part = ''
-            _ = host_scheme + '://' + hostname + port_part + self.path_as_str_w_site
-            self.__url_str = _
+            url_str = ss.site_address + self.path_as_str_w_site
+            self.__url_str = url_str
         return self.__url_str
 
     @property
@@ -254,20 +219,39 @@ class ContentUrl:
         return p
 
     @property
-    def is_file(self):
-        return CDocType.is_file(self.__for_cdoctype)
+    def to_cpath(self):
+        return self.__site.path_tree.create_file_cpath(
+            self.to_file_system_path
+        )
 
     @property
-    def to_cpath(self):
-        return self.__site.path_tree.create_cpath(
-            self.to_file_system_path,
-            is_file=self.is_file
+    def to_cpath_w_site(self):
+        return self.__site.synamic.path_tree.create_file_cpath(
+            self.to_file_system_path
         )
+
+    @property
+    def to_dirfn_pair(self):
+        path_comps = self.path_components
+        if CDocType.is_html(self.__for_cdoctype):
+            index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
+            return path_comps, index_file_name
+        else:
+            return path_comps[:-1], path_comps[-1]
+
+    @property
+    def to_dirfn_pair_w_site(self):
+        path_comps = self.path_components_w_site
+        if CDocType.is_html(self.__for_cdoctype):
+            index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
+            return path_comps, index_file_name
+        else:
+            return path_comps[:-1], path_comps[-1]
 
     def __str__(self):
         # same as self.path_as_str_w_site, but cannot use that property due to CDocType check issue.
         # keep this method synced with self.path_as_str_w_site
-        path_str = self.__join_path_comps(self.path_components_w_site)
+        path_str = self.__join_path_comps_for_url(self.path_components_w_site)
         return f'CURL: {path_str}'
 
     def __repr__(self):

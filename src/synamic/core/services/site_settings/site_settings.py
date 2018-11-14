@@ -13,23 +13,29 @@ class _SiteSettings:
     def __init__(self, site, syd):
         self.__site = site
         self.__syd = syd
+        self.__site_address = None
 
     @property
-    def host_address(self):
-        host_address = self.get('host_address', None)
-        if host_address is not None:
-            host_port = self.host_port
-            host_base_path = self.host_base_path
-            if self.host_port and host_base_path != '/':
-                host_address = self.hostname_scheme + "://" + self.hostname + ':' + host_port + '/'
-            elif self.host_port:
-                host_address = self.hostname_scheme + "://" + self.hostname + ':' + host_port
-            else:
-                assert bool(host_base_path)
-                host_address = self.hostname_scheme + "://" + self.hostname + ':' + host_port + (
-                    host_base_path if host_base_path.startswith('/') else host_base_path
-                )
-        return host_address
+    def site_address(self):
+        # TODO: calculate dev server address when dev server running.
+        if self.__site_address is None:
+            site_address = self.get('site_address', None)
+            if site_address is None:
+                host_port = self['host_port']
+                host_scheme = self['host_scheme']
+                hostname = self['hostname']
+                host_base_path = self['host_base_path'].strip('/')
+                port_str = f':{host_port}' if host_port else ''
+                host_base_path_str = f'{host_base_path}'
+                site_address = host_scheme + "://" + hostname + port_str + host_base_path_str
+                self.__site_address = site_address
+        else:
+            site_address = self.__site_address
+        return site_address
+
+    @property
+    def origin_syd(self):
+        return self.__syd
 
     def get(self, dotted_key, default=None):
         value = self.__syd.get(dotted_key, default=default)
@@ -79,24 +85,32 @@ class SiteSettingsService:
         dirs_syd = self.__site.default_data.get_syd('dirs')
         configs_syd = self.__site.default_data.get_syd('configs')
 
-        site_om = self.__site.object_manager
-        settings_fn = 'settings.syd'
-
-        site_settings_syd = site_om.get_syd(settings_fn)
-
         # all parent settings are merged
-        parent_settings = []
+        parent_settings_syd = []
         site = self.__site
         while site.has_parent:
-            parent_settings.append(
-                self.__site.parent.object_manager.get_site_settings()
+            parent_settings_syd.append(
+                self.__site.parent.object_manager.get_site_settings().origin_syd
             )
             site = site.parent
-        parent_settings.reverse()
-        parent_settings = [dirs_syd, configs_syd] + parent_settings
+        parent_settings_syd.reverse()
+        parent_settings_syd = [dirs_syd, configs_syd] + parent_settings_syd
 
-        if site_settings_syd is not None:
-            parent_settings.append(site_settings_syd)
+        # site specific settings and private settings.
+        site_om = self.__site.object_manager
+        site_settings_cfile = self.__site.path_tree.create_file_cpath('settings.syd')
+        site_settings_private_cfile = self.__site.path_tree.create_file_cpath('settings.private.syd')
+        if site_settings_cfile.exists():
+            parent_settings_syd.append(
+                site_om.get_syd(site_settings_cfile)
+            )
+        if site_settings_private_cfile.exists():
+            parent_settings_syd.append(
+                site_om.get_syd(site_settings_private_cfile)
+            )
 
-        new_syd = system_settings_syd.new(*parent_settings)
-        return new_syd
+        # construct final syd
+        new_syd = system_settings_syd.new(*parent_settings_syd)
+        # construct site settings object
+        site_settings = _SiteSettings(self.__site, new_syd)
+        return site_settings
