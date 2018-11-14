@@ -49,6 +49,11 @@ cache: {
     cache: /_cache
 }
 
+# extras
+configs: {
+    configs: /configs
+}
+
 # direct files/root files: no matter what their extensions are, they will be directly copied to the root
 # so these are not static, neither dynamic files. They are just files that should be copied.
 # so the file name directly maps to the url

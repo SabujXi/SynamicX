@@ -905,3 +905,4 @@ class ObjectManager:
                     while data:
                         fw.write(data)
                         data = fr.read(1024)
+        return True

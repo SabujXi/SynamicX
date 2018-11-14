@@ -8,6 +8,7 @@
     status: "Development"
 """
 import os
+import jinja2
 from synamic.core.contracts import SynamicContract
 from synamic.core.synamic.sites.sites import Sites
 from synamic.core.synamic.router import RouterService
@@ -15,6 +16,8 @@ from synamic.core.default_data import DefaultDataManager
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.object_manager import ObjectManager
 from synamic.core.services.filesystem.path_tree import PathTree
+from synamic.exceptions import get_source_snippet_from_text, SynamicTemplateError
+from synamic.core.upload_manager.upload_manager import UploadManager
 
 
 class Synamic(SynamicContract):
@@ -33,6 +36,8 @@ class Synamic(SynamicContract):
 
         self.__sites = Sites(self, self.__root_site_root)
         self.__router = RouterService(self)
+
+        self.__upload_manager = UploadManager(self)
 
         # env
         self.__env = {
@@ -55,6 +60,7 @@ class Synamic(SynamicContract):
     @not_loaded
     def load(self):
         self.__sites.load()  # TODO: sites should be loaded individually.
+        self.__upload_manager.load()
         self.__is_loaded = True
 
     @property
@@ -87,9 +93,30 @@ class Synamic(SynamicContract):
     def event_system(self):
         raise NotImplemented
 
+    @property
+    def upload_manager(self):
+        return self.__upload_manager
+
     def set_dev_params(self, **paras):
         self.__dev_params.update(paras)
 
     @property
     def dev_params(self):
         return self.__dev_params.copy()
+
+    def render_string_template(self, text, context=None, **ctx):
+        return render_string_template(text, context=context, **ctx)
+
+
+def render_string_template(text, context=None, **ctx):
+    template = jinja2.Environment(loader=jinja2.BaseLoader()).from_string(text)
+    if context is None:
+        context = {}
+    context.update(ctx)
+    try:
+        rendered_text = template.render(context)
+    except jinja2.TemplateError as e:
+        # TODO: error reporting with source - it is not a file, it is a string.
+        raise SynamicTemplateError(e)
+    else:
+        return rendered_text

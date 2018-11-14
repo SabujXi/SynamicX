@@ -141,9 +141,18 @@ class Sites:
 
     @loaded
     def build(self):
+        build_succeeded = True
         for site_id, site in self.__sites_map.items():
             print(f'>>> Building Site: {site_id}\n\n')
-            site.object_manager.build()
+            build_succeeded = site.object_manager.build()
+            if not build_succeeded:
+                build_succeeded = False
+                break
+        return build_succeeded
+
+    @loaded
+    def upload(self):
+        return self.__synamic.upload_manager.get_uploader('firebase').upload()
 
 
 class _SiteId:
