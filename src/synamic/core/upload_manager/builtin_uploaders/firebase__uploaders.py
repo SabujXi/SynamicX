@@ -79,6 +79,7 @@ class FireBaseUploader:
             cp = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
         finally:
             os.chdir(cwd_bk)
+            # TODO: remove firebase.json & .firebaserc from outputs dir.
         sys.stdout.write(cp.stdout)
         sys.stderr.write(ansi_escape.sub('', cp.stderr))
         if cp.returncode != 0:

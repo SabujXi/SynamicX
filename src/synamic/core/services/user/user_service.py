@@ -91,10 +91,11 @@ class UserService:
                 site_settings = self.__site.settings
                 content_service = self.__site.get_service('contents')
                 url_partition_comp = site_settings['url_partition_comp']
+                user_url_comp = self.__synamic.system_settings['user_url_comp']
                 cdoctype = CDocType.GENERATED_HTML_DOCUMENT
                 mimetype = 'text/html'
                 curl = self.__site.synamic.router.make_url(
-                    self.__site, '/%s/user/%s' % (url_partition_comp, self.id), for_cdoctype=cdoctype
+                    self.__site, f'/{url_partition_comp}/{user_url_comp}/{self.id}', for_cdoctype=cdoctype
                 )
                 sf = synthetic_fields = content_service.make_synthetic_cfields(
                     curl,

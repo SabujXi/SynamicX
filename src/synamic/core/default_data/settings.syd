@@ -7,7 +7,7 @@ url_partition_comp: _
 # ...so pagination would be .../_/page/<a number>
 pagination_url_comp: page
 mark_url_comp: m
-user_url_comp: user
+user_url_comp: author
 pagination_per_page: 10
 # .../_/m/tags/<a tag>  where tags is <marker id>
 

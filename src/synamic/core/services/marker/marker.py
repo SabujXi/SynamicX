@@ -81,9 +81,10 @@ class _Mark:
             site_settings = self.__site.settings
             content_service = self.__site.get_service('contents')
             url_partition_comp = site_settings['url_partition_comp']
+            mark_url_comp = self.__site.system_settings['mark_url_comp']
             cdoctype = CDocType.GENERATED_HTML_DOCUMENT
             curl = self.__site.synamic.router.make_url(
-                self.__site, '/%s/marker/%s/%s' % (url_partition_comp, self.__marker.id, self.id), for_cdoctype=cdoctype
+                self.__site, f'/{url_partition_comp}/{mark_url_comp}/{self.__marker.id}/{self.id}', for_cdoctype=cdoctype
             )
             mimetype = 'text/html'
             sf = synthetic_fields = content_service.make_synthetic_cfields(
