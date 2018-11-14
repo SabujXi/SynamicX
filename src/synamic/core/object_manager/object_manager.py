@@ -771,6 +771,9 @@ class ObjectManager:
         def get_user(self, site, user_id, default=None):
             return self.__users_cachemap[site.id].get(user_id, default)
 
+        def get_users(self, site):
+            return tuple(self.__users_cachemap[site.id].values())
+
         def add_data(self, site, data):
             self.__data[site.id][data.get_data_name()] = data
 
@@ -836,7 +839,7 @@ class ObjectManager:
                         fw.write(data)
                         data = fr.read(1024)
 
-        # generated
+        # generated/pre-processed
         all_pre_content = self.get_all_pre_processed_contents(site)
         for content in all_pre_content:
             curl = content.curl
@@ -874,4 +877,31 @@ class ObjectManager:
                         fw.write(data)
                         data = fr.read(1024)
 
+
         # TODO: build marker, user contents
+        markers = self.__cache.get_markers(site)
+        users = self.__cache.get_users(site)
+        # TODO: do not get from cache like this, get from om
+        meta_contents = []
+        for marker in markers:
+            marks = marker.marks
+            for mark in marks:
+                meta_contents.append(mark.content)
+
+        for user in users:
+            meta_contents.append(user.content)
+
+        for content in meta_contents:
+            curl = content.curl
+            print(f'Writing {curl.url}')
+            with content.get_stream() as fr:
+                c_out_dir, fn = curl.to_dirfn_pair_w_site
+                c_out_cdir = output_cdir.join(c_out_dir, is_file=False)
+                if not c_out_cdir.exists():
+                    c_out_cdir.makedirs()
+                c_out_cfile = c_out_cdir.join(fn, is_file=True)
+                with c_out_cfile.open('wb') as fw:
+                    data = fr.read(1024)
+                    while data:
+                        fw.write(data)
+                        data = fr.read(1024)

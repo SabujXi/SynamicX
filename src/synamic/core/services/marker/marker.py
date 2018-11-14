@@ -1,7 +1,7 @@
 import re
 from synamic.core.contracts import CDocType
 
-_mark_title2id_sub_pat = re.compile(r'[^a-zA-Z0-9_-]')
+_mark_title2id_sub_pat = re.compile(r'[\s:-]')
 
 separator_comma_pat = re.compile(r',[^,]?')
 
@@ -184,7 +184,7 @@ class Marker:
 
     def add_mark(self, mark):
         assert type(mark) is _Mark
-        assert mark.id not in self.__marks_by_id
+        assert mark.id not in self.__marks_by_id, f'{mark.id}'
         self.__marks.append(mark)
         self.__marks_by_title[_Mark.title_to_id(mark.title)] = mark
         self.__marks_by_id[mark.id] = mark
