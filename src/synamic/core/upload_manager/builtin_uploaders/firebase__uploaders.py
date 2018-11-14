@@ -24,7 +24,7 @@ class FireBaseUploader:
             print(f'Error: firebase.json and .firebaserc file must exists in extras: '
                   f'{firebase_json_cfile.abs_path} {firebase_rc_cfile.abs_path}', file=sys.stderr)
             return False
-        root_site_settings = self.__synamic.sites.root_site.object_manager.get_site_settings()
+        root_site_settings = self.__synamic.sites.root_site.settings
 
         # firebase project name
         firebase_projce_name = os.getenv('FIREBASE_PROJECT_NAME', None)

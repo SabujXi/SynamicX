@@ -164,10 +164,9 @@ class _Site(SiteContract):
     def system_settings(self):
         return self.__synamic.default_data.get_system_settings()
 
-    # @property
-    # @loaded
-    # def settings(self):
-    #     return self.object_manager.get_site_settings()
+    @property
+    def settings(self):
+        return self.object_manager.get_site_settings()
 
     @property
     def path_tree(self):

@@ -157,7 +157,7 @@ class _ContentFields(CFieldsContract):
 
     def __convert_pagination(self, pagination_field):
         object_manager = self.__site.object_manager
-        site_settings = object_manager.get_site_settings()
+        site_settings = self.__site.settings
         per_page = per_page_4m_settings = site_settings['pagination_per_page']
 
         if isinstance(pagination_field, str):

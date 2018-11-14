@@ -98,7 +98,7 @@ class SiteSettingsService:
         site = self.__site
         while site.has_parent:
             parent_settings_syd.append(
-                self.__site.parent.object_manager.get_site_settings().origin_syd
+                self.__site.parent.settings.origin_syd
             )
             site = site.parent
         parent_settings_syd.reverse()

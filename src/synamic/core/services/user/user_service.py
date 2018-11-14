@@ -84,7 +84,7 @@ class UserService:
             if self.__synthetic_cfields is not None:
                 sf = self.__synthetic_cfields
             else:
-                site_settings = self.__site.object_manager.get_site_settings()
+                site_settings = self.__site.settings
                 content_service = self.__site.get_service('contents')
                 url_partition_comp = site_settings['url_partition_comp']
                 cdoctype = CDocType.GENERATED_HTML_DOCUMENT
@@ -108,7 +108,7 @@ class UserService:
             return self.cfields.curl
 
         def __user_content_renderer(self, site, gen_content):
-            site_settings = site.object_manager.get_site_settings()
+            site_settings = site.settings
             template_service = site.get_service('templates')
             user_template_name = site_settings['templates.user']
 

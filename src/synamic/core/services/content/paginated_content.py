@@ -211,7 +211,7 @@ class PaginationPage:
 
     @classmethod
     def paginate_cfields(cls, site, origin_content, queried_cfields_s, per_page):
-        site_settings = site.object_manager.get_site_settings()
+        site_settings = site.settings
         url_partition_comp = site_settings['url_partition_comp']
         pagination_url_comp = site_settings['pagination_url_comp']
 

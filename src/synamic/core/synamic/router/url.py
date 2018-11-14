@@ -162,7 +162,7 @@ class ContentUrl:
     @property
     def path_components_w_site(self):
         if self.__path_components_w_site is None:
-            host_base_path = self.__site.object_manager.get_site_settings()['host_base_path']
+            host_base_path = self.__site.settings['host_base_path']
             self.__path_components_w_site = self.path_to_components(
                 host_base_path, self.__site.id.components, self.__url_path_comps
             )
@@ -197,7 +197,7 @@ class ContentUrl:
         """URL with host name, port, path"""
         assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__url_str is None:
-            ss = self.__site.object_manager.get_site_settings()
+            ss = self.__site.settings
             url_str = ss.site_address + self.path_as_str_w_site
             self.__url_str = url_str
         return self.__url_str
@@ -212,7 +212,7 @@ class ContentUrl:
         # TODO: make it dirfn based
         p = self.path_as_str
         if CDocType.is_html(self.__for_cdoctype):
-            index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
+            index_file_name = self.__site.settings['index_file_name']
             if p.endswith('/'):
                 p += index_file_name
             else:
@@ -243,7 +243,7 @@ class ContentUrl:
         if ext_pattern.match(path_comps[-1]):
             return path_comps[:-1], path_comps[-1]
         if CDocType.is_html(self.__for_cdoctype):
-            index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
+            index_file_name = self.__site.settings['index_file_name']
             return path_comps, index_file_name
         else:
             return path_comps[:-1], path_comps[-1]
@@ -254,7 +254,7 @@ class ContentUrl:
         if ext_pattern.match(path_comps[-1]):
             return path_comps[:-1], path_comps[-1]
         if CDocType.is_html(self.__for_cdoctype):
-            index_file_name = self.__site.object_manager.get_site_settings()['index_file_name']
+            index_file_name = self.__site.settings['index_file_name']
             return path_comps, index_file_name
         else:
             return path_comps[:-1], path_comps[-1]
