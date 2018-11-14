@@ -140,8 +140,9 @@ class UserService:
                 self.__content = content
             return content
 
+        @property
         def contents(self):
-            raise NotImplemented
+            return self.__site.object_manager.query_contents(f'author == {self.id} :sortby created_on desc')
 
         def __getattr__(self, item):
             return self.__user_fields.get(item, None)
