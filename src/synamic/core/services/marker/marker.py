@@ -78,10 +78,10 @@ class _Mark:
         if self.__synthetic_cfields is not None:
             sf = self.__synthetic_cfields
         else:
-            site_settings = self.__site.settings
+            system_settings = self.__site.system_settings
             content_service = self.__site.get_service('contents')
-            url_partition_comp = site_settings['url_partition_comp']
-            mark_url_comp = self.__site.system_settings['mark_url_comp']
+            url_partition_comp = system_settings['url_partition_comp']
+            mark_url_comp = system_settings['mark_url_comp']
             cdoctype = CDocType.GENERATED_HTML_DOCUMENT
             marker_slug = self.__marker.get('slug', None)
             if marker_slug is None:

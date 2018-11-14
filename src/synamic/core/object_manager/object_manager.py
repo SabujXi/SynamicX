@@ -52,6 +52,7 @@ class ObjectManager:
 
     def __load_for__(self, site):
         self.__cache_markers(site)
+        self.__cache_users(site)
         self.__cache_marked_cfields(site)
         self.__cache_menus(site)
         self.__cache_data(site)
@@ -89,6 +90,13 @@ class ObjectManager:
         else:
             raise NotImplemented
             # database backend is not implemented yet. AND there is nothing to do here for db, skip it when implemented
+
+    def __cache_users(self, site):
+        user_service = site.get_service('users')
+        user_ids = user_service.get_user_ids()
+        for user_id in user_ids:
+            user = user_service.make_user(user_id)
+            self.__cache.add_user(site, user)
 
     def __cache_markers(self, site):
         marker_service = site.get_service('markers')
@@ -597,6 +605,7 @@ class ObjectManager:
         return tuple(_)
 
     def get_user(self, site, user_id):
+        # TODO: do I keep caching besides this or either or both of them?
         user = None
         sites_up, user_id = self.sites_up(site, user_id)
         for _site in sites_up:
@@ -870,6 +879,8 @@ class CIter:
         all_pre_content = self.__site.object_manager.get_all_pre_processed_contents()
         all_static_cpaths = self.__site.object_manager.get_static_file_cpaths()
         all_users = self.__site.object_manager.get_users()
+        print(all_users)
+        input('go?')
         all_marks = []
 
         for marker in self.__site.object_manager.get_markers():

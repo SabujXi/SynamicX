@@ -57,7 +57,7 @@ class UserService:
         return isinstance(other, cls.__User)
 
     class __User:
-        def __init__(self, site, user_id, user_fields=None):
+        def __init__(self, site, user_id, user_fields):
             self.__site = site
             self.__user_id = user_id.lower()
             self.__user_fields = user_fields
@@ -88,16 +88,16 @@ class UserService:
             if self.__synthetic_cfields is not None:
                 sf = self.__synthetic_cfields
             else:
-                site_settings = self.__site.settings
+                system_settings = self.__site.system_settings
                 content_service = self.__site.get_service('contents')
-                url_partition_comp = site_settings['url_partition_comp']
-                user_url_comp = self.__synamic.system_settings['user_url_comp']
+                url_partition_comp = system_settings['url_partition_comp']
+                user_url_comp = system_settings['user_url_comp']
                 cdoctype = CDocType.GENERATED_HTML_DOCUMENT
                 mimetype = 'text/html'
                 curl = self.__site.synamic.router.make_url(
                     self.__site, f'/{url_partition_comp}/{user_url_comp}/{self.id}', for_cdoctype=cdoctype
                 )
-                sf = synthetic_fields = content_service.make_synthetic_cfields(
+                sf = content_service.make_synthetic_cfields(
                     curl,
                     cdoctype,
                     mimetype,
@@ -105,7 +105,7 @@ class UserService:
                     fields_map=None)
                 sf['title'] = self.title if self.title else self.name
                 sf['author'] = self
-                self.__synthetic_cfields = synthetic_fields
+                self.__synthetic_cfields = sf
             return sf
 
         @property
