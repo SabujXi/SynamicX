@@ -21,6 +21,10 @@ class SynamicBaseRenderer(mistune.Renderer):
         self.__value_pack__ = value_pack if value_pack is not None else {}
 
     def image(self, src, title, alt_text):
+        if not title:
+            title = ''
+        if not alt_text:
+            alt_text = title
         url = self.__site__.object_manager.getc(src, relative_cpath=self.__value_pack__.get('from_cpath', None))
         return f"<img src='{url}' title='{title}' alt='{alt_text}' class='img-responsive center-block'>"
 

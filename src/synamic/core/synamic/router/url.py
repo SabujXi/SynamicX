@@ -146,8 +146,10 @@ class ContentUrl:
 
     def join(self, url_comps: Union[str, list, tuple], for_cdoctype=CDocType.UNSPECIFIED):
         this_comps = self.__url_path_comps
-        other_comps = url_comps
-        comps = (*this_comps, *other_comps)
+        other_comps = self.path_to_components(url_comps)
+        comps = []
+        comps.extend(this_comps)
+        comps.extend(other_comps)
 
         if for_cdoctype is None:
             for_cdoctype = self.__for_cdoctype

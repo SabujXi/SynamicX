@@ -874,3 +874,4 @@ class ObjectManager:
                         fw.write(data)
                         data = fr.read(1024)
 
+        # TODO: build marker, user contents
