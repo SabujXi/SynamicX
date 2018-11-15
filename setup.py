@@ -20,6 +20,9 @@ setup(
         ]
     },
     data_files=[('', ['README.rst', 'LICENSE'])],
+    package_data={
+        '': ['*.model', '*.syd', '*.txt', '*.rst', '*.md', '*.markdown'],
+    },
     install_requires=[
         'Jinja2>=2.10',
         'MarkupSafe>=1.0',

@@ -73,7 +73,7 @@ class BaseShell(object):
         pass
 
     def on_empty(self):
-        pass
+        return True
 
     def close(self):
         self.__loop_running = False
@@ -81,13 +81,14 @@ class BaseShell(object):
     def on_print_last_set(self):
         self.print(self.__last_set_value)
 
-    def on_py(self, arg):
+    def on_py(self, *args):
         'write python code in one line'
+        arg_0 = '' if not args else args[0]
         try:
             local = {}
             namespace = ProxyNameSpace(self.__permanent_local_for_py, local)
             line_buffer = []
-            if arg == "i":
+            if arg_0 == "i":
                 idx = 0
                 while True:
                     idx += 1
@@ -99,20 +100,17 @@ class BaseShell(object):
                         line_buffer.append(line)
                         continue
             else:
-                line_buffer.append(arg)
+                line_buffer.append(arg_0)
             src = "\n".join(line_buffer)
             self.print("Python Source:\n%s" % src)
             print("-------------")
             exec(src, globals(), namespace)
-            # for key, value in local.items():
-            #     self.print(key + ": " + str(value))
         except:
             exc_type, exc_value, exc_traceback = sys.exc_info()
             self.print_error("Exception Type: %s" % exc_type.__name__)
             self.print_error("Exception: %s" % exc_value)
-            # self.print_error("Exception Traceback: %s" % traceback.extract_tb(exc_traceback))
 
-    def on_pyr(self):
+    def on_pyr(self, *args):
         "Recursive python - prompt another line after this one"
         'write python code in one line'
 
@@ -137,11 +135,11 @@ class BaseShell(object):
                     self.print_error("Exception: %s" % exc_value)
                 continue
 
-    def on_p(self, arg):
-        self.on_py(arg)
+    def on_p(self, *args):
+        return self.on_py(args)
 
     def on_pi(self):
-        self.on_py("i")
+        return self.on_py("i")
 
     def print(self, *args, **kwargs):
         print(*args, *kwargs)
@@ -161,88 +159,77 @@ class BaseShell(object):
     def pre_loop(self):
         self.print("pre_loop() executed.")
 
-    def loop(self):
+    def on_shell(self, *cmd_args):
         self.pre_loop()
-        cmd_args = sys.argv[1:]
 
         self.__loop_running = True
+        last_retcode = -1
         while self.__loop_running:
-            if not cmd_args:
-                _inres = self.input(self.prompt_text)
-                inres = _inres.strip()
-                if not inres:
-                    self.on_empty()
+            inres = self.input(self.prompt_text).strip()
+            if not inres:
+                empty_ret = self.on_empty()
+                if empty_ret:
                     continue
-                first_command = command_split_pat.split(inres)[0]
-                _arg_str = inres[len(first_command):]
-                arg_str = _arg_str.strip()
-            else:
-                first_command = cmd_args[0]
-                cmd_args = cmd_args[1:]
-                _arg_str_l = []
-                for cs in cmd_args:
-                    if ' ' in cs:
-                        cs = '"%s"' % cs
-                    _arg_str_l.append(cs)
-                arg_str = " ".join(_arg_str_l)
-                cmd_args = []
-
-            if not command_pat.match(first_command):
-                self.print_error("Invalid first command format")
-                continue
-            if first_command in self.symbol_to_method:
-                first_command = self.symbol_to_method[first_command]
-
-            is_shellx = True
-            attr = getattr(self, "on_shellx_" + first_command, None)
-            if not attr:
-                attr = getattr(self, "on_" + first_command, None)
-                is_shellx = False
-
-            if not attr:
-                if first_command in self.__permanent_local_for_py:
-                    self.print(self.__permanent_local_for_py[first_command])
                 else:
-                    self.print_error("Command not found")
-                continue
-            if callable(attr):
-                callable_attr = attr
-                kwonlyargs = inspect.getfullargspec(callable_attr).kwonlyargs
-                positional_args = inspect.getfullargspec(callable_attr).args
-                no_of_positional_args = len(positional_args)
-                print(kwonlyargs)
-                if is_shellx:
-                    self.print("******shellargs wala fun**********")
-                    shellargs = shlex.split(arg_str)
-                    if no_of_positional_args > 0 + 1:
-                        if not len(shellargs) >= no_of_positional_args:
-                            self.print_error("Insufficient amount of shellargs provided for positional args.\n"
-                                             "Positional args: %s\n"
-                                             "shellargs: %s" % (positional_args, shellargs))
-                            continue
-                        else:
-                            # _pos_args = shellargs[:no_of_positional_args]
-                            # _rest_of_shellargs = shellargs[no_of_positional_args:]
-                            callable_attr(*shellargs)
-                    else:
-                        callable_attr(*shellargs)
-                else:
-                    if no_of_positional_args == 0 + 1:
-                        attr()
-                    elif no_of_positional_args == 1 + 1:
-                        attr(arg_str)
-                    else:
-                        self.print_error("Handling method for `%s` contains %d number of positional args" % (first_command, no_of_positional_args))
+                    self.__loop_running = False
+                    break
             else:
-                self.print_error("Invalid command provided: `%s`" % first_command)
+                shell_args = shlex.split(inres)
+                last_retcode = self.run_command(shell_args)
                 continue
+
         self.close()
         self.post_loop()
+        return last_retcode
 
-    def on_exit(self, arg):
+    def run_command(self, commands: list):
+        cmd_args = commands
+        if not cmd_args:
+            self.print_error(f'No synamic command arg(s) provided to run.')
+            return 1
+
+        first_arg = cmd_args[0]
+        rest_args = cmd_args[1:]
+
+        if not command_pat.match(first_arg):
+            self.print_error("Invalid first command format")
+            return 1
+
+        if first_arg in self.symbol_to_method:
+            first_arg = self.symbol_to_method[first_arg]
+
+        attr = getattr(self, "on_" + first_arg, None)
+
+        if not attr:
+            if first_arg in self.__permanent_local_for_py:
+                self.print(self.__permanent_local_for_py[first_arg])
+            else:
+                self.print_error(f'Command not found {first_arg}')
+            return 1
+
+        if callable(attr):
+            callable_attr = attr
+            kwonlyargs = inspect.getfullargspec(callable_attr).kwonlyargs
+            positional_args = inspect.getfullargspec(callable_attr).args
+            no_of_positional_args = len(positional_args)
+            self.print(kwonlyargs)
+
+            if no_of_positional_args > 0 + 1:
+                if not len(rest_args) >= no_of_positional_args:
+                    self.print_error("Insufficient amount of shellargs provided for positional args.\n"
+                                     f"Positional args: {positional_args}\n"
+                                     f"shellargs: {rest_args}")
+                    return 1
+            return callable_attr(*rest_args)
+        else:
+            self.print_error(f"Invalid command provided: {first_arg}")
+            return 1
+
+    def on_exit(self, retcode):
         'Exitting...'
-        print("Exiting Synamic Shell ...")
+        self.print(f"Exiting Synamic Shell with retcode {retcode}")
         self.close()
+        return retcode
 
     def post_loop(self):
         self.print("post_loop() executed")
