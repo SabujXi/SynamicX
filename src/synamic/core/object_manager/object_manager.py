@@ -352,7 +352,7 @@ class ObjectManager:
             if filename.startswith(('/', '\\')):
                 cpath = site.path_tree.create_file_cpath(filename, forgiving=True)
             else:
-                cpath = relative_cpath.join(filename, is_file=True, forgiving=True)
+                cpath = relative_cpath.parent_cpath.join(filename, is_file=True, forgiving=True)
         if not cpath.exists():
             return default
         content = self.__cache.get_marked_content_by_cpath(site, cpath, default=None)
@@ -378,9 +378,11 @@ class ObjectManager:
             assert key is not None and path is not None
 
             c_res = None
-            for s in self.sites_up(site, url_struct.site_sep)[0]:
-                c_res = self.__getc(s, key, path, None)
+            sites_up = self.sites_up(site, url_struct.site_sep)[0]
+            for specific_site in sites_up:
+                c_res = self.__getc(specific_site, key, path, None)
                 if c_res is not None:
+                    site = specific_site
                     break
 
             if c_res is not None:
@@ -415,9 +417,13 @@ class ObjectManager:
         else:
             raise SynamicGetCError(f"Not found for getc ->  {url_str}")
 
-    def __getc(self, site, key, path, default=None):
-        content_service = site.get_service('contents')
+    def __getc(self, specific_site, key, path, default=None):
+        content_service = specific_site.get_service('contents')
         getc_key, getc_path = key, path
+
+        contents_cdir = specific_site.path_tree.create_dir_cpath(
+            specific_site.system_settings['dirs.contents.contents']
+        )
 
         result_cfields = default
         if getc_key not in ('file', 'sass', 'id'):
@@ -425,31 +431,34 @@ class ObjectManager:
                 f'GetC key error. Currently only file, sass, id keys are allowed, but key {getc_key} was provided'
             )
         if getc_key == 'file':
-            file_cpath = site.get_service('path_tree').create_file_cpath(getc_path)
-            marked_cfields = self.__cache.get_marked_cfields_by_cpath(site, file_cpath, None)
-            if marked_cfields is not None:
-                result_cfields = {
-                    'cfields': marked_cfields,
-                    'marked_cfields': marked_cfields
-                }
-            else:
-                # try STATIC
-                static_content = content_service.build_static_content(file_cpath)
-                result_cfields = {
-                    'cfields': static_content.cfields,
-                    'static_content': static_content
-                }
+            file_cpath = contents_cdir.join(getc_path, is_file=True)
+            if file_cpath.exists():
+                marked_cfields = self.__cache.get_marked_cfields_by_cpath(
+                    specific_site, file_cpath, None
+                )
+                if marked_cfields is not None:
+                    result_cfields = {
+                        'cfields': marked_cfields,
+                        'marked_cfields': marked_cfields
+                    }
+                else:
+                    # try STATIC
+                    static_content = content_service.build_static_content(file_cpath)
+                    result_cfields = {
+                        'cfields': static_content.cfields,
+                        'static_content': static_content
+                    }
         elif getc_key == 'sass':
             # pre-processor stuff. Must be in pre processed content.
-            scss_cpath = site.get_service('pre_processor').get_processor('sass').make_cpath(getc_path)
-            scss_content = self.__cache.get_pre_processed_content_by_cpath(site, scss_cpath, None)
+            scss_cpath = specific_site.get_service('pre_processor').get_processor('sass').make_cpath(getc_path)
+            scss_content = self.__cache.get_pre_processed_content_by_cpath(specific_site, scss_cpath, None)
             if scss_content is not None:
                 result_cfields = {
                     'cfields': scss_content.cfields,
                     'scss_content': scss_content  # CAREFUL: sCss vs sAss
                 }
         elif getc_key == 'id':
-            for cfields in self.__cache.get_all_marked_cfields(site):
+            for cfields in self.__cache.get_all_marked_cfields(specific_site):
                 if cfields.id == getc_path:
                     result_cfields = {
                         'cfields': cfields,
@@ -629,13 +638,13 @@ class ObjectManager:
     def get_users(self, site):
         return self.__cache.get_users(site)
 
-    def sites_up(self, site, param_w_site_sep):
+    def sites_up(self, starting_site, param_w_site_sep):
         _ = []
         if param_w_site_sep.startswith('::'):
             param_w_site_sep = param_w_site_sep[2:]
-            _.append(site)
+            _.append(starting_site)
         else:
-            _site = site
+            _site = starting_site
             _.append(_site)
             while _site.has_parent:
                 _site = _site.parent

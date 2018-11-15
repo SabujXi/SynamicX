@@ -49,21 +49,33 @@ class Sequence:
 
     @staticmethod
     def lstrip(target, what):
+        """Unlike string, just strips the first part"""
         assert are_sequences(target, what)
+        res = target
         if Sequence.startswith(target, what):
-            res = target[len(what):]
-        else:
-            res = target
+            res = res[len(what):]
         return type(target)(res)
 
     @staticmethod
     def rstrip(target, what):
+        """Unlike string, just strips the last part"""
         assert are_sequences(target, what)
+        res = target
         if Sequence.endswith(target, what):
-            res = target[:-len(what)]
-        else:
-            res = target
+            res = res[:-len(what)]
         return type(target)(res)
+
+    @staticmethod
+    def strip(target, what):
+        """Unlike string, just strips the first n last part"""
+        assert are_sequences(target, what)
+        res = target
+        if Sequence.endswith(target, what):
+            res = res[:-len(what)]
+        if Sequence.startswith(target, what):
+            res = res[len(what):]
+        return type(target)(res)
+
 
 
 if __name__ == '__main__':

@@ -80,7 +80,7 @@ class RouterService:
 
     def get_content_by_url(self, site, curl):
         """Forgiving function that returns None"""
-        print(f'Querying {curl} - doctype {curl.for_cdoctype}')
+        print(f'Querying {curl.path_components} - doctype {curl.for_cdoctype} on site {site.id}')
         # try for text doc
         marked_content = site.object_manager.get_marked_content_by_curl(curl)
         if marked_content is not None:
@@ -92,7 +92,7 @@ class RouterService:
         else:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
             contents_dir = self.__synamic.system_settings['dirs.contents.contents']
-            contents_dir_cpath = site.object_manager.get_path_tree().create_dir_cpath(contents_dir)
+            contents_dir_cpath = site.path_tree.create_dir_cpath(contents_dir)
 
             curl = curl.clone(CDocType.GENERATED_BINARY_DOCUMENT)
 

@@ -12,6 +12,7 @@ import re
 import urllib.parse
 from typing import Union
 from synamic.core.contracts import CDocType
+from synamic.core.standalones.functions.sequence_ops import Sequence
 ext_pattern = re.compile(r'.+(\.[a-zA-Z0-9]{1,8})')
 # used to check whether an url has an ext so that if it is html cdoctype /index.html is not used.
 
@@ -35,7 +36,7 @@ class ContentUrl:
         return comps
 
     @classmethod
-    def path_to_components(cls, *url_path_comps: Union[str, list, tuple]) -> tuple:
+    def path_to_ccomponents(cls, *url_path_comps: Union[str, list, tuple]) -> tuple:
         res_url_path_comps = []
         for _comps in url_path_comps:
             if isinstance(_comps, str):
@@ -93,6 +94,11 @@ class ContentUrl:
 
         return tuple(res_url_path_comps)
 
+    @classmethod
+    def path_to_components(cls, *url_path_comps):
+        path_comps = cls.path_to_ccomponents(*url_path_comps)
+        return Sequence.strip(path_comps, ('',))
+
     def __init__(self, site, url_path_comps, for_cdoctype=CDocType.UNSPECIFIED):
         """
         append_slash is only for dynamic contents and only when the url_path_comps is being passed as sting (not: list, tuple, content path)
@@ -110,9 +116,10 @@ class ContentUrl:
             for_cdoctype == CDocType.UNSPECIFIED
 
         self.__site = site
-        self.__url_path_comps = self.path_to_components(url_path_comps)
         self.__for_cdoctype = for_cdoctype
-        
+        # remove space from both end of url (it happens to be only on left.)
+        self.__url_path_comps = self.path_to_ccomponents(url_path_comps)
+
         self.__path_str = None
         self.__path_components_w_site = None
         self.__url_str = None
@@ -146,7 +153,7 @@ class ContentUrl:
 
     def join(self, url_comps: Union[str, list, tuple], for_cdoctype=CDocType.UNSPECIFIED):
         this_comps = self.__url_path_comps
-        other_comps = self.path_to_components(url_comps)
+        other_comps = self.path_to_ccomponents(url_comps)
         comps = []
         comps.extend(this_comps)
         comps.extend(other_comps)
@@ -163,7 +170,7 @@ class ContentUrl:
     def path_components_w_site(self):
         if self.__path_components_w_site is None:
             host_base_path = self.__site.settings['host_base_path']
-            self.__path_components_w_site = self.path_to_components(
+            self.__path_components_w_site = self.path_to_ccomponents(
                 host_base_path, self.__site.id.components, self.__url_path_comps
             )
         return self.__path_components_w_site
@@ -286,9 +293,6 @@ class ContentUrl:
         # Unused for now: url_query = parsed_url.query
         # Unused for now: url_fragment = parsed_url.fragment
         path_segments = list(cls.path_to_components(url_path))
-        assert path_segments[0] == ''  # logical validation of path to components
-        path_segments = path_segments[1:]
-        # del path_segments[0]
         # partition at special url comp
         site_ids_comps = sorted([site_id.components for site_id in synamic.sites.ids], key=len, reverse=True)
         url_partition_comp = synamic.system_settings['url_partition_comp']
@@ -296,9 +300,7 @@ class ContentUrl:
         site_id_components, path_components, special_components = [], [], []
         #  extract out site id.
         for site_id_comps in site_ids_comps:
-            if len(path_segments) < len(site_id_comps):
-                continue
-            if tuple(path_segments[:len(site_id_comps)]) == tuple(site_id_comps):
+            if Sequence.startswith(path_segments, site_id_comps):
                 site_id_components = path_segments[:len(site_id_comps)]
                 path_segments = path_segments[len(site_id_comps):]
                 break

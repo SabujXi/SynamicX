@@ -541,14 +541,14 @@ class PathTree(object):
             assert self.is_dir
             return self.__path_tree.fs.makedirs(self.abs_path)
 
-        def join(self, *path_str_or_cmps, is_file=True):
+        def join(self, *path_str_or_cmps, is_file=True, forgiving=False):
             """Creates a new path joining to this one"""
             comps = self.__path_tree.to_cpath_ccomps(*path_str_or_cmps) # [p for p in re.split(r'[\\/]+', path_str) if p != '']
             if self.is_dir:
                 new_path_comps = (*self.path_comps, *comps)
             else:
                 new_path_comps = (*self.path_comps[:-1], self.path_comps[-1] + comps[0], *comps[1:])
-            return self.__path_tree.create_cpath(new_path_comps, is_file=is_file)
+            return self.__path_tree.create_cpath(new_path_comps, is_file=is_file, forgiving=forgiving)
 
         @staticmethod
         def __process_regex(regex, ignorecase=True):
