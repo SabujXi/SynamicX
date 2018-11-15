@@ -11,6 +11,7 @@
 from synamic.core.standalones.functions.decorators import not_loaded, loaded
 from .css import SCSS_CSSContent
 from synamic.core.contracts import CDocType
+from synamic.core.standalones.functions.sequence_ops import Sequence
 
 
 class SASSProcessor:
@@ -77,21 +78,22 @@ class SASSProcessor:
     def make_cpath(self, *path_comps, is_file=True):
         return self.__processor_cpath.join(*path_comps, is_file=is_file)
 
-    def get_css_curl(self, scss_file_path):
-        url_path_comps = self.__processor_cpath.parent_cpath.get_comps_after(scss_file_path)
+    def get_css_curl(self, scss_file_cpath):
+        url_path_comps = Sequence.lstrip(scss_file_cpath.path_comps, self.__processor_cpath.parent_cpath.path_comps)
         assert len(url_path_comps) > 0
-        scss_basename = url_path_comps[-1]
-        parent_comps = url_path_comps[1:]
-        css_file_base_name = scss_basename[:len(scss_basename) - len('.scss')] + '.css'
 
-        css_url_path_comps = (*parent_comps[1:], css_file_base_name)
+        scss_basename = url_path_comps[-1]
+        parent_comps = url_path_comps[:-1]
+        css_basename = scss_basename[:len(scss_basename) - len('.scss')] + '.css'
+
+        css_url_path_comps = (*parent_comps, css_basename)
         curl = self.__site.synamic.router.make_url(
             self.__site, css_url_path_comps, for_cdoctype=CDocType.GENERATED_BINARY_DOCUMENT
         )
         return curl
 
     def get_static_file_curl(self, file_cpath):
-        url_path_comps = self.__processor_cpath.parent_cpath.get_comps_after(file_cpath)
+        url_path_comps = Sequence.lstrip(file_cpath.path_comps, self.__processor_cpath.parent_cpath.path_comps)
         assert len(url_path_comps) > 0
         curl = self.__site.synamic.router.make_url(
             self.__site, url_path_comps, for_cdoctype=CDocType.GENERATED_BINARY_DOCUMENT

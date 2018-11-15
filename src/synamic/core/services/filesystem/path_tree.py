@@ -13,6 +13,7 @@ from synamic.core.contracts import BaseFsBackendContract
 from .backends import FileSystemBackend
 from synamic.core.contracts import HostContract, SiteContract, SynamicContract
 from synamic.exceptions import SynamicInvalidCPathComponentError
+from synamic.core.standalones.functions.sequence_ops import Sequence
 
 
 regex_type = type(re.compile(""))
@@ -426,6 +427,8 @@ class PathTree(object):
                 # contents/a-file
                 # contents/dirA/b-file
                 # * contents cannot have parent (==None) (Content Path is not for the site root or above dirs! SO -_-)
+                # TODO: content should have prent with empty comps ()? If I put < 1 then app will stuck in infinite loop
+                # Fix it.
                 return None
             new_comps = path_comps[:-1]
             pp = self.__path_tree.create_cpath(new_comps, is_file=False)
@@ -587,23 +590,6 @@ class PathTree(object):
                 if self.path_comps[-len(ccomps):] == ccomps:
                     return True
             return False
-
-        def get_comps_after(self, cpath):
-            this_comps = self.path_comps
-            that_comps = cpath.path_comps
-            if this_comps == that_comps:
-                return tuple()
-            if len(this_comps) > len(that_comps):
-                # this comps must have less elements
-                return None
-            elif this_comps[0] != that_comps[0]:
-                # at least the first element
-                return None
-            else:
-                if this_comps == tuple(that_comps[:len(this_comps)]):
-                    return that_comps[len(this_comps):]
-                else:
-                    return None
 
         def getmtime(self):
             return self.__path_tree.fs.getmtime(self.abs_path)
