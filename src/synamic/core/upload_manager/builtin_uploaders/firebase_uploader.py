@@ -55,7 +55,7 @@ class FireBaseUploader:
             json_text = fr.read()
             rendered_json = self.__synamic.render_string_template(
                 json_text,
-                public_dir_name=output_cdir.basename
+                # public_dir_name=output_cdir.basename <- trouble maker
             )
             with output_cdir.join(firebase_json_cfile.basename, is_file=True).open('w', encoding='utf-8') as fw:
                 fw.write(rendered_json)
@@ -80,7 +80,7 @@ class FireBaseUploader:
         finally:
             os.chdir(cwd_bk)
             # TODO: remove firebase.json & .firebaserc from outputs dir.
-        sys.stdout.write(cp.stdout)
+        sys.stdout.write(ansi_escape.sub('', cp.stdout))
         sys.stderr.write(ansi_escape.sub('', cp.stderr))
         if cp.returncode != 0:
             print(f'Upload was not successful, returned with code {cp.returncode}', file=sys.stderr)
