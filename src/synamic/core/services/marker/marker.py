@@ -138,20 +138,11 @@ class _Mark:
 
     @property
     def contents(self):
-        contents = self.__site.object_manager.query_contents(
-            f'{self.marker.id} contains {self.title} :sortby created_on desc'
-        )
-        # all_cfields = self.__site.object_manager.get_all_cached_marked_cfields()
-        # for cfields in all_cfields:
-        #     marks = getattr(cfields, self.marker.id)
-        #     print(marks)
-        #     if marks:
-        #         for mark in marks:
-        #             if mark == self:
-        #                 contents.append(
-        #                     self.object_manager.get_marked_content(cfields.cpath)
-        #                 )
-        print(contents)
+        if self.__marker.type == 'single':
+            query = f'{self.marker.id} == {self.title} :sortby created_on desc'
+        else:
+            query = f'{self.marker.id} contains {self.title} :sortby created_on desc'
+        contents = self.__site.object_manager.query_contents(query)
         return tuple(contents)
 
     def __eq__(self, other):

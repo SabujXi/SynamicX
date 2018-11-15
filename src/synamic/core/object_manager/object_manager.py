@@ -879,8 +879,6 @@ class CIter:
         all_pre_content = self.__site.object_manager.get_all_pre_processed_contents()
         all_static_cpaths = self.__site.object_manager.get_static_file_cpaths()
         all_users = self.__site.object_manager.get_users()
-        print(all_users)
-        input('go?')
         all_marks = []
 
         for marker in self.__site.object_manager.get_markers():

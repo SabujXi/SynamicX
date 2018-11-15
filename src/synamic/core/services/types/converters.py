@@ -115,7 +115,7 @@ class ConverterCallable:
             assert not isinstance(right_value, (list, tuple))
 
     def compare(self, op, left_value, right_value):
-        assert op in self.supported_compare_ops
+        assert op in self.supported_compare_ops, f'op: {op}, supported ops: {self.supported_compare_ops}'
         self.validate_op_value(op, left_value, right_value)
         return SimpleQueryParser.COMPARE_OPERATOR_2_PY_OPERATOR_FUN[op](left_value, right_value)
 

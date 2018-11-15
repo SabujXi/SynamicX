@@ -6,14 +6,14 @@ with open('README.rst', 'r', encoding='utf-8') as f:
 
 setup(
     name='synamic',
-    version='0.2.dev4',
+    version='0.5.dev5',
     description='Synamic',
     author='Md. Sabuj Sarker',
     author_email='md.sabuj.sarker@gmail.com',
     url='https://github.com/SabujXi/Synamic',
-    packages=find_packages('src', exclude=('synamic',)),
+    packages=find_packages('src'),
+    # packages=find_packages('src', exclude=('synamic',)),
     package_dir={'': 'src'},
-    include_package_data=True,
     entry_points={
         'console_scripts': [
             'synamic = synamic.entry_points.synamic_shell:main'
