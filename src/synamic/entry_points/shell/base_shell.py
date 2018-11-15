@@ -157,7 +157,7 @@ class BaseShell(object):
         return input(prompt)
 
     def pre_loop(self):
-        self.print("pre_loop() executed.")
+        pass
 
     def on_shell(self, *cmd_args):
         self.pre_loop()
@@ -225,12 +225,16 @@ class BaseShell(object):
             self.print_error(f"Invalid command provided: {first_arg}")
             return 1
 
-    def on_exit(self, retcode):
+    def on_exit(self, *args):
         'Exitting...'
+        if len(args) > 0:
+            retcode = args[0]
+        else:
+            retcode = ''
         self.print(f"Exiting Synamic Shell with retcode {retcode}")
         self.close()
         return retcode
 
     def post_loop(self):
-        self.print("post_loop() executed")
+        pass
 

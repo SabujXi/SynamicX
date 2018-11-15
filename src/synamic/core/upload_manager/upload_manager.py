@@ -14,7 +14,7 @@ class UploadManager:
         self.__is_loaded = True
 
     def __install_builtin_uploaders(self):
-        from .builtin_uploaders.firebase__uploaders import FireBaseUploader
+        from .builtin_uploaders.firebase_uploader import FireBaseUploader
         self.add_uploader('firebase', FireBaseUploader)
 
     def add_uploader(self, name, uploader_class):
@@ -22,5 +22,5 @@ class UploadManager:
         assert name not in self.__uploaders_map
         self.__uploaders_map[name] = uploader_class(self.__synamic)
 
-    def get_uploader(self, name):
-        return self.__uploaders_map[name]
+    def get_uploader(self, name, default=None):
+        return self.__uploaders_map.get(name, default)

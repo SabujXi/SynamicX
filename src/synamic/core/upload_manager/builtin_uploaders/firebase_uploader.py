@@ -84,3 +84,6 @@ class FireBaseUploader:
         sys.stderr.write(ansi_escape.sub('', cp.stderr))
         if cp.returncode != 0:
             print(f'Upload was not successful, returned with code {cp.returncode}', file=sys.stderr)
+            return False
+        else:
+            return True
