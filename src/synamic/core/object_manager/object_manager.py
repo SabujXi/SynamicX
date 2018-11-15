@@ -15,7 +15,9 @@ from synamic.exceptions import (
     SynamicMarkerNotFound,
     SynamicSydParseError,
     SynamicErrors,
-    SynamicFSError
+    SynamicFSError,
+    SynamicSiteNotFound,
+    SynamicUserNotFound
 )
 from synamic import Nil
 
@@ -377,13 +379,31 @@ class ObjectManager:
             path = url_struct.path
             assert key is not None and path is not None
 
-            c_res = None
-            sites_up = self.sites_up(site, url_struct.site_sep)[0]
-            for specific_site in sites_up:
-                c_res = self.__getc(specific_site, key, path, None)
-                if c_res is not None:
-                    site = specific_site
-                    break
+            # find the proper site
+            site_id_sep = self.__synamic.system_settings['configs.site_id_sep']
+            site_id = url_struct.site_id
+
+            if site_id == site_id_sep:
+                site = site
+                c_res = self.__getc(site, key, path, None)
+            elif site_id is not None:
+                site_id_obj = self.__synamic.sites.make_id(site_id)
+                try:
+                    site = self.__synamic.sites.get_by_id(site_id_obj)
+                except KeyError:
+                    raise SynamicSiteNotFound(
+                        f'Site with id {site_id} was not found when looking for it in getc() for {url_str} and relative'
+                        f' path {relative_cpath}'
+                    )
+                c_res = self.__getc(site, key, path, None)
+            else:
+                c_res = None
+                sites_up = self.sites_up(site, url_struct.site_id)[0]
+                for specific_site in sites_up:
+                    c_res = self.__getc(specific_site, key, path, None)
+                    if c_res is not None:
+                        site = specific_site
+                        break
 
             if c_res is not None:
                 if url_struct.scheme == 'cfields':
@@ -619,37 +639,34 @@ class ObjectManager:
             )
         return tuple(_)
 
-    def get_user(self, site, user_id):
-        # TODO: do I keep caching besides this or either or both of them?
+    def get_user(self, starting_site, user_id):
         user = None
-        sites_up, user_id = self.sites_up(site, user_id)
-        for _site in sites_up:
-            user = self.__cache.get_user(_site, user_id, None)
+        sites_up, user_id = self.sites_up(starting_site, user_id)
+        for site in sites_up:
+            user = self.__cache.get_user(site, user_id, None)
             if user is not None:
                 break
-
         if user is None:
-            user_service = site.get_service('users')
-            user = user_service.make_user(user_id)
-            if user is not None:
-                self.__cache.add_user(site, user)
+            raise SynamicUserNotFound(
+                f'User with user id {user_id} not found in the {starting_site} site, neither in the '
+                f'upper hierarchy.'
+            )
         return user
 
     def get_users(self, site):
         return self.__cache.get_users(site)
 
-    def sites_up(self, starting_site, param_w_site_sep):
-        _ = []
-        if param_w_site_sep.startswith('::'):
-            param_w_site_sep = param_w_site_sep[2:]
-            _.append(starting_site)
-        else:
-            _site = starting_site
-            _.append(_site)
-            while _site.has_parent:
-                _site = _site.parent
-                _.append(_site)
-        return _, param_w_site_sep
+    def sites_up(self, starting_site, site_id):
+        """All sites up to the root including the current one"""
+        sites_up = []
+        site = starting_site
+        while True:
+            sites_up.append(site)
+            if site.has_parent:
+                site = site.parent
+            else:
+                break
+        return sites_up, site_id
 
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):

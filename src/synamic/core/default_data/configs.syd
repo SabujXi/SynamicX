@@ -1,4 +1,5 @@
 configs: {
+    site_id_sep: ~
 
     # ignore_dirs_starting_with: In any place: directories and files starting with the following string will be ignored from processing.
 

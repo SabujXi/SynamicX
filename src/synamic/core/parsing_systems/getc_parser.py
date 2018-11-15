@@ -4,7 +4,7 @@ from collections import namedtuple
 from synamic.exceptions import SynamicGetCParsingError
 from synamic.core.object_manager.query import generate_error_message
 
-UrlStruct = namedtuple('UrlStruct', ('scheme', 'site_sep', 'keys', 'path'))
+UrlStruct = namedtuple('UrlStruct', ('scheme', 'site_id', 'keys', 'path'))
 
 
 def parse_getc(text) -> UrlStruct:
@@ -27,11 +27,12 @@ def parse_getc(text) -> UrlStruct:
 
 
 class GetCLexer(Lexer):
-    tokens = {'SCHEME_NAME', 'SCHEME_SEP', 'SITE_SEP', 'KEY', 'KEY_SEP', 'PATH'}
+    tokens = {'SCHEME_NAME', 'SCHEME_SEP', 'SITE_ID', 'KEY', 'KEY_SEP', 'PATH'}
     PATH = r'[^:]+$'
     SCHEME_NAME = r'[a-zA-Z]+(?=://)'
     SCHEME_SEP = r'://'
-    SITE_SEP = r'::'
+    SITE_ID = r'[^\s:/\\]+(~[^\s:/\\]+)+|~[^\s:/\\]+|~'
+    # sync ~ this value with system system_settings['configs.site_id_sep']
     KEY = r'[a-zA-Z_][a-zA-Z0-9_-]*'
     KEY_SEP = r':'
 
@@ -47,19 +48,19 @@ class GetCParser(Parser):
     @_('PATH',  # normal relative url
        'SCHEME_NAME SCHEME_SEP PATH',  # normal absolute url
        'SCHEME_NAME SCHEME_SEP keys PATH',  # geturl
-       'SCHEME_NAME SCHEME_SEP SITE_SEP keys PATH'  # geturl
+       'SCHEME_NAME SCHEME_SEP SITE_ID KEY_SEP keys PATH'  # geturl
        )
     def query(self, p):
         length = len(p)
         if length == 1:
-            struct = UrlStruct(scheme='', keys=tuple(), site_sep='', path=p[0])
+            struct = UrlStruct(scheme='', keys=tuple(), site_id=None, path=p[0])
         elif length == 3:
-            struct = UrlStruct(scheme=p[0], keys=tuple(), site_sep='', path=p[2])
+            struct = UrlStruct(scheme=p[0], keys=tuple(), site_id=None, path=p[2])
         elif length == 4:
-            struct = UrlStruct(scheme=p[0], keys=p[2], site_sep='', path=p[3])
+            struct = UrlStruct(scheme=p[0], keys=p[2], site_id=None, path=p[3])
         else:
-            assert length == 5
-            struct = UrlStruct(scheme=p[0], keys=p[3], site_sep=p[2], path=p[4])
+            assert length == 6
+            struct = UrlStruct(scheme=p[0], keys=p[4], site_id=p[2], path=p[5])
         return struct
 
     @_('KEY KEY_SEP',
@@ -97,6 +98,8 @@ if __name__ == '__main__':
             raise
         if text:
             try:
+                for token in GetCLexer().tokenize(text):
+                    print(token)
                 res = parse_getc(text)
             except SynamicGetCParsingError as e:
                 print(e.message)

@@ -19,7 +19,8 @@ __all__ = [
     'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
     'SynamicInvalidNumberFormat', 'SynamicModelParsingError', 'SynamicInvalidDateTimeFormat',
     'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError',
-    'SynamicSydParseError', 'SynamicFSError', 'SynamicDataError', 'SynamicMarkerIsNotPublic'
+    'SynamicSydParseError', 'SynamicFSError', 'SynamicDataError', 'SynamicMarkerIsNotPublic', 'SynamicSiteNotFound',
+    'SynamicUserNotFound',
 ]
 
 
@@ -196,6 +197,14 @@ class SynamicFSError(SynamicError):
 
 class SynamicDataError(SynamicError):
     """Exception for data in data service"""
+
+
+class SynamicSiteNotFound(SynamicError):
+    """Site not found"""
+
+
+class SynamicUserNotFound(SynamicError):
+    """User not found"""
 
 
 class LogicalError(SynamicError):

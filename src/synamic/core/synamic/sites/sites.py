@@ -28,7 +28,7 @@ class Sites:
         self.__is_loaded = False
 
         # adding the root site
-        _root_site_id = self.make_id('::')
+        _root_site_id = self.make_id('')
         assert _root_site_id.components == tuple()
         _root_site = self.make_site(_root_site_id, self.__root_site_path, parent_site=None, root_site=None)
         self.__root_site = _root_site
@@ -43,10 +43,10 @@ class Sites:
         return tuple(self.__sites_map.keys())
 
     def make_id(self, comps):
-        return _SiteId(comps)
+        return _SiteId(self.__synamic, comps)
 
     def get_id_sep(self):
-        return _SiteId.get_id_sep()
+        return self.__synamic.system_settings['site_id_sep']
 
     def make_site(self, site_id, site_root_path_abs, parent_site=None, root_site=None):
         """Only this method should know how to make a site - no direct _Site class instantiation"""
@@ -188,32 +188,25 @@ class Sites:
 class _SiteId:
     __path_pat_split_by = re.compile(r'[\\/]')
     __ws_pat = re.compile(r'\s', re.MULTILINE)
-    __ids_sep = '::'
 
-    @classmethod
-    def get_id_sep(cls):
-        return cls.__ids_sep
-
-    def __init__(self, comps):
+    def __init__(self, synamic, comps):
+        self.__synamic = synamic
+        site_id_sep = self.__synamic.system_settings['configs.site_id_sep']
         _bk_comps = comps
         # start processing
         if isinstance(comps, self.__class__):
             self.__id_components = comps.components
         else:
-            # if it is the root site
-            if comps == self.__ids_sep:
-                comps = ''
-
             # normalizing to a list for easy iteration
             if isinstance(comps, (tuple, list)):
                 _ = []
                 for c in comps:
                     assert isinstance(c, str)
-                    _.extend(c.split(self.__ids_sep))
+                    _.extend(c.split(site_id_sep))
                 id_components = _
             else:
                 assert isinstance(comps, str)
-                id_components = comps.split(self.__ids_sep)
+                id_components = comps.split(site_id_sep)
 
             # hunting down anything with / or \ and split at that position
             _ = []
@@ -245,7 +238,7 @@ class _SiteId:
     def path_as_ids(self):
         ids = []
         for c in self.components:
-            ids.append(self.__class__(c))
+            ids.append(self.__class__(self.__synamic, c))
         return tuple(ids)
 
     @property
@@ -259,11 +252,12 @@ class _SiteId:
         parent_comps = self.parent_components
         if parent_comps is None:
             return None
-        return self.__class__(parent_comps)
+        return self.__class__(self.__synamic, parent_comps)
 
     @property
     def as_string(self):
-        return self.__ids_sep.join(self.components)
+        site_id_sep = self.__synamic.system_settings['configs.site_id_sep']
+        return site_id_sep.join(self.components)
 
     @property
     def is_root(self):
