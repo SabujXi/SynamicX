@@ -19,7 +19,7 @@ __all__ = [
     'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
     'SynamicInvalidNumberFormat', 'SynamicModelParsingError', 'SynamicInvalidDateTimeFormat',
     'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError',
-    'SynamicSydParseError', 'SynamicFSError', 'SynamicDataError'
+    'SynamicSydParseError', 'SynamicFSError', 'SynamicDataError', 'SynamicMarkerIsNotPublic'
 ]
 
 
@@ -156,6 +156,10 @@ class SynamicMarkerNotFound(SynamicError):
 
 class SynamicMarkNotFound(SynamicError):
     """Mark Not found"""
+
+
+class SynamicMarkerIsNotPublic(SynamicError):
+    """When marker is not public"""
 
 
 class SynamicInvalidNumberFormat(SynamicError):

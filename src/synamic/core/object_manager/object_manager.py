@@ -341,12 +341,12 @@ class ObjectManager:
 
     def get_curl_by_filename(self, site, filename, relative_cpath=None, default=None):
         if relative_cpath is None:
-            cpath = site.path_tree.create_file_cpath(filename)
+            cpath = site.path_tree.create_file_cpath(filename, forgiving=True)
         else:
             if filename.startswith(('/', '\\')):
-                cpath = site.path_tree.create_file_cpath(filename)
+                cpath = site.path_tree.create_file_cpath(filename, forgiving=True)
             else:
-                cpath = relative_cpath.join(filename, is_file=True)
+                cpath = relative_cpath.join(filename, is_file=True, forgiving=True)
         if not cpath.exists():
             return default
         content = self.__cache.get_marked_content_by_cpath(site, cpath, default=None)
@@ -882,6 +882,8 @@ class CIter:
         all_marks = []
 
         for marker in self.__site.object_manager.get_markers():
+            if not marker.is_public:
+                continue
             marks = marker.marks
             for mark in marks:
                 all_marks.append(mark.content)

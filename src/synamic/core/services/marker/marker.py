@@ -1,5 +1,6 @@
 import re
 from synamic.core.contracts import CDocType
+from synamic.exceptions import SynamicMarkerIsNotPublic
 
 _mark_title2id_sub_pat = re.compile(r'[\s:-]')
 
@@ -75,6 +76,11 @@ class _Mark:
 
     @property
     def cfields(self):
+        if not self.__marker.is_public:
+            raise SynamicMarkerIsNotPublic(
+                f'Marker with title {self.__marker.title} is not public and thus the mark title {self.title} cannot '
+                f'have cfields'
+            )
         if self.__synthetic_cfields is not None:
             sf = self.__synthetic_cfields
         else:
@@ -124,6 +130,11 @@ class _Mark:
 
     @property
     def content(self):
+        if not self.__marker.is_public:
+            raise SynamicMarkerIsNotPublic(
+                f'Marker with title {self.__marker.title} is not public and thus the mark title {self.title} cannot '
+                f'have content'
+            )
         if self.__content is not None:
             content = self.__content
         else:
@@ -138,6 +149,12 @@ class _Mark:
 
     @property
     def contents(self):
+        if not self.__marker.is_public:
+            raise SynamicMarkerIsNotPublic(
+                f'Marker with title {self.__marker.title} is not public and thus the mark title {self.title} cannot '
+                f'have contents'
+            )
+
         if self.__marker.type == 'single':
             query = f'{self.marker.id} == {self.title} :sortby created_on desc'
         else:
@@ -210,6 +227,13 @@ class Marker:
     @property
     def type(self):
         return self.__type
+
+    @property
+    def is_public(self):
+        public = self.get('is_public', None)
+        if public is None or public:
+            return True
+        return False
 
     @property
     def is_single(self):
