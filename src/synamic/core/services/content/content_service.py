@@ -108,7 +108,7 @@ class ContentService:
         pass
 
     def build_static_content(self, path):
-        path_tree = self.__site.get_service('path_tree')
+        path_tree = self.__site.path_tree
         file_cpath = path_tree.create_file_cpath(path)
         mimetype, _ = mimetypes.guess_type(file_cpath.basename)
         if mimetype is None:

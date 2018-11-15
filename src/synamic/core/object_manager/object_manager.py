@@ -7,6 +7,7 @@ from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
 from .query import QueryNode, SimpleQueryParser
 from synamic.core.parsing_systems.getc_parser import parse_getc
+from synamic.core.standalones.functions.sequence_ops import Sequence
 from synamic.exceptions import (
     SynamicGetCParsingError,
     SynamicGetCError,
@@ -182,9 +183,14 @@ class ObjectManager:
     def static_content_cpath_to_url(self, site, cpath, for_cdoctype):
         assert CDocType.is_binary(for_cdoctype, not_generated=True)
         # For STATIC Files
+        contents_dir = site.system_settings['dirs.contents.contents']
+        contents_cdir = site.path_tree.create_dir_cpath(contents_dir)
+        basename_contents = contents_cdir.basename
+        url_comps = cpath.path_comps
+        url_comps = Sequence.lstrip(url_comps, (basename_contents,))
         curl = self.__synamic.router.make_url(
             site,
-            cpath.path_comps,
+            url_comps,
             for_cdoctype=for_cdoctype
         )
         return curl
