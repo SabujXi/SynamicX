@@ -881,8 +881,8 @@ class ObjectManager:
         output_dir = self.__synamic.system_settings['dirs.outputs.outputs']
         output_cdir = self.__synamic.path_tree.create_dir_cpath(output_dir)
 
-        citer = CIter(site)
-        for content in citer:
+        c_iter = CIter(site)
+        for content in c_iter:
             curl = content.curl
             print(f'Writing {curl.url}')
             with content.get_stream() as fr:
@@ -904,6 +904,7 @@ class CIter:
         self.__site = site
 
     def __make_clist(self):
+        content_service = self.__site.get_service('contents')
         # marked
         clist = []
 
@@ -926,6 +927,16 @@ class CIter:
         clist.extend(all_users)
         clist.extend(all_marks)
 
+        # pagination pages
+        pagination_pages = []
+        for cfields in all_cfields:
+            root_pagination = cfields.pagination
+            if content_service.is_type_pagination_page(root_pagination):
+                for page_no in range(1, root_pagination.total_pagination):
+                    sub_page = root_pagination.get_sub_page(page_no)
+                    assert content_service.is_type_pagination_page(sub_page), f'Type: {type(sub_page)}'
+                    pagination_pages.append(sub_page)
+        clist.extend(pagination_pages)
         return clist
 
     def __iter__(self):
@@ -977,6 +988,11 @@ class CIter:
             elif self.__markers_service.is_type_mark(elem):
                 mark = elem
                 content = mark.content
+
+            # pagination pages
+            elif self.__content_service.is_type_pagination_page(elem):
+                pagination_page = elem
+                content = pagination_page.host_content
 
             else:
                 raise Exception(f'Something impossible happened or you introduced a bug.')

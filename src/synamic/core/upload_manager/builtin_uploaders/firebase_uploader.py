@@ -79,7 +79,7 @@ class FireBaseUploader:
             retcode = subprocess.call(command, shell=True)
         finally:
             os.chdir(cwd_bk)
-            # TODO: remove firebase.json & .firebaserc from outputs dir after work is done?
+            # TODO: remove firebase.json & .firebaserc from outputs dir after work is done? Yes, privacy/security issue.
         if retcode != 0:
             print(f'Upload was not successful, returned with code {retcode}', file=sys.stderr)
             return False

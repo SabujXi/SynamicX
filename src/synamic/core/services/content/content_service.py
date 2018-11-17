@@ -17,7 +17,7 @@ from synamic.core.standalones.functions.decorators import not_loaded
 from synamic.core.services.content.static_content import StaticContent
 from synamic.core.services.content.generated_content import GeneratedContent
 from synamic.core.services.content.marked_content import MarkedContent
-from synamic.core.services.content.paginated_content import PaginationPage
+from synamic.core.services.content.paginated_content import PaginationPage, PaginatedContent
 from synamic.core.contracts.cfields import CFieldsContract
 from .chapters import Chapter
 from synamic.exceptions import SynamicSettingsError
@@ -52,6 +52,14 @@ class ContentService:
     @classmethod
     def is_type_generated_content(cls, other):
         return isinstance(other, GeneratedContent)
+
+    @classmethod
+    def is_type_paginated_content(cls, other):
+        return isinstance(other, PaginatedContent)
+
+    @classmethod
+    def is_type_pagination_page(cls, other):
+        return isinstance(other, PaginationPage)
 
     def build_cfields(self, fields_syd, file_cpath):
         # get dir meta syd
