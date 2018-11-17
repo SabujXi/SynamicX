@@ -156,7 +156,7 @@ class Sites:
             print(f'Removing paths from {output_abs_path} with some exceptions to {except_root_paths}')
             for o_basename in os.listdir(output_abs_path):
                 full_path = os.path.join(output_abs_path, o_basename)
-                if o_basename not in except_root_paths:
+                if o_basename not in except_root_paths and not o_basename.startswith('.'):
                     print(f'Removing {full_path}')
                     if os.path.isfile(full_path):
                         os.remove(full_path)

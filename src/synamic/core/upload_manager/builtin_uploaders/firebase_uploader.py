@@ -55,7 +55,7 @@ class FireBaseUploader:
             json_text = fr.read()
             rendered_json = self.__synamic.render_string_template(
                 json_text,
-                # public_dir_name=output_cdir.basename <- trouble maker
+                # public_dir_name=output_cdir.basename <- was trouble maker as uploading is done by cd'ing into _outputs
             )
             with output_cdir.join(firebase_json_cfile.basename, is_file=True).open('w', encoding='utf-8') as fw:
                 fw.write(rendered_json)
@@ -76,14 +76,12 @@ class FireBaseUploader:
         cwd_bk = os.getcwd()
         os.chdir(output_cdir.abs_path)
         try:
-            cp = subprocess.run(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, encoding='utf-8')
+            retcode = subprocess.call(command, shell=True)
         finally:
             os.chdir(cwd_bk)
-            # TODO: remove firebase.json & .firebaserc from outputs dir.
-        sys.stdout.write(ansi_escape.sub('', cp.stdout))
-        sys.stderr.write(ansi_escape.sub('', cp.stderr))
-        if cp.returncode != 0:
-            print(f'Upload was not successful, returned with code {cp.returncode}', file=sys.stderr)
+            # TODO: remove firebase.json & .firebaserc from outputs dir after work is done?
+        if retcode != 0:
+            print(f'Upload was not successful, returned with code {retcode}', file=sys.stderr)
             return False
         else:
             return True
