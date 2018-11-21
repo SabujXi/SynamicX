@@ -203,6 +203,7 @@ class _ContentFields(CFieldsContract):
 
     def get(self, key, default=None):
         raw_value = self.__raw_cfields.get(key, None)
+        # generate value.
         if raw_value is None:
             if key == 'created_on':
                 value = datetime.datetime.fromtimestamp(self.cpath.getctime())
@@ -217,9 +218,10 @@ class _ContentFields(CFieldsContract):
                 return default
         else:
             value = self.__converted_values.get(key, None)
+            # convert value
             if value is None:
                 # special conversions
-                if key in ('pagination', 'book_toc'):
+                if key in ('pagination', 'book_toc', 'meta_tags', 'meta_description'):
                     if key == 'pagination':
                         pagination_field = raw_value
                         paginations, paginated_contents = self.__convert_pagination(pagination_field)
@@ -229,6 +231,9 @@ class _ContentFields(CFieldsContract):
                         toc_fn = raw_value
                         book_toc = content_service.build_book_toc(toc_fn, self.__content_file_cpath)
                         value = book_toc
+                    elif key in ('meta_tags', 'meta_description'):
+                        lines = raw_value.splitlines()
+                        value = ' '.join(lines)
                     else:
                         raise Exception('Something is terribly wrong.')
                 # normal conversions through converter or else raw value

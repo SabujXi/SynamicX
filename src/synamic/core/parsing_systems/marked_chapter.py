@@ -347,12 +347,12 @@ class ChapterList:
 
         if self.is_ordered:
             return \
-                (level * '    ') + '<ol>\n' + \
+                (level * '    ') + '<ol class="book-toc-chapter-list">\n' + \
                 '\n'.join(res) + '\n' +\
                 (level * '    ') + '</ol>'
         else:
             return \
-                (level * '    ') + '<ul>\n' + \
+                (level * '    ') + '<ul class="book-toc-chapter-list">\n' + \
                 '\n'.join(res) + '\n' +\
                 (level * '    ') + '</ul>'
 
@@ -555,7 +555,7 @@ class ChapterPart:
     def as_html(self, added_level=None):
         added_level = 0 if added_level is None else added_level
         header = '    ' * added_level + ('' if not self._name else
-                                         f"<div class='chapter-part-header'>{self._name}</div>")
+                                         f"<div class='book-toc-part-header'>{self._name}</div>")
         return \
             f'\n{header}\n' +\
             '\n'.join(chl.as_html(added_level=added_level) for chl in self._chapter_lists) + '\n'
