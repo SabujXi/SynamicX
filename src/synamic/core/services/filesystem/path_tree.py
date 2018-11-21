@@ -541,6 +541,46 @@ class PathTree(object):
             assert self.is_dir
             return self.__path_tree.fs.makedirs(self.abs_path)
 
+        def write_text(self, text):
+            assert isinstance(text, str)
+            assert self.is_file
+            with self.open('w', encoding='utf-8') as fw:
+                fw.write(text)
+
+        def write_bytes(self, data):
+            isinstance(data, (bytes, bytearray))
+            assert isinstance(data, str)
+            assert self.is_file
+            with self.open('wb') as fw:
+                fw.write(data)
+
+        def write_stream(self, stream, close_on_done=False):
+            assert hasattr(stream, 'read')
+            assert self.is_file
+            with self.open('wb') as fw:
+                data = stream.read(1024)
+                while data:
+                    fw.write(data)
+                    data = stream.read(1024)
+            if close_on_done:
+                stream.close()
+
+        def write_text_stream(self, stream, close_on_done=False):
+            assert hasattr(stream, 'read')
+            assert self.is_file
+            with self.open('w', encoding='utf-8') as fw:
+                data = stream.read(1024)
+                while data:
+                    fw.write(data)
+                    data = stream.read(1024)
+            if close_on_done:
+                stream.close()
+
+        def make_file(self):
+            assert self.is_file
+            with self.open('wb') as fw:
+                pass
+
         def join(self, *path_str_or_cmps, is_file=True, forgiving=False):
             """Creates a new path joining to this one"""
             comps = self.__path_tree.to_cpath_ccomps(*path_str_or_cmps) # [p for p in re.split(r'[\\/]+', path_str) if p != '']
