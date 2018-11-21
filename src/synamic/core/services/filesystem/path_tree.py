@@ -250,7 +250,7 @@ class PathTree(object):
             checker=checker,
             respect_settings=respect_settings)()
 
-    def list_cpaths(self, initial_path_comps=(), files_only=None, directories_only=None, depth=None, exclude_compss=(), checker=None):
+    def list_cpaths(self, initial_path_comps=(), files_only=None, directories_only=None, depth=None, exclude_compss=(), checker=None, respect_settings=True):
         if type(initial_path_comps) is self.__CPath:
             assert initial_path_comps.is_dir
             starting_comps = initial_path_comps.path_comps
@@ -261,15 +261,15 @@ class PathTree(object):
             _exclude_compss.append(self.to_cpath_ccomps(pc))
         exclude_compss = tuple(_exclude_compss)
 
-        dirs, files = self.__list_cpaths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth, exclude_cpaths=exclude_compss, checker=checker)
+        dirs, files = self.__list_cpaths_loop2(starting_comps, files_only=files_only, directories_only=directories_only, depth=depth, exclude_cpaths=exclude_compss, checker=checker, respect_settings=respect_settings)
         return dirs, files
 
-    def list_file_cpaths(self, initial_path_comps=(), depth=None, exclude_compss=(), checker=None):
-        _, files = self.list_cpaths(initial_path_comps, files_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker)
+    def list_file_cpaths(self, initial_path_comps=(), depth=None, exclude_compss=(), checker=None, respect_settings=True):
+        _, files = self.list_cpaths(initial_path_comps, files_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker, respect_settings=respect_settings)
         return files
 
-    def list_dir_cpaths(self, initial_path_comps='', depth=None, exclude_compss=(), checker=None):
-        dirs, _ = self.list_cpaths(initial_path_comps, directories_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker)
+    def list_dir_cpaths(self, initial_path_comps='', depth=None, exclude_compss=(), checker=None, respect_settings=True):
+        dirs, _ = self.list_cpaths(initial_path_comps, directories_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker, respect_settings=respect_settings)
         return dirs
 
     def is_type_cpath(self, other):
@@ -512,21 +512,22 @@ class PathTree(object):
                     return ext
             return ''
 
-        def list_cpaths(self, files_only=None, depth=None, exclude_compss=(), checker=None):
+        def list_cpaths(self, files_only=None, depth=None, exclude_compss=(), checker=None, respect_settings=True):
             return self.__path_tree.list_cpaths(
                 files_only=files_only,
                 initial_path_comps=self,
                 depth=depth,
                 exclude_compss=exclude_compss,
-                checker=checker
+                checker=checker,
+                respect_settings=respect_settings
             )
 
-        def list_files(self, depth=None, exclude_compss=(), checker=None):
-            _, cfiles = self.list_cpaths(files_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker)
+        def list_files(self, depth=None, exclude_compss=(), checker=None, respect_settings=True):
+            _, cfiles = self.list_cpaths(files_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker, respect_settings=respect_settings)
             return cfiles
 
-        def list_dirs(self, depth=None, exclude_compss=(), checker=None):
-            dirs, _ = self.list_cpaths(files_only=False, depth=depth, exclude_compss=exclude_compss, checker=checker)
+        def list_dirs(self, depth=None, exclude_compss=(), checker=None, respect_settings=True):
+            dirs, _ = self.list_cpaths(files_only=False, depth=depth, exclude_compss=exclude_compss, checker=checker, respect_settings=respect_settings)
             return dirs
 
         def exists(self):

@@ -44,7 +44,10 @@ class CommandProcessor(BaseShell):
 
     def on_init(self, *args):
         'Initialize a synamic project'
-        raise NotImplemented
+        s = self.get_or_create_synamic()
+        ret = s.object_manager.init_site()
+        if ret is True:
+            self.print('Site successfully init\'ed')
 
     def on_load(self, *args):
         'Reload the current synamic project'

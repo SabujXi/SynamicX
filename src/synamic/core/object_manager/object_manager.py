@@ -20,6 +20,7 @@ from synamic.exceptions import (
     SynamicUserNotFound
 )
 from synamic import Nil
+from .init_manager import InitManager
 
 
 class ObjectManager:
@@ -897,6 +898,13 @@ class ObjectManager:
                         fw.write(data)
                         data = fr.read(1024)
         return True
+
+    def init_site(self, site=None):
+        assert site is None, 'Must not be called on a site instance. It should be called when synamic is not init\'ed'
+        assert not self.__synamic.is_loaded
+        root_cpath = self.__synamic.path_tree.create_dir_cpath('/')
+        init_manager = InitManager(self.__synamic)
+        return init_manager.init_site(root_cpath)
 
 
 class CIter:
