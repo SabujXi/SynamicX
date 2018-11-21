@@ -47,6 +47,7 @@ def get_source_snippet_from_file(fn, line_no, limit=10):
 
 
 def get_source_snippet_from_text(text, line_no, limit=10):
+    """Line no starts at 1 not at 0"""
     source = text
     lines = source.splitlines()
 

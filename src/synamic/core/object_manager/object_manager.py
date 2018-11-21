@@ -197,17 +197,17 @@ class ObjectManager:
         )
         return curl
 
-    #  @loaded
+    # @loaded
     def get_cfields(self, site, path, default=None):
         path_tree = site.get_service('path_tree')
-        path = path_tree.create_cpath(path)
+        path = path_tree.create_file_cpath(path)
         if site.synamic.env['backend'] == 'database':
             raise NotImplemented
         else:
             # file backend
             return self.__cache.get_marked_cfields_by_cpath(site, path, default=default)
 
-    #  @loaded
+    # @loaded
     def get_marked_content(self, site, path):
         # create content, meta, set meta with converters. Setting it from here will help caching.
         # TODO: other type of contents besides md contents.

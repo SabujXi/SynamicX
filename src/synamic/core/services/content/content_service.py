@@ -19,8 +19,8 @@ from synamic.core.services.content.generated_content import GeneratedContent
 from synamic.core.services.content.marked_content import MarkedContent
 from synamic.core.services.content.paginated_content import PaginationPage, PaginatedContent
 from synamic.core.contracts.cfields import CFieldsContract
-from .chapters import Chapter
 from synamic.exceptions import SynamicSettingsError
+from synamic.core.parsing_systems.marked_chapter import MarkedChapterParser
 
 
 _invalid_url = re.compile(r'^[a-zA-Z0-9]://', re.IGNORECASE)
@@ -145,11 +145,12 @@ class ContentService:
     def make_synthetic_cfields(self, curl, cdoctype, mimetype, cpath=None, fields_map=None):
         return _SyntheticContentFields(self.__site, curl, cdoctype, mimetype, cpath=cpath, fields_map=fields_map)
 
-    def build_chapters(self, chapters_fields):
-        chapters = []
-        for cfs in chapters_fields:
-            chapters.append(Chapter(self.__site, cfs))
-        return tuple(chapters)
+    def build_book_toc(self, toc_fn, book_cpath):
+        toc_cpath = book_cpath.parent_cpath.join(toc_fn, is_file=True)
+        with toc_cpath.open('r', encoding='utf-8') as fr:
+            toc_text = fr.read()
+        book_toc = MarkedChapterParser(self.__site, toc_cpath, toc_text).parse()
+        return book_toc
 
 
 class _ContentFields(CFieldsContract):
@@ -195,10 +196,10 @@ class _ContentFields(CFieldsContract):
         )
         return paginations, paginated_contents
 
-    def __convert_chapters(self, param):
-        content_service = self.__site.get_service('contents')
-        chapters = content_service.build_chapters(param)
-        return chapters
+    # def __convert_chapters(self, param):
+    #     content_service = self.__site.get_service('contents')
+    #     chapters = content_service.build_chapters(param)
+    #     return chapters
 
     def get(self, key, default=None):
         raw_value = self.__raw_cfields.get(key, None)
@@ -218,15 +219,18 @@ class _ContentFields(CFieldsContract):
             value = self.__converted_values.get(key, None)
             if value is None:
                 # special conversions
-                if key in ('pagination', 'chapters'):
+                if key in ('pagination', 'book_toc'):
                     if key == 'pagination':
                         pagination_field = raw_value
                         paginations, paginated_contents = self.__convert_pagination(pagination_field)
                         value = paginations[0]
-                    elif key == 'chapters':
+                    elif key == 'book_toc':
                         content_service = self.__site.get_service('contents')
-                        chapters = content_service.build_chapters(raw_value)
-                        value = chapters
+                        toc_fn = raw_value
+                        book_toc = content_service.build_book_toc(toc_fn, self.__content_file_cpath)
+                        value = book_toc
+                    else:
+                        raise Exception('Something is terribly wrong.')
                 # normal conversions through converter or else raw value
                 else:
                     model_field = self.__cmodel.get(key, None)
