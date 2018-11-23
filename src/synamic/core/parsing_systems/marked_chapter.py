@@ -61,9 +61,12 @@ class _Patterns:
 
 
 class MarkedChapterParser:
-    def __init__(self, site, toc_cpath, toc_text):
+    def __init__(self, site, book_cpath, toc_cpath):
+        with toc_cpath.open('r', encoding='utf-8') as fr:
+            toc_text = fr.read()
+
         self.__text = toc_text
-        self._chapter_toc = ChaptersTOC(site, toc_cpath)
+        self._chapter_toc = ChaptersTOC(site, book_cpath, toc_cpath)
 
         self.__item_list_stack = []
         self.__current_blank_lines = 0
@@ -478,21 +481,29 @@ class ChLink:
 
 
 class Chapter:
-    def __init__(self, toc, title, url, anchor_title, previous=None):
-        self.__toc = toc
+    def __init__(self, book_toc, title, curl, anchor_title, previous=None):
+        self.__book_toc = book_toc
         self.__title = title
-        self.__url = url
+        self.__curl = curl
         self.__anchor_title = '' if anchor_title is None else anchor_title
         self.__previous = previous
         self.__next = None
 
     @property
-    def toc(self):
-        return self.__toc
+    def book(self):
+        return self.__book_toc.book
+
+    @property
+    def book_toc(self):
+        return self.__book_toc
+
+    @property
+    def curl(self):
+        return self.__curl
 
     @property
     def url(self):
-        return self.__url
+        return self.__curl.url
 
     @property
     def title(self):
@@ -515,10 +526,12 @@ class Chapter:
 
     @property
     def next(self):
+        """Next chapter object"""
         return self.__next
 
     @property
     def previous(self):
+        """Previous chapter object"""
         return self.__previous
 
     @property
@@ -568,20 +581,47 @@ class ChapterPart:
 
 
 class ChaptersTOC:
-    def __init__(self, site, toc_cpath):
+    def __init__(self, site, book_cpath, toc_cpath):
         self._site = site
-        self.__toc_cpath = toc_cpath
-        self.__toc_parent_cpath = self.__toc_cpath.parent_cpath
+        self.__book_cpath = book_cpath
         self.__chapter_parts = []
         self.__cpath_to_chapter = {}
-        self.__is_done = False
+
+        self.__toc_cpath = toc_cpath
+        self.__toc_parent_cpath = self.__toc_cpath.parent_cpath
 
         # tmp
         self.__chapter_cpath_tuples = []
 
+        self.__is_done = False
+
     @property
     def site(self):
         return self._site
+
+    @property
+    def book_cpath(self):
+        return self.__book_cpath
+
+    @property
+    def book_curl(self):
+        return self._site.object_manager.get_cfields(self.__book_cpath).curl
+
+    @property
+    def book_url(self):
+        return self._site.object_manager.get_cfields(self.__book_cpath).curl.url
+
+    @property
+    def book_cfields(self):
+        return self._site.object_manager.get_cfields(self.__book_cpath)
+
+    @property
+    def book(self):
+        return self._site.object_manager.get_marked_content(self.__book_cpath)
+
+    @property
+    def chapter_cpaths(self):
+        return tuple(self.__cpath_to_chapter.keys())
 
     def add_part(self, part):
         assert not self.__is_done
@@ -619,8 +659,8 @@ class ChaptersTOC:
                 f'CFields not found for content path {content_cpath.relative_path}'
             )
         else:
-            url = cfields.curl.url
-        chapter = Chapter(self, ch_link.link_text, url, ch_link.link_title, previous=prev_chapter)
+            curl = cfields.curl
+        chapter = Chapter(self, ch_link.link_text, curl, ch_link.link_title, previous=prev_chapter)
         if prev_chapter is not None:
             prev_chapter.__set_next__(chapter)
         self.__chapter_cpath_tuples.append((chapter, content_cpath))

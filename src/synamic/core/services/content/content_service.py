@@ -147,9 +147,7 @@ class ContentService:
 
     def build_book_toc(self, toc_fn, book_cpath):
         toc_cpath = book_cpath.parent_cpath.join(toc_fn, is_file=True)
-        with toc_cpath.open('r', encoding='utf-8') as fr:
-            toc_text = fr.read()
-        book_toc = MarkedChapterParser(self.__site, toc_cpath, toc_text).parse()
+        book_toc = MarkedChapterParser(self.__site, book_cpath, toc_cpath).parse()
         return book_toc
 
 
@@ -214,6 +212,14 @@ class _ContentFields(CFieldsContract):
                 if updated_on < created_on:
                     updated_on = created_on
                 value = updated_on
+            elif key == 'chapter':
+                # TODO: chapter is a generated prop. Validate that chapter is not in raw fields.
+                value = None
+                for book_toc in self.__site.object_manager.get_book_tocs():
+                    book_chapter = book_toc.get_chapter(self.__content_file_cpath, default=None)
+                    if book_chapter is not None:
+                        value = book_chapter
+                        break
             else:
                 return default
         else:
@@ -232,7 +238,7 @@ class _ContentFields(CFieldsContract):
                         book_toc = content_service.build_book_toc(toc_fn, self.__content_file_cpath)
                         value = book_toc
                     elif key in ('meta_tags', 'meta_description'):
-                        lines = raw_value.splitlines()
+                        lines = (line.strip() for line in raw_value.splitlines())
                         value = ' '.join(lines)
                     else:
                         raise Exception('Something is terribly wrong.')

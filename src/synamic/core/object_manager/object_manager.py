@@ -72,6 +72,9 @@ class ObjectManager:
             # for content
             if content_cdir.exists():  # check content dir existence before proceeding
                 file_cpaths = content_cdir.list_files()
+                all_cfields = []
+
+                # make the cfields
                 for file_cpath in file_cpaths:
                     if file_cpath.extension.lower() in marked_extensions:
                         text = self.get_raw_text_data(site, file_cpath)
@@ -87,10 +90,25 @@ class ObjectManager:
                                 e
                             )
                         cfields = content_service.build_cfields(fields_syd, file_cpath)
-                        self.__cache.add_marked_cfields(site, cfields)
+                        all_cfields.append(cfields)
                     else:
                         # No need to cache anything about static file.
                         pass
+
+                # add the cfields to cache
+                for cfields in all_cfields:
+                    self.__cache.add_marked_cfields(site, cfields)
+
+                # cache book toc
+                book_tocs = []
+                for cfields in all_cfields:
+                    book_toc = cfields.book_toc
+                    if book_toc is not None:
+                        book_tocs.append(book_toc)
+                # adding book toc to cache
+                for book_toc in book_tocs:
+                    self.__cache.add_book_toc(site, book_toc)
+
         else:
             raise NotImplemented
             # database backend is not implemented yet. AND there is nothing to do here for db, skip it when implemented
@@ -552,6 +570,9 @@ class ObjectManager:
     def get_data(self, site, data_name, default=None):
         return self.__cache.get_data(site, data_name, default=default)
 
+    def get_book_tocs(self, site):
+        return self.__cache.get_book_tocs(site)
+
     @staticmethod
     def __convert_section_value(section, content_model):
         # TODO: for converter that returns single value implement mechanism that will help use in !in for them.
@@ -738,6 +759,7 @@ class ObjectManager:
             self.__pre_processed_cachemap = defaultdict(dict)  # curl to content
             self.__marked_contents_cachemap = defaultdict(dict)  # curl to content: default limit 100 per site. < limit not yet implemented
             self.__marked_cfields_cachemap = defaultdict(dict)  # curl to content
+            self.__book_tocs_cachemap = defaultdict(dict)
 
             self.__cpath_to_pre_processed_contents = defaultdict(dict)
             self.__cpath_to_marked_content = defaultdict(dict)
@@ -842,6 +864,13 @@ class ObjectManager:
         def get_data(self, site, data_name, default=None):
             return self.__data[site.id].get(data_name, default=default)
 
+        def add_book_toc(self, site, book_toc):
+            book_content_cpath = book_toc.book_cpath
+            self.__book_tocs_cachemap[site.id][book_content_cpath] = book_toc
+
+        def get_book_tocs(self, site):
+            return tuple(self.__book_tocs_cachemap[site.id].values())
+
         def clear_content_cache(self, site):
             self.__pre_processed_cachemap[site.id].clear()
             self.__marked_contents_cachemap[site.id].clear()
@@ -849,6 +878,7 @@ class ObjectManager:
             self.__cpath_to_pre_processed_contents[site.id].clear()
             self.__cpath_to_marked_content[site.id].clear()
             self.__cpath_to_marked_cfields[site.id].clear()
+            self.__book_tocs_cachemap[site.id].clear()
 
         def clear_marker_cache(self, site):
             self.__marker_by_id_cachemap[site.id].clear()
