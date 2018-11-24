@@ -142,7 +142,8 @@ class ContentUrl:
             path_str = '/'
         else:
             comps = list(comps)
-            if CDocType.is_html(self.for_cdoctype):
+            basename = comps[-1]
+            if CDocType.is_html(self.for_cdoctype) and not ext_pattern.match(basename):
                 if comps[-1] != '':
                     comps.append('')
             else:
