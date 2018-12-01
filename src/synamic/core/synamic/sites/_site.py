@@ -122,6 +122,8 @@ class _Site(SiteContract):
 
     @property
     def root(self):
+        if self.__root_site is None:
+            return self
         return self.__root_site
 
     root_site = root
