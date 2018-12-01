@@ -16,7 +16,6 @@ from synamic.core.services.data import DataService
 from synamic.core.default_data import DefaultDataManager
 from synamic.core.contracts import SiteContract
 from synamic.core.services.sitemap import SitemapService
-from synamic.core.synamic.router.url import ContentUrl
 from synamic.core.contracts import CDocType
 
 
@@ -176,7 +175,7 @@ class _Site(SiteContract):
     def curl(self):
         site_curl = self.__site_curl
         if site_curl is None:
-            site_curl = ContentUrl(self, self.settings.site_base_path, for_cdoctype=CDocType.HTML_DOCUMENT)
+            site_curl = self.__synamic.router.make_url(self, self.settings.site_base_path, for_cdoctype=CDocType.HTML_DOCUMENT)
             # TODO: doctype can also be generated HTML! Solution?
             self.__site_curl = site_curl
         return site_curl
