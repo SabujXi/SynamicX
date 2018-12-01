@@ -170,9 +170,9 @@ class ContentUrl:
     @property
     def path_components_w_site(self):
         if self.__path_components_w_site is None:
-            site_base_path = self.__site.settings.site_base_path
             self.__path_components_w_site = self.path_to_components(
-                site_base_path, self.__site.id.components, self.__url_path_comps
+                self.__site.settings.site_base_path,
+                self.__url_path_comps
             )
         return self.__path_components_w_site
 
@@ -196,17 +196,13 @@ class ContentUrl:
         return urllib.parse.quote_plus(self.path_as_str, safe='/:#', encoding='utf-8')
 
     @property
-    def path_as_str_w_site_encoded(self):
-        assert self.__for_cdoctype is not CDocType.UNSPECIFIED
-        return urllib.parse.quote_plus(self.path_as_str_w_site, safe='/:#', encoding='utf-8')
-
-    @property
     def url(self):
         """URL with host name, port, path"""
         assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__url_str is None:
             ss = self.__site.settings
-            url_str = ss.site_address + self.path_as_str_w_site
+            path_str = self.path_as_str.lstrip('/')
+            url_str = ss.site_address + path_str
             self.__url_str = url_str
         return self.__url_str
 

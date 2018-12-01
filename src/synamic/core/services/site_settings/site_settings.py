@@ -28,29 +28,33 @@ class _SiteSettings:
             # calculate from settings/configs
             else:
                 site_address = self.__syd['site_address']
-                url_struct = urlparse(site_address)
-                scheme = url_struct.scheme
-                netloc = url_struct.netloc
-                path = '/'.join(
-                    ContentUrl.path_to_components(url_struct.path)
+
+            site_url_struct = urlparse(site_address)
+            scheme = site_url_struct.scheme
+            netloc = site_url_struct.netloc
+            path = '/'.join(
+                ContentUrl.path_to_components(
+                    site_url_struct.path,
+                    self.__site.id.components
                 )
-                url = urlunparse([scheme, netloc, path, '', '', ''])
-                site_address = url
+            )
+            site_url = urlunparse([scheme, netloc, path, '', '', ''])
+            site_address = site_url
 
             if not site_address.endswith('/'):
                 site_address += '/'
+
+            # setting site address.
             self.__site_address = site_address
+            # setting site base path.
+            self.__site_base_path = path
 
         return self.__site_address
 
     @property
     def site_base_path(self):
         if self.__site_base_path is None:
-            site_address = self.site_address
-            path = urlparse(site_address).path
-            if not path.endswith('/'):
-                path += '/'
-            self.__site_base_path = path
+            _ = self.site_address
         return self.__site_base_path
 
     @property
