@@ -7,6 +7,7 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
+from urllib.parse import urlparse
 
 
 class _SiteSettings:
@@ -14,34 +15,36 @@ class _SiteSettings:
         self.__site = site
         self.__syd = syd
         self.__site_address = None
+        self.__site_base_path = None
 
     @property
     def site_address(self):
         if self.__site_address is None:
             # calculate dev server address when dev server running.
-            if self.__site.synamic.dev_params.get('host', None):
-                dev_params = self.__site.synamic.dev_params
-                host_scheme = 'http'
-                hostname = dev_params.get('host')
-                port = str(dev_params.get('port', '8080'))
-                port_str = f':{port}'
-                host_base_path_str = ''
-                site_address = host_scheme + "://" + hostname + port_str + host_base_path_str
+            dev_site_address = self.__site.synamic.dev_params.get('site_address', None)
+            if dev_site_address:
+                site_address = dev_site_address
             # calculate from settings/configs
             else:
-                site_address = self.get('site_address', None)
-                if site_address is None:
-                    host_port = self['host_port']
-                    host_scheme = self['host_scheme']
-                    hostname = self['hostname']
-                    host_base_path = self['host_base_path'].strip('/')
-                    port_str = f':{host_port}' if host_port else ''
-                    host_base_path_str = f'{host_base_path}'
-                    site_address = host_scheme + "://" + hostname + port_str + host_base_path_str
+                site_address = self.__syd['site_address']
+
+            if not site_address.endswith('/'):
+                site_address += '/'
+
             self.__site_address = site_address
         else:
             site_address = self.__site_address
         return site_address
+
+    @property
+    def site_base_path(self):
+        if self.__site_base_path is None:
+            site_address = self.site_address
+            path = urlparse(site_address).path
+            if not path.endswith('/'):
+                path += '/'
+            self.__site_base_path = path
+        return self.__site_base_path
 
     @property
     def origin_syd(self):

@@ -170,9 +170,9 @@ class ContentUrl:
     @property
     def path_components_w_site(self):
         if self.__path_components_w_site is None:
-            host_base_path = self.__site.settings['host_base_path']
-            self.__path_components_w_site = self.path_to_ccomponents(
-                host_base_path, self.__site.id.components, self.__url_path_comps
+            site_base_path = self.__site.settings.site_base_path
+            self.__path_components_w_site = self.path_to_components(
+                site_base_path, self.__site.id.components, self.__url_path_comps
             )
         return self.__path_components_w_site
 

@@ -11,11 +11,7 @@ user_url_comp: author
 pagination_per_page: 10
 # .../_/m/tags/<a tag>  where tags is <marker id>
 
-# host settings
-host_scheme: http
-hostname: localhost
-host_port:
-host_base_path: /
+site_address: http://localhost/
 
 # index file name
 index_file_name: index.html
