@@ -124,6 +124,8 @@ class _Site(SiteContract):
     def root(self):
         return self.__root_site
 
+    root_site = root
+
     @property
     def is_root(self):
         return self.__root_site is None
@@ -176,7 +178,7 @@ class _Site(SiteContract):
     def curl(self):
         site_curl = self.__site_curl
         if site_curl is None:
-            site_curl = self.__synamic.router.make_url(self, self.settings.site_base_path, for_cdoctype=CDocType.HTML_DOCUMENT)
+            site_curl = self.__synamic.router.make_url(self, '', for_cdoctype=CDocType.HTML_DOCUMENT)
             # TODO: doctype can also be generated HTML! Solution?
             self.__site_curl = site_curl
         return site_curl
