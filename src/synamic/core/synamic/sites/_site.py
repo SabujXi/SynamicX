@@ -16,6 +16,8 @@ from synamic.core.services.data import DataService
 from synamic.core.default_data import DefaultDataManager
 from synamic.core.contracts import SiteContract
 from synamic.core.services.sitemap import SitemapService
+from synamic.core.synamic.router.url import ContentUrl
+from synamic.core.contracts import CDocType
 
 
 def _install_default_services(site):
@@ -95,6 +97,7 @@ class _Site(SiteContract):
         self.__menus_wrapper = MenusWrapper(self.__object_manager_4_site)
         self.__users_wrapper = UsersWrapper(self.__object_manager_4_site)
 
+        self.__site_curl = None
         self.__is_loaded = False
 
     @property
@@ -167,6 +170,16 @@ class _Site(SiteContract):
     @property
     def settings(self):
         return self.object_manager.get_site_settings()
+
+    @loaded
+    @property
+    def curl(self):
+        site_curl = self.__site_curl
+        if site_curl is None:
+            site_curl = ContentUrl(self, self.settings.site_base_path, for_cdoctype=CDocType.HTML_DOCUMENT)
+            # TODO: doctype can also be generated HTML! Solution?
+            self.__site_curl = site_curl
+        return site_curl
 
     @property
     def menu(self):
