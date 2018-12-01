@@ -291,6 +291,8 @@ class ContentUrl:
         # Unused for now: url_fragment = parsed_url.fragment
         path_segments = list(cls.path_to_components(url_path))
         # partition at special url comp
+        # TODO: current algo is not respecting site base path. e.g. the root of the site starts at
+        # base_path -> example.com/base_path. Fix it.
         site_ids_comps = sorted([site_id.components for site_id in synamic.sites.ids], key=len, reverse=True)
         url_partition_comp = synamic.system_settings['url_partition_comp']
 

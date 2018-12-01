@@ -417,7 +417,7 @@ class ObjectManager:
                 c_res = self.__getc(site, key, path, None)
             else:
                 c_res = None
-                sites_up = self.sites_up(site, url_struct.site_id)[0]
+                sites_up = self.sites_up(site)
                 for specific_site in sites_up:
                     c_res = self.__getc(specific_site, key, path, None)
                     if c_res is not None:
@@ -568,7 +568,16 @@ class ObjectManager:
         return self.__cache.get_menus(site)
 
     def get_data(self, site, data_name, default=None):
-        return self.__cache.get_data(site, data_name, default=default)
+        data = None
+        for site in self.sites_up(site):
+            data = self.__cache.get_data(site, data_name, default=None)
+            if data is not None:
+                break
+
+        if data is None:
+            return default
+        else:
+            return data
 
     def get_book_tocs(self, site):
         return self.__cache.get_book_tocs(site)
@@ -663,7 +672,7 @@ class ObjectManager:
 
     def get_user(self, starting_site, user_id):
         user = None
-        sites_up, user_id = self.sites_up(starting_site, user_id)
+        sites_up = self.sites_up(starting_site)
         for site in sites_up:
             user = self.__cache.get_user(site, user_id, None)
             if user is not None:
@@ -678,7 +687,7 @@ class ObjectManager:
     def get_users(self, site):
         return self.__cache.get_users(site)
 
-    def sites_up(self, starting_site, site_id):
+    def sites_up(self, starting_site):
         """All sites up to the root including the current one"""
         sites_up = []
         site = starting_site
@@ -688,7 +697,7 @@ class ObjectManager:
                 site = site.parent
             else:
                 break
-        return sites_up, site_id
+        return sites_up
 
     class __ObjectManagerForSite:
         def __init__(self, site, object_manager):
@@ -862,7 +871,7 @@ class ObjectManager:
             self.__data[site.id][data.get_data_name()] = data
 
         def get_data(self, site, data_name, default=None):
-            return self.__data[site.id].get(data_name, default=default)
+            return self.__data[site.id].get(data_name, default)
 
         def add_book_toc(self, site, book_toc):
             book_content_cpath = book_toc.book_cpath

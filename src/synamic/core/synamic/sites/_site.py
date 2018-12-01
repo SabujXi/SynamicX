@@ -95,6 +95,7 @@ class _Site(SiteContract):
 
         self.__menus_wrapper = MenusWrapper(self.__object_manager_4_site)
         self.__users_wrapper = UsersWrapper(self.__object_manager_4_site)
+        self.__data_wrapper = DataWrapper(self.__object_manager_4_site)
 
         self.__site_curl = None
         self.__is_loaded = False
@@ -187,6 +188,10 @@ class _Site(SiteContract):
     @property
     def user(self):
         return self.__users_wrapper
+
+    @property
+    def data(self):
+        return self.__data_wrapper
 
     @property
     def path_tree(self):
@@ -288,6 +293,20 @@ class UsersWrapper:
 
     def get(self, key, default=None):
         return self.__object_manager.get_user(key, default=default)
+
+    def __getattr__(self, key):
+        return self.get(key)
+
+    def __getitem__(self, key):
+        return self.get(key)
+
+
+class DataWrapper:
+    def __init__(self, object_manager):
+        self.__object_manager = object_manager
+
+    def get(self, key, default=None):
+        return self.__object_manager.get_data(key, default=default)
 
     def __getattr__(self, key):
         return self.get(key)
