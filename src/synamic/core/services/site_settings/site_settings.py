@@ -7,7 +7,8 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse
+from synamic.core.synamic.router.url import ContentUrl
 
 
 class _SiteSettings:
@@ -27,14 +28,20 @@ class _SiteSettings:
             # calculate from settings/configs
             else:
                 site_address = self.__syd['site_address']
+                url_struct = urlparse(site_address)
+                scheme = url_struct.scheme
+                netloc = url_struct.netloc
+                path = '/'.join(
+                    ContentUrl.path_to_components(url_struct.path)
+                )
+                url = urlunparse([scheme, netloc, path, '', '', ''])
+                site_address = url
 
             if not site_address.endswith('/'):
                 site_address += '/'
-
             self.__site_address = site_address
-        else:
-            site_address = self.__site_address
-        return site_address
+
+        return self.__site_address
 
     @property
     def site_base_path(self):
