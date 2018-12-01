@@ -141,7 +141,7 @@ class ObjectManager:
         # TODO: also, provide some mechanism to add content to sitemap dynamically.
         # TODO: so this is not the place for sitemap.
         sitemap_service = site.get_service('sitemap')
-        sitemap_content = sitemap_service.make_sitemap(self.query_cfields(site, ':sortby updated_on desc'))
+        sitemap_content = sitemap_service.make_sitemap(self.query_cfields(site, 'type != error :sortby updated_on desc'))
         self.__cache.add_pre_processed_content(site, sitemap_content)
 
     def __cache_menus(self, site):

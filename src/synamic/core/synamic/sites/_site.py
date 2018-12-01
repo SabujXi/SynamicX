@@ -171,8 +171,8 @@ class _Site(SiteContract):
     def settings(self):
         return self.object_manager.get_site_settings()
 
-    @loaded
     @property
+    @loaded
     def curl(self):
         site_curl = self.__site_curl
         if site_curl is None:

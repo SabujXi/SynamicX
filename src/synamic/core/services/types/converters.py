@@ -435,7 +435,9 @@ class MarkTypeConverter(ConverterCallable):
         title = txt.strip()
         mark = type_marker.get_mark_by_title(title, None)
         if mark is None:
-            raise SynamicMarkNotFound(f'Mark with title {title} does not exist')
+            mark = type_marker.make_mark_by_title(txt)
+            # TODO: is the txt always title? not ID? I gotta fix this.
+            # raise SynamicMarkNotFound(f'Mark with title {title} does not exist')
         return mark
 
 

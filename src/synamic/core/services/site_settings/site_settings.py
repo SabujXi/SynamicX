@@ -47,6 +47,8 @@ class _SiteSettings:
             # setting site address.
             self.__site_address = site_address
             # setting site base path.
+            # if not path.endswith('/'):
+            #     path += '/'
             self.__site_base_path = path
 
         return self.__site_address

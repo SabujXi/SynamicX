@@ -201,8 +201,16 @@ class ContentUrl:
         assert self.__for_cdoctype is not CDocType.UNSPECIFIED
         if self.__url_str is None:
             ss = self.__site.settings
-            path_str = self.path_as_str.lstrip('/')
-            url_str = ss.site_address + path_str
+
+            path_str = self.path_as_str
+            if not path_str.startswith('/'):
+                path_str = '/' + path_str
+
+            site_address = ss.site_address
+            if site_address.endswith('/'):
+                site_address = site_address.rstrip('/')
+
+            url_str = site_address + path_str
             self.__url_str = url_str
         return self.__url_str
 
@@ -242,24 +250,17 @@ class ContentUrl:
         )
 
     @property
-    def to_dirfn_pair(self):
-        path_comps = self.path_components
-        if ext_pattern.match(path_comps[-1]):
-            return path_comps[:-1], path_comps[-1]
-        if CDocType.is_html(self.__for_cdoctype):
-            index_file_name = self.__site.settings['index_file_name']
-            return path_comps, index_file_name
-        else:
-            return path_comps[:-1], path_comps[-1]
-
-    @property
     def to_dirfn_pair_w_site(self):
         path_comps = self.path_components_w_site
-        if ext_pattern.match(path_comps[-1]):
-            return path_comps[:-1], path_comps[-1]
+        if len(path_comps) == 0:
+            path_comps = ('', )
+
         if CDocType.is_html(self.__for_cdoctype):
-            index_file_name = self.__site.settings['index_file_name']
-            return path_comps, index_file_name
+            if ext_pattern.match(path_comps[-1]):
+                return path_comps[:-1], path_comps[-1]
+            else:
+                index_file_name = self.__site.settings['index_file_name']
+                return path_comps, index_file_name
         else:
             return path_comps[:-1], path_comps[-1]
 
