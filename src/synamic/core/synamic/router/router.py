@@ -98,6 +98,8 @@ class RouterService:
 
             fs_path = curl.to_file_system_path
             fs_path = fs_path.rstrip('/\\')
+            if fs_path == '':
+                return None
             file_cpath = contents_dir_cpath.join(fs_path, is_file=True)
 
             if file_cpath.exists():

@@ -167,7 +167,7 @@ class PathTree(object):
                 ccomps += ('', )
         else:  # file
             if not forgiving:  # is file & not forgiving
-                assert ccomps[-1] != ''
+                assert ccomps[-1] != '', f'Invalid ccomps[-1] -> ccomps: {ccomps}'
             else:  # is file & forgiving.
                 if len(ccomps) > 1 and ccomps[-1] == '':
                     ccomps = ccomps[:-1]
@@ -323,8 +323,8 @@ class PathTree(object):
 
             # default configs
             _dc = self.path_tree.host.system_settings['configs']
-            self.__ignore_dirs_sw = _dc.get('ignore_dirs_sw', None)
-            self.__ignore_files_sw = _dc.get('ignore_files_sw', None)
+            self.__ignore_dirs_sw = tuple(_dc.get('ignore_dirs_sw', tuple()))
+            self.__ignore_files_sw = tuple(_dc.get('ignore_files_sw', tuple()))
 
         def __call__(self, *args, **kwargs):
             """

@@ -156,6 +156,7 @@ import enum
 import pprint
 import datetime
 import numbers
+import collections
 from synamic.core.standalones.functions.date_time import DtPatterns, parse_date, parse_time, parse_datetime
 from synamic.exceptions import SynamicSydParseError, get_source_snippet_from_text
 
@@ -225,10 +226,14 @@ for syd_type, py_types in syd_to_py_types.items():
         py_to_syd_types[py_type] = syd_type
 
 
-class __SydData:
+class _SydData:
+    @property
+    def key(self):
+        raise NotImplemented
+
     @property
     def is_scalar(self):
-        return type(self) is SydScalar
+        return type(self) is SydData
 
     @property
     def is_container(self):
@@ -248,11 +253,16 @@ class __SydData:
         raise NotImplemented
 
 
-class SydScalar(__SydData):
-    def __init__(self, key, value, datatype, parent_container=None, converter=None, converted_value=None):
+class SydData(_SydData):  # Previously SydScalar.
+    def __init__(self, key, value, datatype=None, parent_container=None, converter=None, converted_value=None):
         if key is not None:
             assert '.' not in key, f'Key {key} is invalid where value is {value}'
-        assert isinstance(value, syd_to_py_types[datatype])
+        # assert isinstance(value, syd_to_py_types[datatype])
+        # scalar can be of any type - any valid python object except isinstance(o, [list, tuple, dict]).
+        # It doesn't always have to be type form syd string or file.
+        assert value is not None, 'None is not allowed'
+        assert not isinstance(value, (list, tuple, dict)), \
+            'Scalar value cannot be of instance of list, tuple or dict. Use SydContainer for them.'
         self.__key = key
         self.__value = value
         self.__datatype = datatype
@@ -301,6 +311,7 @@ class SydScalar(__SydData):
 
     def syd_set_parent(self, p):
         assert type(p) in (SydContainer, type(None))
+        assert self.__parent_container is None, 'Cannot re-set parent'
         self.__parent_container = p
 
         # process interpolation
@@ -346,12 +357,12 @@ class SydScalar(__SydData):
             raise Exception('Parent for key `%s` is set to None' % str(self.__key))
 
 
-class SydContainer(__SydData):
-    def __init__(self, key, is_list=False, parent_container=None, converter=None, converted_value=None, read_only=False):
+class SydContainer(_SydData):
+    def __init__(self, key=None, initial_data=(), is_list=False, parent_container=None, converter=None, converted_value=None, read_only=False):
         self.__key = key
         self.__is_list = is_list
-        self.__map = {}
-        self.__list = []
+        self.__data_list = []
+        self.__data_list_index_map = {}
         self.__parent_container = None  # parent_container from init will be set through a method below.
         self.__converter = converter
         self.__converted_value = converted_value
@@ -359,42 +370,63 @@ class SydContainer(__SydData):
 
         self.syd_set_parent(parent_container)
 
+        for data in initial_data:
+            self.add(data)
+
     def clone(self, parent_container=None, converter=None, converted_value=None, read_only=False):
         if converter is None:
             converter = self.__converter
         if converted_value is None:
             converted_value = self.__converted_value
-        cln = self.__class__(self.__key, self.__is_list, parent_container=parent_container, converter=converter, converted_value=converted_value, read_only=read_only)
-        for e in self.__list:
+        cln = self.__class__(
+            self.__key,
+            is_list=self.__is_list,
+            parent_container=parent_container,
+            converter=converter,
+            converted_value=converted_value,
+            read_only=read_only
+        )
+        for e in self.__data_list:
             cln.add(e.clone())
         return cln
     copy = clone
 
+    def new(self, *others):
+        assert not self.is_list, 'Cannot create new from list, it must be a block'
+        self_clone = self.clone()
+        for other in others:
+            assert not other.is_list, 'Cannot create new with list, need block'
+            for oe in other.syd_clone_original_contents():
+                if oe.key in self_clone:
+                    del self_clone[oe.key]
+                self_clone.add(oe)
+        return self_clone
+
     @property
     def is_root(self):
-        return self.__parent_container is None or self.__key == '__root__' or self.__key is None
+        return self.__parent_container is None or self.__key in ('__root__', None)
 
     # methods prefixed with syd_ are considered private functions or functions should not be used by users.
     def syd_clone_original_contents(self):
         l = []
-        for e in self.__list:
+        for e in self.__data_list:
             l.append(e.clone())
         return tuple(l)
 
     def syd_get_original(self, key, multi=False):
-        assert isinstance(key, (int, str, list, tuple)), 'Only integer and string keys are accepted, you provide key of type: %s' % str(
-            type(key))
+        assert isinstance(key, (int, str, list, tuple)), \
+            f'Only integer and string keys are accepted, you provided key of type: {type(key)}'
         key = int(key) if type(key) is str and key.isdigit() else key
 
         if type(key) is int:
-            assert self.is_list, "Index %d provided for a block collection. Use numeric index only for list collections" % key
+            assert self.is_list, \
+                f"Index {key} provided for a block collection. Use numeric index only for list collections"
             try:
-                d = self.__list[key]
+                d = self.__data_list[key]
                 if multi:
                     d = (d, )
-
             except IndexError:
-                raise IndexError('%d does not exist')
+                raise IndexError(f'{key} does not exist')
         else:
             if isinstance(key, (list, tuple)):
                 keys = key
@@ -402,30 +434,31 @@ class SydContainer(__SydData):
                 keys = key.split('.')
             try:
                 first_key = keys[0]
-                cont_tuple = tuple(t[1] for t in self.__map[first_key])
+                syds = []
+                for idx in self.__data_list_index_map[first_key]:
+                    syds.append(self.__data_list[idx])
+
                 keys = keys[1:]
                 last_idx = len(keys) - 1
                 for idx, _key in enumerate(keys):
                     if last_idx == idx:
-                        if not cont_tuple[-1].is_container:
+                        if not syds[-1].is_container:
                             # print('Found value is not a block - it is a scalar')
                             raise KeyError('Found value is not a block - it is a scalar')
-                    _ = cont_tuple[-1].syd_get_original(_key, multi=multi)
+                    _ = syds[-1].syd_get_original(_key, multi=multi)
 
                     if multi:
-                        cont_tuple = _
+                        syds = _
                     else:
-                        cont_tuple = (_, )
+                        syds = [_, ]
 
                 if multi:
-                    d = cont_tuple
+                    d = syds
                 else:
-                    d = cont_tuple[-1]
+                    d = syds[-1]
             except KeyError:
-                raise KeyError('Key `%s` was not found' % key)
+                raise KeyError(f'Key `{key}` was not found')
         return d
-
-    # def copy_
 
     @property
     def is_list(self):
@@ -437,15 +470,18 @@ class SydContainer(__SydData):
 
     def keys(self):
         l = list()
-        for e in self.__list:
-            if e.key is not None:
-                l.append(e.key)
+        if self.is_list:
+            l = list(range(len(self.__data_list)))
+        else:
+            for e in self.__data_list:
+                if e.key is not None:
+                    l.append(e.key)
         return tuple(l)
 
     def values(self):
         """Values are not converted!!!"""
         l = list()
-        for e in self.__list:
+        for e in self.__data_list:
             value = e.value
             l.append(value)
         return tuple(l)
@@ -453,31 +489,13 @@ class SydContainer(__SydData):
     def items(self):
         """Values are not converted!!!"""
         l = []
-        i = 0
-        for e in self.__list:
+        for i, e in enumerate(self.__data_list):
             value = e.value
             if self.is_list:
                 l.append((i, value))
             else:
                 l.append((e.key, value))
-            i += 1
         return tuple(l)
-
-    def __getitem__(self, key):
-        value = self.get(key, default=None, multi=False)
-        if value is None:
-            raise KeyError('Key `%s` was not found' % key)
-        return value
-
-    def set_converter(self, converter):
-        assert not callable(self.__converter)
-        assert not self.is_root
-        self.__converter = converter
-
-    def set_converter_for(self, key, converter):
-        syds = self.syd_get_original(key, multi=True)
-        for syd in syds:
-            syd.set_converter(converter)
 
     def get(self, key, default=None, multi=False):
         try:
@@ -485,29 +503,72 @@ class SydContainer(__SydData):
             if not multi:
                 value = value.value
             else:
-                values = value
+                _values = value
                 _ = []
-                for v in values:
+                for v in _values:
                     _.append(v.value)
                 value = tuple(_)
-        # except (KeyError, IndexError, AssertionError):
         except (KeyError, IndexError):
             value = default
         return value
 
-    def add(self, syd):
-        assert not self.__read_only
-        self.__list.append(syd)
-        if not self.is_list:
-            idx = len(self.__list) - 1
-            key = syd.key
-            if key not in self.__map:
-                l = []
-                self.__map[key] = l
+    def __getitem__(self, key):
+        value = self.get(key, default=None, multi=False)
+        if value is None:
+            raise KeyError(f'Key `{key}` was not found')
+        return value
+
+    def add(self, *args):
+        # args validating, parsing, and constructing value called syd.
+        assert len(args) in (1, 2), f'Not enough or more than enough args: {args}'
+        if len(args) == 2:
+            assert not self.is_list, \
+                '2 args provided for a list, where the first arg is considered key and the second as data/value'
+            key = args[0]
+            value = args[1]
+            assert isinstance(key, str),\
+                'The first arg must be of type string as that is the key when second arg exists'
+            assert not isinstance(value, _SydData), \
+                'The second arg cannot be of type Scalar or Container - they do not need key, they already have one'
+            if isinstance(value, (list, tuple, dict)):
+                syd = self.__create_container_from_vector(key, value)
             else:
-                l = self.__map[key]
-            l.append((idx, syd))
+                syd = SydData(key, value)
+        else:  # len == 1
+            value = args[0]
+            assert isinstance(value, _SydData),\
+                'When only one arg is passed there is no key info and thus it must be _SydData instance'
+            syd = value
+
+        # adding the value to the container.
+        assert isinstance(syd, _SydData)
+        assert not self.__read_only
+        self.__data_list.append(syd)
+        if not self.is_list:
+            idx = len(self.__data_list) - 1
+            key = syd.key
+            if key not in self.__data_list_index_map:
+                data_l = []
+                self.__data_list_index_map[key] = data_l
+            else:
+                data_l = self.__data_list_index_map[key]
+            # data_l.append((idx, syd)), now only one source of truth against two before - previously: data list, map
+            data_l.append(idx)
         syd.syd_set_parent(self)
+
+    @staticmethod
+    def __create_container_from_vector(key, vector):
+        assert isinstance(vector, (list, tuple, dict))
+        is_map = isinstance(vector, dict)
+        if is_map:
+            syd = SydContainer(key, is_list=False)
+            for k, v in vector.items():
+                syd.add(k, v)
+        else:
+            syd = SydContainer(key, is_list=True)
+            for v in vector:
+                syd.add(v)
+        return syd
 
     def set(self, key, py_value):
         """
@@ -526,68 +587,87 @@ class SydContainer(__SydData):
                 parent_container = self.syd_get_original(comps, multi=False)
                 assert parent_container.is_container
 
-            syd_scalar = SydScalar(
+            syd_scalar = SydData(
                 key,
                 py_value,
-                py_to_syd_types[type(py_value)],
+                None,  # py_to_syd_types[type(py_value)],
                 converter=None,
                 converted_value=py_value
             )
             parent_container.add(syd_scalar)
 
+    def update(self):
+        raise NotImplemented
+
     def __setitem__(self, key, value):
         assert not self.__read_only
         self.set(key, value)
 
-    def __remove__from__self(self, key):
+    def lock(self):
+        assert not self.__read_only
+        self.__read_only = True
+        for d in self.__data_list:
+            if isinstance(d, self.__class__):
+                d.lock()
+
+    # deleting
+    def __remove_from_self(self, key):
         key = int(key) if type(key) is str and key.isdigit() else key
         if self.is_list:
-            del self.__list[key]
+            # list indexes are not cached in the map
+            del self.__data_list[key]
         else:
-            idx_syd_l = self.__map[key]
-            idx_syd_l.reverse()
+            indices = self.__data_list_index_map[key]
+            indices.reverse()  # start deleting from larger index
+            # delete from map
+            del self.__data_list_index_map[key]
+            # delete from ordered list
+            for idx in indices:
+                del self.__data_list[idx]
 
-            del self.__map[key]
-            for idx, syd in idx_syd_l:
-                del self.__list[idx]
-
-            new_map = type(self.__map)()
-            for idx, e in enumerate(self.__list):
-                if e.key not in new_map:
+            # map
+            new_map = type(self.__data_list_index_map)()
+            for idx, elem in enumerate(self.__data_list):
+                if elem.key not in new_map:
                     l = []
-                    new_map[e.key] = l  # Here was that deadly bug
+                    new_map[elem.key] = l  # Here was that deadly bug
                 else:
-                    l = new_map[e.key]
-                l.append((idx, e))
-            self.__map = new_map
+                    l = new_map[elem.key]
+                l.append(idx)
+            self.__data_list_index_map = new_map
 
     def __delitem__(self, key):
         assert not self.__read_only
-        assert type(key) in (int, str), 'Only integer and string keys are accepted, you provide key of type: %s' % str(
-            type(key))
-        key = str(key)
-        ks = key.split('.')
-        key2del = ks[-1]
-        ks = ks[:-1]
+        assert type(key) in (int, str), \
+            f'Only integer and string keys are accepted, you provide key of type: {type(key)}'
+        key = str(key)  # TODO: handle int key specially for performance.
+        keys = key.split('.')
+        key2del = keys[-1]
+        keys = keys[:-1]
 
         try:
-            if len(ks) == 0:
+            if len(keys) == 0:
                 cont = self
             else:
-                k = ks[0]
-                ks = ks[1:]
+                k = keys[0]
+                keys = keys[1:]
                 cont = self.syd_get_original(k)
-                for k in ks:
+                for k in keys:
                     cont = cont._get_original(k)
-            cont.__remove__from__self(key2del)
+            cont.__remove_from_self(key2del)
         except (KeyError, IndexError):
-            raise KeyError('Key/Index `%s` was not found' % key)
+            # raise
+            raise KeyError(f'Key/index `{key}` was not found. Keys: {self.keys()}')
 
     def __contains__(self, key_value):
-        """This method only checks for existence of a key - not value, even if this object is a list"""
         if self.is_list:
             value = key_value
-            return value in self.__list
+            res = False
+            for data in self.__data_list:
+                if data.value == value:
+                    res = True
+                    break
+            return res
         else:
             key = key_value
             res = self.get(key, None)
@@ -601,47 +681,80 @@ class SydContainer(__SydData):
         if self.__converted_value is not None:
             value = self.__converted_value
         else:
-            if not callable(self.__converter):
-                value = self.value_origin
-            else:
+            if callable(self.__converter):
                 value = self.__converter(self.value_origin)
                 assert value is not None
                 self.__converted_value = value
+            else:
+                # value = self.value_origin
+                value = self
+                # if self.is_list:
+                #     value = self.as_tuple
+                # else:
+                #     value = self.as_dict
         return value
 
     @property
     def value_origin(self):
         if self.is_list:
-            c = []
-            for a in self.__list:
-                c.append(a.value)
-            c = tuple(c)
+            return self.as_tuple
         else:
-            # c = collections.OrderedDict()
-            c = {}
-            for a in self.__list:
-                c[a.key] = a.value
-        return c
+            return self.as_dict
+
+    def syd_set_parent(self, p):
+        assert type(p) in (type(None), self.__class__), 'Invalid type: %s' % str(type(p))
+        assert self.__parent_container is None, 'Cannot re-set parent container'
+        self.__parent_container = p
+
+    # conversion
+    @property
+    def converter(self):
+        return self.__converter
+
+    def set_converter(self, converter):
+        assert not callable(self.__converter)
+        assert not self.is_root
+        self.__converter = converter
 
     def set_converted(self, value):
         assert value is not None
         assert not self.is_root
         self.__converted_value = value
 
-    def new(self, *others):
-        assert not self.is_list, 'Cannot create new from list, it must be a block'
-        self_clone = self.clone()
-        for other in others:
-            assert not other.is_list, 'Cannot create new with list, need block'
-            for oe in other.syd_clone_original_contents():
-                if oe.key in self_clone:
-                    del self_clone[oe.key]
-                self_clone.add(oe)
-        return self_clone
+    def set_converter_for(self, key, converter):
+        syds = self.syd_get_original(key, multi=True)
+        for syd in syds:
+            syd.set_converter(converter)
 
+    # iter
+    def __iter__(self):
+        if self.is_list:
+            return iter(self.values())
+        else:
+            return iter(self.keys())
+
+    # as vector
+    @property
+    def as_tuple(self):
+        assert self.is_list
+        c = []
+        for d in self.__data_list:
+            c.append(d.value)
+        c = tuple(c)
+        return c
+
+    @property
+    def as_dict(self):
+        assert not self.is_list
+        c = collections.OrderedDict()
+        for d in self.__data_list:
+            c[d.key] = d.value
+        return c
+
+    # as string
     def __str__(self):
         l = []
-        for e in self.__list:
+        for e in self.__data_list:
             l.append(str(e))
         if self.is_list:
             data_text = ", ".join(l)
@@ -655,14 +768,6 @@ class SydContainer(__SydData):
 
     def __repr__(self):
         return repr(self.__str__())
-
-    def syd_set_parent(self, p):
-        assert type(p) in (type(None), self.__class__), 'Invalid type: %s' % str(type(p))
-        self.__parent_container = p
-
-    @property
-    def converter(self):
-        return self.__converter
 
 
 @enum.unique
@@ -740,7 +845,7 @@ class SydParser:
                 is_list = True
             else:
                 is_list = False
-            parent_container = SydContainer(key, is_list)
+            parent_container = SydContainer(key, is_list=is_list)
             root_container = self.__container_stack[-1]
             root_container.add(parent_container)
             self.__container_stack.append(parent_container)
@@ -841,7 +946,7 @@ class SydParser:
         # inline list
         elif inline_list_match:
             content = inline_list_match.group('content')
-            cnt = SydContainer(key, True)
+            cnt = SydContainer(key, is_list=True)
             self.__container_stack[-1].add(cnt)
             self.__container_stack.append(cnt)
             self.__enter_state(_ParseState.processing_inline_list)
@@ -952,7 +1057,7 @@ class SydParser:
                 processed_lines = lines
                 # TODO: process for escape chars & special sequences.
 
-            data = SydScalar(key, '\n'.join(processed_lines), SydDataType.string)
+            data = SydData(key, '\n'.join(processed_lines), SydDataType.string)
             self.__container_stack[-1].add(data)
 
     def __process_datum_inline(self, text, key, processing_inline_list=False):
@@ -1074,7 +1179,7 @@ class SydParser:
                 if text.startswith("'"):  # and text.endswith("'"):
                     content = text[1:]
                     res, text, _ = cls.__single_q_string(content)
-                    data = SydScalar(key, res, SydDataType.string)
+                    data = SydData(key, res, SydDataType.string)
                 # double quoted string
                 else:  # text.startswith('"'):  # and text.endswith('"'):
                     content = text[1:]
@@ -1082,7 +1187,7 @@ class SydParser:
                     res = res.replace(r'\n', '\n')
                     res = res.replace(r'\r', '\r')
                     res = res.replace(r'\t', '\t')
-                    data = SydScalar(key, res, SydDataType.string)
+                    data = SydData(key, res, SydDataType.string)
 
                 if processing_inline_list:
                     next_comma_match = _Patterns.inline_list_separator.search(text)
@@ -1129,20 +1234,20 @@ class SydParser:
                     else:
                         number = float(data_part)
                     number = number * sign_mul
-                    data = SydScalar(key, number, SydDataType.number)
+                    data = SydData(key, number, SydDataType.number)
                 # date-time match
                 elif datetime_match:
                     dt_instance = parse_datetime(datetime_match)
-                    data = SydScalar(key, dt_instance, SydDataType.datetime)
+                    data = SydData(key, dt_instance, SydDataType.datetime)
                 # date match
                 elif date_match:
                     date_instance = parse_date(date_match)
-                    data = SydScalar(key, date_instance, SydDataType.date)
+                    data = SydData(key, date_instance, SydDataType.date)
 
                 # time match
                 elif time_match:
                     time_instance = parse_time(time_match)
-                    data = SydScalar(key, time_instance, SydDataType.time)
+                    data = SydData(key, time_instance, SydDataType.time)
                 # bare string : last resort
                 else:
                     bare_string = data_part
@@ -1150,7 +1255,7 @@ class SydParser:
                         if bare_string[0:2] in (r'\(', r'\{', r'\['):
                             bare_string = bare_string[2:]
                     bare_string = bare_string.strip()
-                    data = SydScalar(key, bare_string, SydDataType.string)
+                    data = SydData(key, bare_string, SydDataType.string)
 
             data_list.append(data)
             text = text.strip()
@@ -1158,7 +1263,7 @@ class SydParser:
         if len(data_list) == 0:
             # bare string
             data_list.append(
-                SydScalar(key, '', SydDataType.string)
+                SydData(key, '', SydDataType.string)
             )
 
         if processing_inline_list:

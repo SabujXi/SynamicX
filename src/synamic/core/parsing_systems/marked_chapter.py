@@ -634,7 +634,7 @@ class ChaptersTOC:
         href = ch_link.link_src
         if href.startswith('/'):
             raise SynamicError(f'Chapter link must be relative: {href}')
-        marked_extensions = self.site.system_settings['configs.marked_extensions']
+        marked_extensions = self.site.system_settings['configs.marked_extensions'].as_tuple
         if not href.endswith(marked_extensions):
             raise SynamicError(f'Chapter link must be a relative path to a file with an extension of marked content'
                                f' {marked_extensions}: {href}')
