@@ -396,7 +396,18 @@ class SydContainer(_SydData):
         self_clone = self.clone()
         for other in others:
             assert not other.is_list, 'Cannot create new with list, need block'
-            for oe in other.syd_clone_original_contents():
+            for oe in other.syd_clone_original_syd_data():
+                if oe.key in self_clone:
+                    del self_clone[oe.key]
+                self_clone.add(oe)
+        return self_clone
+
+    def new_merged(self, *others):
+        assert not self.is_list, 'Cannot create new from list, it must be a block'
+        self_clone = self.clone()
+        for other in others:
+            assert not other.is_list, 'Cannot create new with list, need block'
+            for oe in other.syd_clone_original_syd_data():
                 if oe.key in self_clone:
                     del self_clone[oe.key]
                 self_clone.add(oe)
@@ -407,13 +418,13 @@ class SydContainer(_SydData):
         return self.__parent_container is None or self.__key in ('__root__', None)
 
     # methods prefixed with syd_ are considered private functions or functions should not be used by users.
-    def syd_clone_original_contents(self):
+    def syd_clone_original_syd_data(self):
         l = []
         for e in self.__data_list:
             l.append(e.clone())
         return tuple(l)
 
-    def syd_get_original(self, key, multi=False):
+    def get_syd(self, key, multi=False):
         assert isinstance(key, (int, str, list, tuple)), \
             f'Only integer and string keys are accepted, you provided key of type: {type(key)}'
         key = int(key) if type(key) is str and key.isdigit() else key
@@ -445,7 +456,7 @@ class SydContainer(_SydData):
                         if not syds[-1].is_container:
                             # print('Found value is not a block - it is a scalar')
                             raise KeyError('Found value is not a block - it is a scalar')
-                    _ = syds[-1].syd_get_original(_key, multi=multi)
+                    _ = syds[-1].get_syd(_key, multi=multi)
 
                     if multi:
                         syds = _
@@ -459,6 +470,27 @@ class SydContainer(_SydData):
             except KeyError:
                 raise KeyError(f'Key `{key}` was not found')
         return d
+
+    def get(self, key, default=None, multi=False):
+        try:
+            value = self.get_syd(key, multi=multi)
+            if not multi:
+                value = value.value
+            else:
+                _values = value
+                _ = []
+                for v in _values:
+                    _.append(v.value)
+                value = tuple(_)
+        except (KeyError, IndexError):
+            value = default
+        return value
+
+    def __getitem__(self, key):
+        value = self.get(key, default=None, multi=False)
+        if value is None:
+            raise KeyError(f'Key `{key}` was not found')
+        return value
 
     @property
     def is_list(self):
@@ -496,27 +528,6 @@ class SydContainer(_SydData):
             else:
                 l.append((e.key, value))
         return tuple(l)
-
-    def get(self, key, default=None, multi=False):
-        try:
-            value = self.syd_get_original(key, multi=multi)
-            if not multi:
-                value = value.value
-            else:
-                _values = value
-                _ = []
-                for v in _values:
-                    _.append(v.value)
-                value = tuple(_)
-        except (KeyError, IndexError):
-            value = default
-        return value
-
-    def __getitem__(self, key):
-        value = self.get(key, default=None, multi=False)
-        if value is None:
-            raise KeyError(f'Key `{key}` was not found')
-        return value
 
     def add(self, *args):
         # args validating, parsing, and constructing value called syd.
@@ -577,14 +588,14 @@ class SydContainer(_SydData):
         """
         assert not self.__read_only
         try:
-            syd = self.syd_get_original(key, multi=False)
+            syd = self.get_syd(key, multi=False)
             syd.set_converted(py_value)
         except KeyError:
             if '.' not in key:
                 parent_container = self
             else:
                 comps = key.split('.')[:-1]
-                parent_container = self.syd_get_original(comps, multi=False)
+                parent_container = self.get_syd(comps, multi=False)
                 assert parent_container.is_container
 
             syd_scalar = SydData(
@@ -651,7 +662,7 @@ class SydContainer(_SydData):
             else:
                 k = keys[0]
                 keys = keys[1:]
-                cont = self.syd_get_original(k)
+                cont = self.get_syd(k)
                 for k in keys:
                     cont = cont._get_original(k)
             cont.__remove_from_self(key2del)
@@ -722,7 +733,7 @@ class SydContainer(_SydData):
         self.__converted_value = value
 
     def set_converter_for(self, key, converter):
-        syds = self.syd_get_original(key, multi=True)
+        syds = self.get_syd(key, multi=True)
         for syd in syds:
             syd.set_converter(converter)
 
