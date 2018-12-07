@@ -246,20 +246,6 @@ class SydContainer(_SydData):
                     else:
                         assert isinstance(other_data, SydContainer) and isinstance(old_data, SydContainer)
                         merged_children = old_data.merged_new(other_data)
-                        # for idx, other_data_child in enumerate(other_data.get_children()):
-                        #     if other_data_child.is_list:
-                        #         old_data_child = old_data.get_child(idx, error_out=False)
-                        #         if old_data_child is None:
-                        #             child_merged = other_data_child.merged_new()
-                        #         else:
-                        #             child_merged = other_data_child.merged_new(old_data_child.clone())
-                        #     else:
-                        #         old_data_child = old_data.get_child(other_data_child.key, error_out=False)
-                        #         if old_data_child is None:
-                        #             child_merged = other_data_child.merged_new()
-                        #         else:
-                        #             child_merged = other_data_child.merged_new(old_data_child.clone())
-                        #     new_container.add(child_merged)
                         new_container.add(merged_children)
         return new_container
 
