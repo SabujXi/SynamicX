@@ -17,47 +17,57 @@ class SynamicJinjaFileSystemLoader(BaseLoader):
         self.__site = site
 
     def get_source(self, environment, template):
-        site_id_sep = self.__site.synamic.system_settings['configs.site_id_sep']
-        template_dir = self.__site.system_settings['dirs.templates.templates']
-        site = self.__site
-        template_name_match = template_name_pat.match(template)
-        site_id = template_name_match.group('site_id')
-        template_name = template_name_match.group('path')
+        system_settings = self.__site.synamic.system_settings
+        site_settings = self.__site.settings
 
+        site_id_sep = system_settings['configs.site_id_sep']
+        template_dir = system_settings['dirs.templates.templates']
+        default_theme_id = site_settings.get('default_theme', None)
+
+        site = self.__site
+
+        _template_name_match = template_name_pat.match(template)
+        site_id = _template_name_match.group('site_id')
+        template_name = _template_name_match.group('path')
+
+        sites_up = []
         # only load from the current site.
         if site_id == site_id_sep:
             site = self.__site
+            sites_up.append(site)
         elif site_id is not None:
             site_id_obj = self.__site.synamic.sites.make_id(site_id)
             try:
                 site = self.__site.synamic.sites.get_by_id(site_id_obj)
+                sites_up.append(site)
             except KeyError:
                 raise SynamicSiteNotFound(
                     f'Site with id {site_id} was not found when looking for templated named {template} ->'
                     f' {template_name} inside of it.'
                 )
         else:
+            sites_up.append(site)
+            while site.has_parent:
+                site = site.parent
+                sites_up.append(site)
+
+        assert len(sites_up) > 0
+        found = False
+        for site in sites_up:
             path_tree = site.path_tree
             template_cdir = path_tree.create_dir_cpath(template_dir)
-            template_cfile = template_cdir.join(template, is_file=True)
-
-            while True:
-                path_tree = site.path_tree
-                template_cdir = path_tree.create_dir_cpath(template_dir)
-                template_cfile = template_cdir.join(template, is_file=True)
-                if template_cfile.exists():
+            template_cfile = template_cdir.join(template_name, is_file=True)
+            if default_theme_id:
+                default_template_cfile = template_cdir.join(default_theme_id, is_file=False).join(template_name, is_file=True)
+                if default_template_cfile.exists():
+                    template_cfile = default_template_cfile
+                    found = True
                     break
-                else:
-                    if site.has_parent:
-                        site = site.parent
-                        continue
-                    else:
-                        break
-        path_tree = site.path_tree
-        template_cdir = path_tree.create_dir_cpath(template_dir)
-        template_cfile = template_cdir.join(template_name, is_file=True)
+            if template_cfile.exists():
+                found = True
+                break
 
-        if not template_cfile.exists():
+        if not found:
             raise TemplateNotFound(
                 template,
                 message=f"Template "
