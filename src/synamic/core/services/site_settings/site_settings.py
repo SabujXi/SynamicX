@@ -92,7 +92,7 @@ class _SiteSettings:
             return True
 
     def __str__(self):
-        return str(self.__)
+        return str(self.__syd)
 
     def __repr__(self):
         return repr(self.__str__())
@@ -133,7 +133,8 @@ class SiteSettingsService:
             )
 
         # construct final syd
-        new_syd = system_settings.new(*parent_settings_syd)
+        new_syd = system_settings.merged_new(*parent_settings_syd)
+        # new_syd = system_settings.new(*parent_settings_syd)
         # construct site settings object
         site_settings = _SiteSettings(self.__site, new_syd)
         return site_settings

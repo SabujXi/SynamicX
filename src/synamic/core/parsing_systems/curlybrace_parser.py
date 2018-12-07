@@ -359,6 +359,8 @@ class SydData(_SydData):  # Previously SydScalar.
 
 class SydContainer(_SydData):
     def __init__(self, key=None, initial_data=(), is_list=False, parent_container=None, converter=None, converted_value=None, read_only=False):
+        if key is not None:
+            assert '.' not in key
         self.__key = key
         self.__is_list = is_list
         self.__data_list = []
@@ -373,6 +375,10 @@ class SydContainer(_SydData):
         for data in initial_data:
             self.add(data)
 
+    @property
+    def parent(self):
+        return self.__parent_container
+
     def clone(self, parent_container=None, converter=None, converted_value=None, read_only=False):
         if converter is None:
             converter = self.__converter
@@ -386,8 +392,8 @@ class SydContainer(_SydData):
             converted_value=converted_value,
             read_only=read_only
         )
-        for e in self.__data_list:
-            cln.add(e.clone())
+        for data in self.__data_list:
+            cln.add(data.clone())
         return cln
     copy = clone
 
@@ -396,35 +402,63 @@ class SydContainer(_SydData):
         self_clone = self.clone()
         for other in others:
             assert not other.is_list, 'Cannot create new with list, need block'
-            for oe in other.syd_clone_original_syd_data():
-                if oe.key in self_clone:
-                    del self_clone[oe.key]
-                self_clone.add(oe)
+            for idx, o_c in enumerate(other.clone_children()):
+                if self_clone.is_list:
+                    key = idx
+                    self_clone.add(o_c)
+                else:
+                    key = o_c.key
+                    if key in self_clone:
+                        self_clone.update(key, o_c)
+                    else:
+                        self_clone.add(o_c)
         return self_clone
 
-    def new_merged(self, *others):
-        assert not self.is_list, 'Cannot create new from list, it must be a block'
-        self_clone = self.clone()
-        for other in others:
-            assert not other.is_list, 'Cannot create new with list, need block'
-            for oe in other.syd_clone_original_syd_data():
-                if oe.key in self_clone:
-                    del self_clone[oe.key]
-                self_clone.add(oe)
-        return self_clone
+    def merged_new(self, *other_containers):
+        new_container = self.clone()
+        for other_container in other_containers:
+            assert isinstance(other_container, SydContainer)
+            for key in other_container.keys():
+                other_data = other_container.get_child(key)
+                old_data = new_container.get_child(key, error_out=False)
+
+                if old_data is None:
+                    new_container.add(other_data.clone())
+                else:
+                    if isinstance(old_data, SydData):
+                        assert isinstance(other_data, SydData)
+                        new_container.update(key, other_data.clone())
+                    else:
+                        assert isinstance(other_data, SydContainer) and isinstance(old_data, SydContainer)
+                        merged_children = old_data.merged_new(other_data)
+                        # for idx, other_data_child in enumerate(other_data.get_children()):
+                        #     if other_data_child.is_list:
+                        #         old_data_child = old_data.get_child(idx, error_out=False)
+                        #         if old_data_child is None:
+                        #             child_merged = other_data_child.merged_new()
+                        #         else:
+                        #             child_merged = other_data_child.merged_new(old_data_child.clone())
+                        #     else:
+                        #         old_data_child = old_data.get_child(other_data_child.key, error_out=False)
+                        #         if old_data_child is None:
+                        #             child_merged = other_data_child.merged_new()
+                        #         else:
+                        #             child_merged = other_data_child.merged_new(old_data_child.clone())
+                        #     new_container.add(child_merged)
+                        new_container.add(merged_children)
+        return new_container
 
     @property
     def is_root(self):
         return self.__parent_container is None or self.__key in ('__root__', None)
 
-    # methods prefixed with syd_ are considered private functions or functions should not be used by users.
-    def syd_clone_original_syd_data(self):
-        l = []
-        for e in self.__data_list:
-            l.append(e.clone())
-        return tuple(l)
+    def get_children(self):
+        return tuple(self.__data_list)
 
-    def get_syd(self, key, multi=False):
+    def clone_children(self):
+        return tuple(e.clone() for e in self.get_children())
+
+    def get_child(self, key, multi=False, error_out=True):
         assert isinstance(key, (int, str, list, tuple)), \
             f'Only integer and string keys are accepted, you provided key of type: {type(key)}'
         key = int(key) if type(key) is str and key.isdigit() else key
@@ -437,7 +471,10 @@ class SydContainer(_SydData):
                 if multi:
                     d = (d, )
             except IndexError:
-                raise IndexError(f'{key} does not exist')
+                if not error_out:
+                    return None
+                else:
+                    raise IndexError(f'{key} does not exist')
         else:
             if isinstance(key, (list, tuple)):
                 keys = key
@@ -456,7 +493,7 @@ class SydContainer(_SydData):
                         if not syds[-1].is_container:
                             # print('Found value is not a block - it is a scalar')
                             raise KeyError('Found value is not a block - it is a scalar')
-                    _ = syds[-1].get_syd(_key, multi=multi)
+                    _ = syds[-1].get_child(_key, multi=multi)
 
                     if multi:
                         syds = _
@@ -468,12 +505,15 @@ class SydContainer(_SydData):
                 else:
                     d = syds[-1]
             except KeyError:
-                raise KeyError(f'Key `{key}` was not found')
+                if not error_out:
+                    return None
+                else:
+                    raise KeyError(f'Key `{key}` was not found')
         return d
 
     def get(self, key, default=None, multi=False):
         try:
-            value = self.get_syd(key, multi=multi)
+            value = self.get_child(key, multi=multi)
             if not multi:
                 value = value.value
             else:
@@ -501,6 +541,7 @@ class SydContainer(_SydData):
         return self.__key
 
     def keys(self):
+        """Own keys"""
         l = list()
         if self.is_list:
             l = list(range(len(self.__data_list)))
@@ -530,21 +571,34 @@ class SydContainer(_SydData):
         return tuple(l)
 
     def add(self, *args):
+        assert not self.__read_only
         # args validating, parsing, and constructing value called syd.
         assert len(args) in (1, 2), f'Not enough or more than enough args: {args}'
+        parent_container = self
         if len(args) == 2:
             assert not self.is_list, \
                 '2 args provided for a list, where the first arg is considered key and the second as data/value'
             key = args[0]
             value = args[1]
+            # key must be string
             assert isinstance(key, str),\
                 'The first arg must be of type string as that is the key when second arg exists'
+            # value must not be syd data or container.
             assert not isinstance(value, _SydData), \
                 'The second arg cannot be of type Scalar or Container - they do not need key, they already have one'
             if isinstance(value, (list, tuple, dict)):
                 syd = self.__create_container_from_vector(key, value)
             else:
                 syd = SydData(key, value)
+
+            # calculating the parent
+            key = syd.key
+            keys = key.split('.')
+            if len(keys) > 1:
+                comps = key.split('.')[:-1]
+                parent_container = self.get_child(comps, multi=False)
+                assert parent_container.is_container
+
         else:  # len == 1
             value = args[0]
             assert isinstance(value, _SydData),\
@@ -553,7 +607,6 @@ class SydContainer(_SydData):
 
         # adding the value to the container.
         assert isinstance(syd, _SydData)
-        assert not self.__read_only
         self.__data_list.append(syd)
         if not self.is_list:
             idx = len(self.__data_list) - 1
@@ -565,7 +618,7 @@ class SydContainer(_SydData):
                 data_l = self.__data_list_index_map[key]
             # data_l.append((idx, syd)), now only one source of truth against two before - previously: data list, map
             data_l.append(idx)
-        syd.syd_set_parent(self)
+        syd.syd_set_parent(parent_container)
 
     @staticmethod
     def __create_container_from_vector(key, vector):
@@ -584,31 +637,41 @@ class SydContainer(_SydData):
     def set(self, key, py_value):
         """
         Sets py value as converted to existing key
-        BUT for non existing value it creates scalar of only allowed type.
+        BUT for non existing value it uses add()
         """
         assert not self.__read_only
+        assert not isinstance(py_value, _SydData)
         try:
-            syd = self.get_syd(key, multi=False)
-            syd.set_converted(py_value)
+            syds = self.get_child(key, multi=True)
+            for syd in syds:
+                syd.set_converted(py_value)
         except KeyError:
-            if '.' not in key:
-                parent_container = self
-            else:
-                comps = key.split('.')[:-1]
-                parent_container = self.get_syd(comps, multi=False)
-                assert parent_container.is_container
+            self.add(key, py_value)
 
-            syd_scalar = SydData(
-                key,
-                py_value,
-                None,  # py_to_syd_types[type(py_value)],
-                converter=None,
-                converted_value=py_value
-            )
-            parent_container.add(syd_scalar)
+    def update(self, key_idx, syd_data):
+        assert isinstance(syd_data, _SydData)
+        assert key_idx is not None
+        if isinstance(key_idx, int):
+            assert syd_data.key is None
+            self.__data_list[key_idx] = syd_data
+            return
 
-    def update(self):
-        raise NotImplemented
+        if isinstance(key_idx, (list, tuple)):
+            keys = key_idx
+        else:
+            keys = key_idx.split('.')
+
+        if len(keys) == 1:
+            key_idx = keys[0]
+            indices = self.__data_list_index_map[key_idx]
+            idx = indices[-1]
+            self.__data_list[idx] = syd_data
+            syd_data.syd_set_parent(self)
+        else:
+            parent_keys = keys[:-1]
+            key_idx = keys[-1]
+            parent_syd = self.get_child(parent_keys)
+            parent_syd.update(key_idx, syd_data)
 
     def __setitem__(self, key, value):
         assert not self.__read_only
@@ -662,7 +725,7 @@ class SydContainer(_SydData):
             else:
                 k = keys[0]
                 keys = keys[1:]
-                cont = self.get_syd(k)
+                cont = self.get_child(k)
                 for k in keys:
                     cont = cont._get_original(k)
             cont.__remove_from_self(key2del)
@@ -733,7 +796,7 @@ class SydContainer(_SydData):
         self.__converted_value = value
 
     def set_converter_for(self, key, converter):
-        syds = self.get_syd(key, multi=True)
+        syds = self.get_child(key, multi=True)
         for syd in syds:
             syd.set_converter(converter)
 
