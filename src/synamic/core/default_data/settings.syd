@@ -15,3 +15,9 @@ site_address: http://localhost/
 
 # index file name
 index_file_name: index.html
+
+# theme info file
+theme_info_file: theme.syd
+
+# sass dir inside theme dir
+theme_sass_dir: _sass

@@ -196,9 +196,9 @@ class PathTree(object):
         fn = self.__full_path__(comps)
         return True if self.__fs.is_dir(fn) else False
 
-    def join(self, *content_paths):
+    def join(self, *content_paths, is_file=False, forgiving=False):
         comps = self.to_cpath_ccomps(*content_paths)
-        return self.create_cpath(comps)
+        return self.create_cpath(comps, is_file=is_file, forgiving=forgiving)
 
     def open(self, file_path, *args, **kwargs):
         comps = self.to_cpath_ccomps(file_path)
@@ -590,6 +590,12 @@ class PathTree(object):
             else:
                 new_path_comps = (*self.path_comps[:-1], self.path_comps[-1] + comps[0], *comps[1:])
             return self.__path_tree.create_cpath(new_path_comps, is_file=is_file, forgiving=forgiving)
+
+        def join_as_cfile(self, *path_str_or_cmps, forgiving=False):
+            return self.join(*path_str_or_cmps, is_file=True, forgiving=forgiving)
+
+        def join_as_cdir(self, *path_str_or_cmps, forgiving=False):
+            return self.join(*path_str_or_cmps, is_file=False, forgiving=forgiving)
 
         @staticmethod
         def __process_regex(regex, ignorecase=True):
