@@ -6,7 +6,7 @@ with open('README.rst', 'r', encoding='utf-8') as f:
 
 setup(
     name='synamic',
-    version='0.5.8.dev5',
+    version='0.6.0.dev6',
     description='Synamic',
     author='Md. Sabuj Sarker',
     author_email='md.sabuj.sarker@gmail.com',
