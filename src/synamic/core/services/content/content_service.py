@@ -72,9 +72,9 @@ class ContentService:
             dir_meta_cfile = dir_cpath.join(dir_meta_file_name, is_file=True)
             if dir_meta_cfile.exists():
                 dir_meta_syd = self.__site.object_manager.get_syd(dir_meta_cfile)
-                _syd = _syd.new(dir_meta_syd)
+                _syd = _syd.merged_new(dir_meta_syd)
         else:  # for else when loop ended normally without using break.
-            fields_syd = _syd.new(fields_syd)
+            fields_syd = _syd.merged_new(fields_syd)
 
         # TODO: what is the document type???
         cdoctype = CDocType.HTML_DOCUMENT

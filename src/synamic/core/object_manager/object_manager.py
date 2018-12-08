@@ -2,6 +2,7 @@ import types
 from collections import defaultdict, OrderedDict
 from synamic.core.services.content.content_splitter import content_splitter
 from synamic.core.parsing_systems.model_parser import ModelParser
+from synamic.core.standalones import SydContainer
 from synamic.core.parsing_systems.curlybrace_parser import SydParser
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
 from synamic.core.contracts import CDocType
@@ -11,7 +12,6 @@ from synamic.core.standalones.functions.sequence_ops import Sequence
 from synamic.exceptions import (
     SynamicGetCParsingError,
     SynamicGetCError,
-    SynamicMarkNotFound,
     SynamicMarkerNotFound,
     SynamicSydParseError,
     SynamicErrors,
@@ -301,7 +301,7 @@ class ObjectManager:
 
     @staticmethod
     def empty_syd():
-        return SydParser('').parse()
+        return SydContainer()
 
     def get_raw_text_data(self, site, path, encoding='utf-8') -> str:
         path_tree = self.get_path_tree(site)
