@@ -1,5 +1,6 @@
 from synamic.core.synamic.router.url import ContentUrl
 from synamic.core.contracts import CDocType
+from synamic.core.standalones.functions.sequence_ops import Sequence
 
 
 class RouterService:
@@ -91,8 +92,7 @@ class RouterService:
             return pre_processed_content
         else:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
-            contents_dir = self.__synamic.system_settings['dirs.contents.contents']
-            contents_dir_cpath = site.path_tree.create_dir_cpath(contents_dir)
+            contents_dir_cpath = site.path_tree.create_dir_cpath(self.__synamic.system_settings['dirs.contents.contents'])
 
             curl = curl.clone(CDocType.GENERATED_BINARY_DOCUMENT)
 
@@ -100,12 +100,22 @@ class RouterService:
             fs_path = fs_path.rstrip('/\\')
             if fs_path == '':
                 return None
-            file_cpath = contents_dir_cpath.join(fs_path, is_file=True)
 
+            static_content = None
+            # try static inside contents
+            file_cpath = contents_dir_cpath.join(fs_path, is_file=True)
             if file_cpath.exists():
-                return site.object_manager.get_binary_content(file_cpath)
-            else:
-                return None
+                static_content = site.object_manager.get_binary_content(file_cpath)
+                return static_content
+            # try static inside template assets
+            file_cpath = site.path_tree.create_file_cpath(fs_path)
+            path_comps = file_cpath.path_comps
+            for theme in site.get_service('templates').themes:
+                if Sequence.startswith(path_comps, theme.assets_cdir.path_comps):
+                    static_content = site.object_manager.get_binary_content(file_cpath)
+                    return static_content
+                    # break
+            return static_content
 
     @classmethod
     def make_url(cls, site, url_path_comps, for_cdoctype=CDocType.UNSPECIFIED):

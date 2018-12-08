@@ -203,12 +203,18 @@ class ObjectManager:
 
     def static_content_cpath_to_url(self, site, cpath, for_cdoctype):
         assert CDocType.is_binary(for_cdoctype, not_generated=True)
+        system_settings = site.system_settings
+        templates_dir = system_settings['dirs.templates.templates']
+
         # For STATIC Files
-        contents_dir = site.system_settings['dirs.contents.contents']
-        contents_cdir = site.path_tree.create_dir_cpath(contents_dir)
-        basename_contents = contents_cdir.basename
-        url_comps = cpath.path_comps
-        url_comps = Sequence.lstrip(url_comps, (basename_contents,))
+        path_comps = cpath.path_comps
+        if path_comps[0] == templates_dir:
+            url_comps = path_comps
+        else:
+            contents_cdir = site.path_tree.create_dir_cpath(system_settings['dirs.contents.contents'])
+            basename_contents = contents_cdir.basename
+
+            url_comps = Sequence.lstrip(path_comps, (basename_contents,))
         curl = self.__synamic.router.make_url(
             site,
             url_comps,
@@ -280,12 +286,17 @@ class ObjectManager:
         marked_extensions = site.system_settings['configs.marked_extensions']
         paths = []
         path_tree = site.get_service('path_tree')
-        contents_dir = site.system_settings['dirs.contents.contents']
-        contents_cdir = path_tree.create_dir_cpath(contents_dir)
 
+        # static files from contents dir
+        contents_cdir = path_tree.create_dir_cpath(site.system_settings['dirs.contents.contents'])
         if contents_cdir.exists():
-            for path in contents_cdir.list_files(checker=lambda cp: cp.extension not in marked_extensions):
-                paths.append(path)
+            paths.extend(contents_cdir.list_files(checker=lambda cp: cp.extension not in marked_extensions))
+
+        # static files from themes assets dir
+        for theme in site.get_service('templates').themes:
+            if theme.assets_cdir.exists():
+                paths.extend(theme.assets_cdir.list_files())
+
         return paths
 
     @staticmethod
@@ -465,13 +476,27 @@ class ObjectManager:
         )
 
         result_cfields = default
-        if getc_key not in ('file', 'sass', 'id'):
+        if getc_key not in ('file', 'sass', 'asset', 'id'):
             raise SynamicGetCError(
                 f'GetC key error. Currently only file, sass, id keys are allowed, but key {getc_key} was provided'
             )
-        if getc_key == 'file':
-            file_cpath = contents_cdir.join(getc_path, is_file=True)
-            if file_cpath.exists():
+        if getc_key in ('file', 'asset'):
+            if getc_key == 'asset':
+                getc_path_comps = specific_site.path_tree.to_path_comps(getc_path)
+                theme_id = getc_path_comps[0]
+                theme_cdir = None
+                for theme in specific_site.get_service('templates').themes:
+                    if theme.id == theme_id:
+                        theme_cdir = theme.cdir
+                        break
+                if theme_cdir is not None:
+                    file_cpath = theme_cdir.join_as_cfile(getc_path_comps[1:])
+                else:
+                    file_cpath = None
+            else:
+                file_cpath = contents_cdir.join(getc_path, is_file=True)
+
+            if file_cpath is not None and file_cpath.exists():
                 marked_cfields = self.__cache.get_marked_cfields_by_cpath(
                     specific_site, file_cpath, None
                 )

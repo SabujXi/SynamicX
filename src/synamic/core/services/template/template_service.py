@@ -7,12 +7,9 @@
     email: "md.sabuj.sarker@gmail.com"
     status: "Development"
 """
-
-import os
 import jinja2
 from synamic.core.services.template.template_tags import GetCExtension, ResizeImageExtension
 from synamic.core.standalones.functions.decorators import loaded, not_loaded
-from synamic.core.standalones.functions.parent_config_splitter import parent_config_str_splitter
 from .loaders import SynamicJinjaFileSystemLoader
 from synamic.exceptions import SynamicTemplateError
 
