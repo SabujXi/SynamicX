@@ -20,15 +20,26 @@ class SynamicTemplateService:
         self.__site = site
         self.__template_env = None
         self.__themes = []
+        self.__template_loader = None
 
     @property
     def themes(self):
         return tuple(self.__themes)
 
+    @property
+    def template_loader(self):
+        return self.__template_loader
+
+    @loaded
+    def get_template_cfile(self, template_name):
+        return self.template_loader.get_template_cfile(template_name)
+
     @not_loaded
     def load(self):
+        self.__template_loader = SynamicJinjaFileSystemLoader(self.__site)
+
         self.__template_env = jinja2.Environment(
-            loader=SynamicJinjaFileSystemLoader(self.__site),
+            loader=self.__template_loader,
             autoescape=jinja2.select_autoescape(['html', 'xml']),
             extensions=[GetCExtension, ResizeImageExtension]
         )
