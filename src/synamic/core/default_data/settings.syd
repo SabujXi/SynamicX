@@ -16,13 +16,16 @@ pagination: {
     per_page: 10
 }
 
-site_address: http://localhost/
+theme: {
+    # theme info file
+    info_file: theme.syd
+
+    # sass dir inside theme dir
+    sass_dir: _sass
+}
 
 # index file name
 index_file_name: index.html
 
-# theme info file
-theme_info_file: theme.syd
 
-# sass dir inside theme dir
-theme_sass_dir: _sass
+site_address: http://localhost/

@@ -42,7 +42,7 @@ class SynamicTemplateService:
         if template_cdir.exists():
             t_cdirs = template_cdir.list_dirs(depth=1)  # 1 or 0?
             for theme_cdir in t_cdirs:
-                theme_syd_cfile = theme_cdir.join_as_cfile(system_settings['theme_info_file'])
+                theme_syd_cfile = theme_cdir.join_as_cfile(system_settings['theme.info_file'])
                 if theme_syd_cfile.exists():
                     syd = self.__site.object_manager.get_syd(theme_syd_cfile)
                     theme = Theme(self.__site, theme_cdir.basename, theme_cdir, syd)
@@ -100,7 +100,7 @@ class Theme:
     @property
     def sass_cdir(self):
         return self.assets_cdir.join_as_cdir(
-            self.__site.synamic.system_settings['theme_sass_dir']
+            self.__site.synamic.system_settings['theme.sass_dir']
         )
 
     @property
