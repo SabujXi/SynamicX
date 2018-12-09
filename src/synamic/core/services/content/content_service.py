@@ -169,20 +169,18 @@ class _ContentFields(CFieldsContract):
     def __convert_pagination(self, pagination_field):
         object_manager = self.__site.object_manager
         site_settings = self.__site.settings
-        per_page = per_page_4m_settings = site_settings['pagination_per_page']
+        per_page_4m_settings = site_settings['pagination.per_page']
 
-        if isinstance(pagination_field, str):
-            query_str = pagination_field
+        query_str = pagination_field['query']
+        per_page = pagination_field.get('per_page', None)
+        if per_page is not None:
+            if not isinstance(per_page, int):
+                raise SynamicSettingsError(f'Specified per page is not a positive integer number;'
+                                           f' Type {type(per_page)} of per_page value {per_page}')
+            per_page = per_page
         else:
-            query_str = pagination_field['query']
-            per_page = pagination_field.get('per_page', None)
-            if per_page is not None:
-                if not isinstance(per_page, int):
-                    raise SynamicSettingsError(f'Specified per page is not a positive integer number;'
-                                               f' Type {type(per_page)} of per_page value {per_page}')
-                per_page = per_page
-            else:
-                per_page = per_page_4m_settings
+            per_page = per_page_4m_settings
+
         fields = object_manager.query_cfields(query_str)
         origin_content = object_manager.get_marked_content(self.cpath)
         assert self is origin_content.cfields

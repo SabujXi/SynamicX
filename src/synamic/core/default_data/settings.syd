@@ -8,7 +8,9 @@ url_partition_comp: _
 pagination_url_comp: page
 mark_url_comp: m
 user_url_comp: author
-pagination_per_page: 10
+pagination: {
+    per_page: 10
+}
 # .../_/m/tags/<a tag>  where tags is <marker id>
 
 site_address: http://localhost/
