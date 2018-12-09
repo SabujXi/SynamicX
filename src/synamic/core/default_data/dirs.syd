@@ -7,9 +7,6 @@ dirs {
     contents {
         contents: /contents
 
-        # statics
-        statics: ${ contents }/statics
-
         # assets / pre-process that will be pre-processed or so
         pre_process: ${ contents }/.pre_process
     }

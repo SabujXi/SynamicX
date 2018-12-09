@@ -22,7 +22,6 @@ class SynamicJinjaFileSystemLoader(BaseLoader):
         site_settings = self.__site.settings
 
         site_id_sep = system_settings['configs.site_id_sep']
-        template_dir = system_settings['dirs.templates.templates']
         default_theme_id = site_settings.get('themes.default', None)
 
         site = self.__site
@@ -56,7 +55,7 @@ class SynamicJinjaFileSystemLoader(BaseLoader):
         found = False
         for site in sites_up:
             path_tree = site.path_tree
-            template_cdir = path_tree.create_dir_cpath(template_dir)
+            template_cdir = site.cpaths.templates_cdir
             template_cfile = template_cdir.join(template_name, is_file=True)
             if default_theme_id:
                 default_template_cfile = template_cdir.join(default_theme_id, is_file=False).join(template_name,

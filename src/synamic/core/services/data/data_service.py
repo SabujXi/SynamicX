@@ -84,8 +84,7 @@ class DataService:
         self.__site = site
         self.__is_loaded = False
 
-        data_dir = site.system_settings['dirs.metas.data']
-        self.__data_cdir = site.path_tree.create_dir_cpath(data_dir)
+        self.__data_cdir = site.cpaths.data_cdir
         self.__available_extensions = ('.syd', '.json')
 
     @property

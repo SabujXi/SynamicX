@@ -66,9 +66,7 @@ class ObjectManager:
         marked_extensions = site.system_settings['configs.marked_extensions']
         if site.synamic.env['backend'] == 'file':  # TODO: fix it.
             content_service = site.get_service('contents')
-            path_tree = self.get_path_tree(site)
-            content_dir = site.synamic.system_settings['dirs.contents.contents']
-            content_cdir = path_tree.create_dir_cpath(content_dir)
+            content_cdir = site.cpaths.contents_cdir
             # for content
             if content_cdir.exists():  # check content dir existence before proceeding
                 file_cpaths = content_cdir.list_files()
@@ -211,7 +209,7 @@ class ObjectManager:
         if path_comps[0] == templates_dir:
             url_comps = path_comps
         else:
-            contents_cdir = site.path_tree.create_dir_cpath(system_settings['dirs.contents.contents'])
+            contents_cdir = site.cpaths.contents_cdir
             basename_contents = contents_cdir.basename
 
             url_comps = Sequence.lstrip(path_comps, (basename_contents,))
@@ -238,8 +236,7 @@ class ObjectManager:
         # TODO: other type of contents besides md contents.
         content_service = site.get_service('contents')
         if isinstance(path, str):
-            path_tree = self.get_path_tree(site)
-            contents_cdir = path_tree.create_dir_cpath(site.system_settings['dirs.contents.contents'])
+            contents_cdir = site.cpaths.contents_cdir
             file_cpath = contents_cdir.join(path, is_file=True)
         else:
             file_cpath = path
@@ -285,10 +282,8 @@ class ObjectManager:
     def get_static_file_cpaths(self, site):
         marked_extensions = site.system_settings['configs.marked_extensions']
         paths = []
-        path_tree = site.get_service('path_tree')
-
         # static files from contents dir
-        contents_cdir = path_tree.create_dir_cpath(site.system_settings['dirs.contents.contents'])
+        contents_cdir = site.cpaths.contents_cdir
         if contents_cdir.exists():
             paths.extend(contents_cdir.list_files(checker=lambda cp: cp.extension not in marked_extensions))
 
@@ -341,9 +336,8 @@ class ObjectManager:
         if processed_model is None:
             types = site.get_service('types')
 
-            model_dir = site.synamic.system_settings['dirs.metas.models']
-            path_tree = site.get_service('path_tree')
-            user_model_cpath = path_tree.create_file_cpath(model_dir, model_name + '.model')
+            model_cdir = site.cpaths.models_cdir
+            user_model_cpath = model_cdir.join_as_cfile(model_name + '.model')
 
             if user_model_cpath.exists():
                 user_model = ModelParser.parse(model_name, self.get_raw_text_data(site, user_model_cpath))
@@ -471,9 +465,7 @@ class ObjectManager:
         content_service = specific_site.get_service('contents')
         getc_key, getc_path = key, path
 
-        contents_cdir = specific_site.path_tree.create_dir_cpath(
-            specific_site.system_settings['dirs.contents.contents']
-        )
+        contents_cdir = specific_site.cpaths.contents_cdir
 
         result_cfields = default
         if getc_key not in ('file', 'sass', 'asset', 'id'):

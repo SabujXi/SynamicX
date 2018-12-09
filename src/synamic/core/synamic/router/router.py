@@ -92,7 +92,7 @@ class RouterService:
             return pre_processed_content
         else:
             # TODO: fix bug: a.txt /a.txt/ and /a.txt work the same - /a.txt/ is most weird
-            contents_dir_cpath = site.path_tree.create_dir_cpath(self.__synamic.system_settings['dirs.contents.contents'])
+            contents_cdir = site.cpaths.contents_cdir
 
             curl = curl.clone(CDocType.GENERATED_BINARY_DOCUMENT)
 
@@ -103,7 +103,7 @@ class RouterService:
 
             static_content = None
             # try static inside contents
-            file_cpath = contents_dir_cpath.join(fs_path, is_file=True)
+            file_cpath = contents_cdir.join(fs_path, is_file=True)
             if file_cpath.exists():
                 static_content = site.object_manager.get_binary_content(file_cpath)
                 return static_content

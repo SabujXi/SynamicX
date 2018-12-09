@@ -15,7 +15,7 @@ class UserService:
     def __init__(self, site):
         self.__site = site
         self.__is_loaded = False
-        self.__menu_dir = self.__site.system_settings['dirs.metas.users']
+        self.__users_cdir = self.__site.cpaths.users_cdir
 
     @property
     def is_loaded(self):
@@ -27,9 +27,8 @@ class UserService:
         self.__is_loaded = True
 
     def make_user(self, user_id):
-        path_tree = self.__site.get_service('path_tree')
         fn = user_id + '.syd'
-        path = path_tree.create_file_cpath(self.__menu_dir, fn)
+        path = self.__users_cdir.join_as_cfile(fn)
         syd = self.__site.object_manager.get_syd(path)
 
         user_obj = self.__User(
@@ -41,8 +40,7 @@ class UserService:
 
     def get_user_ids(self):
         user_ids = []
-        path_tree = self.__site.get_service('path_tree')
-        users_cdir = path_tree.create_dir_cpath(self.__menu_dir)
+        users_cdir = self.__users_cdir
         if users_cdir.exists():
             user_cfiles = users_cdir.list_files(depth=1)
             for menu_cfile in user_cfiles:

@@ -53,7 +53,7 @@ class MenuService:
     def __init__(self, site):
         self.__site = site
         self.__is_loaded = False
-        self.__menu_dir = self.__site.system_settings['dirs.metas.menus']
+        self.__menu_cdir = self.__site.cpaths.menus_cdir
 
     @property
     def is_loaded(self):
@@ -65,9 +65,8 @@ class MenuService:
         self.__is_loaded = True
 
     def make_menu(self, name):
-        path_tree = self.__site.get_service('path_tree')
         fn = name + '.syd'
-        path = path_tree.create_file_cpath(self.__menu_dir, fn)
+        path = self.__menu_cdir.join_as_cfile(fn)
         try:
             syd = self.__site.object_manager.get_syd(path)
         except (SynamicSydParseError, SynamicFSError) as e:
@@ -86,8 +85,7 @@ class MenuService:
 
     def get_menu_names(self):
         menu_names = []
-        path_tree = self.__site.get_service('path_tree')
-        menu_cdir = path_tree.create_dir_cpath(self.__menu_dir)
+        menu_cdir = self.__site.cpaths.menus_cdir
         if menu_cdir.exists():
             menu_cfiles = menu_cdir.list_files(depth=1)
             for menu_cfile in menu_cfiles:

@@ -85,6 +85,9 @@ class _Site(SiteContract):
         # setting path tree
         self.__path_tree = PathTree.for_site(self)
 
+        # site cpaths
+        self.__site_cpaths = self.__SiteCPaths(self)
+
         # Service container
         self.__services_container = {}
         _install_default_services(self)
@@ -237,6 +240,38 @@ class _Site(SiteContract):
         if not isinstance(other, self.__class__):
             return False
         return other.id == other.id
+
+    @property
+    def cpaths(self):
+        return self.__site_cpaths
+
+    class __SiteCPaths:
+        def __init__(self, site):
+            self.__site = site
+            self.__cdirs = {}
+
+            # pre-calculate
+            create = self.__site.path_tree.create_dir_cpath
+            dirs = self.__site.synamic.system_settings['dirs']
+            cd = self.__cdirs
+
+            cd['contents_cdir'] = create(dirs['contents.contents'])
+            cd['pre_process_cdir'] = create(dirs['contents.pre_process'])
+            cd['metas_cdir'] = create(dirs['metas.metas'])
+            cd['models_cdir'] = create(dirs['metas.models'])
+            cd['menus_cdir'] = create(dirs['metas.menus'])
+            cd['markers_cdir'] = create(dirs['metas.markers'])
+            cd['users_cdir'] = create(dirs['metas.users'])
+            cd['data_cdir'] = create(dirs['metas.data'])
+            cd['templates_cdir'] = create(dirs['templates.templates'])
+            cd['sites_cdir'] = create(dirs['sites.sites'])
+            cd['uploads_cdir'] = create(dirs['uploads.uploads'])
+            cd['outputs_cdir'] = create(dirs['outputs.outputs'])
+            cd['cache_cdir'] = create(dirs['cache.cache'])
+            cd['configs_cdir'] = create(dirs['configs.configs'])
+
+        def __getattr__(self, item):
+            return self.__cdirs[item]
 
 
 class _SiteWrapper:

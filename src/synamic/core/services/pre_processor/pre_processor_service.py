@@ -28,8 +28,7 @@ class PreProcessorService:
     @not_loaded
     def load(self):
         # load builtin processor
-        path_tree = self.__site.get_service('path_tree')
-        preprocess_cdir = path_tree.create_dir_cpath(self.__site.system_settings['dirs.contents.pre_process'])
+        preprocess_cdir = self.__site.cpaths.pre_process_cdir
         if preprocess_cdir.exists():
             cdirs = preprocess_cdir.list_dirs(depth=1)
             for cdir in cdirs:

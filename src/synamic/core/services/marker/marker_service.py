@@ -12,8 +12,8 @@ class MarkerService:
         self.__is_loaded = True
 
     def make_marker(self, marker_id):
-        markers_path = self.__site.system_settings['dirs.metas.markers']
-        syd = self.__site.object_manager.get_syd(markers_path + '/' + marker_id + '.syd')
+        markers_cdir = self.__site.cpaths.markers_cdir
+        syd = self.__site.object_manager.get_syd(markers_cdir.join_as_cfile(marker_id + '.syd'))
         marker_type = syd['type']
         marker_title = syd.get('title', marker_type)
         marker_mark_maps = syd['marks']
@@ -21,9 +21,7 @@ class MarkerService:
         return marker
 
     def get_marker_ids(self):
-        path_tree = self.__site.get_service('path_tree')
-        markers_path = self.__site.system_settings['dirs.metas.markers']
-        markers_cdir = path_tree.create_dir_cpath(markers_path)
+        markers_cdir = self.__site.cpaths.markers_cdir
 
         _ = []
         if markers_cdir.exists():

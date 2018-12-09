@@ -27,12 +27,13 @@ class SynamicTemplateService:
         return tuple(self.__themes)
 
     @property
+    @loaded
     def template_loader(self):
         return self.__template_loader
 
     @loaded
     def get_template_cfile(self, template_name):
-        return self.template_loader.get_template_cfile(template_name)
+        return self.__template_loader.get_template_cfile(template_name)
 
     @not_loaded
     def load(self):
@@ -49,7 +50,7 @@ class SynamicTemplateService:
 
         # themes
         system_settings = self.__site.synamic.system_settings
-        template_cdir = self.__site.path_tree.create_dir_cpath(system_settings['dirs.templates.templates'])
+        template_cdir = self.__site.cpaths.templates_cdir
         if template_cdir.exists():
             t_cdirs = template_cdir.list_dirs(depth=1)  # 1 or 0?
             for theme_cdir in t_cdirs:
