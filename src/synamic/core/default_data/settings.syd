@@ -5,11 +5,17 @@
 
 url_components: {
     special_partition: _
+
     # ...so pagination would be .../_/page/<a number>
     pagination: page
+
     mark: m
+
     # .../_/m/tags/<a tag>  where tags is <marker id>
     user: author
+
+    # index file name
+    index_file_name: index.html
 }
 
 pagination: {
@@ -23,9 +29,6 @@ theme: {
     # sass dir inside theme dir
     sass_dir: _sass
 }
-
-# index file name
-index_file_name: index.html
 
 site: {
     address: http://localhost/

@@ -224,7 +224,7 @@ class ContentUrl:
         # TODO: make it dirfn based
         p = self.path_as_str
         if CDocType.is_html(self.__for_cdoctype):
-            index_file_name = self.__site.settings['index_file_name']
+            index_file_name = self.__site.settings['url_components.index_file_name']
             if p.endswith('/'):
                 p += index_file_name
             else:
@@ -259,7 +259,7 @@ class ContentUrl:
             if ext_pattern.match(path_comps[-1]):
                 return path_comps[:-1], path_comps[-1]
             else:
-                index_file_name = self.__site.settings['index_file_name']
+                index_file_name = self.__site.settings['url_components.index_file_name']
                 return path_comps, index_file_name
         else:
             return path_comps[:-1], path_comps[-1]
