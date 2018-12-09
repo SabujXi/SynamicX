@@ -94,7 +94,7 @@ class Theme:
 
     @property
     def assets_cdir(self):
-        assets_dir = self.__info.get('assets_dir', 'assets')
+        assets_dir = self.__info.get('assets_dir', self.__site.synamic.system_settings['theme.assets_dir'])
         return self.__cdir.join_as_cdir(assets_dir)
 
     @property

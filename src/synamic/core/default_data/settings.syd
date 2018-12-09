@@ -23,10 +23,13 @@ pagination: {
 }
 
 theme: {
-    # theme info file
+    # theme info file at the root of theme dir
     info_file: theme.syd
 
-    # sass dir inside theme dir
+    # assets dir
+    assets_dir: assets
+
+    # sass dir inside theme assets dir
     sass_dir: _sass
 }
 
