@@ -22,7 +22,7 @@ class SynamicJinjaFileSystemLoader(BaseLoader):
 
         site_id_sep = system_settings['configs.site_id_sep']
         template_dir = system_settings['dirs.templates.templates']
-        default_theme_id = site_settings.get('default_theme', None)
+        default_theme_id = site_settings.get('themes.default', None)
 
         site = self.__site
 

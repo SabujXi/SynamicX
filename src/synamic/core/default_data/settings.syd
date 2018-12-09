@@ -27,5 +27,6 @@ theme: {
 # index file name
 index_file_name: index.html
 
-
-site_address: http://localhost/
+site: {
+    address: http://localhost/
+}

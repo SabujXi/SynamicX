@@ -16,7 +16,7 @@ def serve(root_dir: str, scheme='http', host='localhost', port='8080'):
     port_str = f':{port}'
     site_address = scheme + "://" + host + port_str
 
-    synamic.set_dev_params(site_address=site_address)
+    synamic.set_dev_params(address=site_address)
 
     synamic.load()
     #  synamic.sites.load()

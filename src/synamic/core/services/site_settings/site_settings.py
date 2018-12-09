@@ -22,12 +22,12 @@ class _SiteSettings:
     def site_address(self):
         if self.__site_address is None:
             # calculate dev server address when dev server running.
-            dev_site_address = self.__site.synamic.dev_params.get('site_address', None)
+            dev_site_address = self.__site.synamic.dev_params.get('address', None)
             if dev_site_address:
                 site_address = dev_site_address
             # calculate from settings/configs
             else:
-                site_address = self.__syd['site_address']
+                site_address = self.__syd['site.address']
 
             site_url_struct = urlparse(site_address)
             scheme = site_url_struct.scheme
