@@ -295,7 +295,7 @@ class ContentUrl:
         # TODO: current algo is not respecting site base path. e.g. the root of the site starts at
         # base_path -> example.com/base_path. Fix it.
         site_ids_comps = sorted([site_id.components for site_id in synamic.sites.ids], key=len, reverse=True)
-        url_partition_comp = synamic.system_settings['url_partition_comp']
+        url_partition_comp = synamic.system_settings['url_components.special_partition']
 
         site_id_components, path_components, special_components = [], [], []
         #  extract out site id.

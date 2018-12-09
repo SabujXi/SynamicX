@@ -86,8 +86,8 @@ class _Mark:
         else:
             system_settings = self.__site.system_settings
             content_service = self.__site.get_service('contents')
-            url_partition_comp = system_settings['url_partition_comp']
-            mark_url_comp = system_settings['mark_url_comp']
+            url_partition_comp = system_settings['url_components.special_partition']
+            mark_url_comp = system_settings['url_components.mark']
             cdoctype = CDocType.GENERATED_HTML_DOCUMENT
             marker_slug = self.__marker.get('slug', None)
             if marker_slug is None:

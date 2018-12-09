@@ -3,15 +3,18 @@
 # putting this after an url it will be determined whether the requested url is a pagination url
 # One more thing, by default it is _ and it can be changed. BUT, urls cannot start with _ to protect this convention
 
-url_partition_comp: _
-# ...so pagination would be .../_/page/<a number>
-pagination_url_comp: page
-mark_url_comp: m
-user_url_comp: author
+url_components: {
+    special_partition: _
+    # ...so pagination would be .../_/page/<a number>
+    pagination: page
+    mark: m
+    # .../_/m/tags/<a tag>  where tags is <marker id>
+    user: author
+}
+
 pagination: {
     per_page: 10
 }
-# .../_/m/tags/<a tag>  where tags is <marker id>
 
 site_address: http://localhost/
 

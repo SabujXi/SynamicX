@@ -27,9 +27,9 @@ class RouterService:
             curl = self.make_url(site, path_components, cdoctype)
             if special_components:
                 print(f'Special Components: {special_components}')
-                pagination_url_comp = self.__synamic.system_settings['pagination_url_comp']
-                mark_url_comp = self.__synamic.system_settings['mark_url_comp']
-                user_url_comp = self.__synamic.system_settings['user_url_comp']
+                pagination_url_comp = self.__synamic.system_settings['url_components.pagination']
+                mark_url_comp = self.__synamic.system_settings['url_components.mark']
+                user_url_comp = self.__synamic.system_settings['url_components.user']
 
                 if special_components[0] == user_url_comp:
                     if len(special_components) < 2:

@@ -90,8 +90,8 @@ class UserService:
             else:
                 system_settings = self.__site.system_settings
                 content_service = self.__site.get_service('contents')
-                url_partition_comp = system_settings['url_partition_comp']
-                user_url_comp = system_settings['user_url_comp']
+                url_partition_comp = system_settings['url_components.special_partition']
+                user_url_comp = system_settings['url_components.user']
                 cdoctype = CDocType.GENERATED_HTML_DOCUMENT
                 mimetype = 'text/html'
                 curl = self.__site.synamic.router.make_url(
