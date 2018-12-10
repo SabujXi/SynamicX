@@ -386,7 +386,8 @@ class PathTree(object):
                         to_travel.extend(
                             tuple([((*path_comps, comp), path_depth + 1) for comp in self.path_tree.fs.listdir(path_abs)]))
                 else:
-                    raise Exception(f"ContentPath is neither dir, nor file: {path_abs}")
+                    raise Exception(f"ContentPath is neither dir, nor file: {path_abs}. Files only: {self.files_only} "
+                                    f"Dirs only: {self.directories_only}. ")
             return directories, files
 
     class __CPath:
@@ -512,9 +513,10 @@ class PathTree(object):
                     return ext
             return ''
 
-        def list_cpaths(self, files_only=None, depth=None, exclude_compss=(), checker=None, respect_settings=True):
+        def list_cpaths(self, files_only=None, directories_only=None, depth=None, exclude_compss=(), checker=None, respect_settings=True):
             return self.__path_tree.list_cpaths(
                 files_only=files_only,
+                directories_only=directories_only,
                 initial_path_comps=self,
                 depth=depth,
                 exclude_compss=exclude_compss,
@@ -527,7 +529,7 @@ class PathTree(object):
             return cfiles
 
         def list_dirs(self, depth=None, exclude_compss=(), checker=None, respect_settings=True):
-            dirs, _ = self.list_cpaths(files_only=False, depth=depth, exclude_compss=exclude_compss, checker=checker, respect_settings=respect_settings)
+            dirs, _ = self.list_cpaths(directories_only=True, depth=depth, exclude_compss=exclude_compss, checker=checker, respect_settings=respect_settings)
             return dirs
 
         def exists(self):

@@ -21,7 +21,7 @@ class MarkedContent(ContentContract):
         return self.__site
 
     def get_stream(self):
-        template_name = self.__cfields.get('template', 'default.html')
+        template_name = self.__cfields.get('template', self.site.synamic.system_settings['templates.default'])
         templates = self.__site.get_service('templates')
         res = templates.render(template_name, context={
             'site': self.__site,
@@ -41,19 +41,27 @@ class MarkedContent(ContentContract):
 
             model_field = self.__cmodel.get(body_field_key)
             if model_field is not None:
-                body = model_field.converter(self.__body_text, value_pack={
-                    'toc': toc,
-                    'from_cpath': self.cpath
-                })
+                body = model_field.converter(
+                    self.__body_text,
+                    value_pack={
+                        'toc': toc
+                    },
+                    md_cpath=self.cpath,
+                    cfields=self.__cfields
+                )
 
             # try with markdown renderer
             else:
                 markdown_renderer = self.__site.get_service('types').get_converter('markdown')
 
-                body = markdown_renderer(self.__body_text, value_pack={
-                    'toc': toc,
-                    'from_cpath': self.cpath
-                })
+                body = markdown_renderer(
+                    self.__body_text,
+                    value_pack={
+                        'toc': toc
+                    },
+                    md_cpath=self.cpath,
+                    cfields=self.__cfields
+                )
             self.__toc = toc
             self.__body = body
 

@@ -255,6 +255,7 @@ class _Site(SiteContract):
             dirs = self.__site.synamic.system_settings['dirs']
             cd = self.__cdirs
 
+            cd['site_cdir'] = create('/')
             cd['contents_cdir'] = create(dirs['contents.contents'])
             cd['pre_process_cdir'] = create(dirs['contents.pre_process'])
             cd['metas_cdir'] = create(dirs['metas.metas'])

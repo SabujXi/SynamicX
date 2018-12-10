@@ -33,6 +33,10 @@ theme: {
     sass_dir: _sass
 }
 
+templates: {
+    default: default.html
+}
+
 site: {
     address: http://localhost/
 }

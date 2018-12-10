@@ -282,11 +282,11 @@ class TextConverter(ConverterCallable):
 
 @_add_converter_type('markdown')
 class MarkdownConverter(ConverterCallable):
-    def __call__(self, txt, value_pack=None, *args, **kwargs):
+    def __call__(self, txt, value_pack=None, md_cpath=None, cfields=None, *args, **kwargs):
         """
         Return a markdown instance.
         """
-        return Markdown(self.type_system.site, txt, value_pack=value_pack)
+        return Markdown(self.type_system.site, txt, value_pack=value_pack, md_cpath=md_cpath, cfields=cfields)
 
 
 @_add_converter_type('html')
