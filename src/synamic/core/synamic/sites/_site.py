@@ -211,6 +211,7 @@ class _Site(SiteContract):
     @property
     def object_manager(self):
         return self.__object_manager_4_site
+    om = object_manager
 
     @property
     def is_loaded(self) -> bool:

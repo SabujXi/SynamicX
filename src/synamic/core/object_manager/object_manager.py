@@ -352,7 +352,7 @@ class ObjectManager:
             elif system_model is None:
                 new_model = user_model
             else:
-                new_model = system_model
+                new_model = system_model.new()
             # put converters inside of the cfields
             for key, field in new_model.items():
                 converter = types.get_converter(field.converter_name)

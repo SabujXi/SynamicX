@@ -18,7 +18,8 @@ class ModelField:
         # TODO: Importing ConverterCallable is impossible as this module is imported from type system.
         # Fix it or leave it.
         # assert isinstance(converter, ConverterCallable)
-        assert self.__converter is None
+        assert self.__converter is None,\
+            f'Key: {self.__key}, Converter_Name: {self.__converter_name}, Converter: {self.__converter}'
         self.__converter = converter
 
     @property
