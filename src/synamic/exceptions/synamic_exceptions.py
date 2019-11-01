@@ -136,10 +136,6 @@ Details:
 """
 
 
-class SynamicGetCParsingError(SynamicError):
-    """Raised when there is an error in lexing or parsing param string of getc()"""
-
-
 class SynamicGetCError(SynamicError):
     """Desired result was not found with SynamicGetCError"""
 
