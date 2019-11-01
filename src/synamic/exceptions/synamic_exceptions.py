@@ -15,7 +15,7 @@ __all__ = [
     # functions
     'get_source_snippet_from_file', 'get_source_snippet_from_text',
     # exception classes
-    'SynamicError', 'SynamicErrors', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
+    'SynamicError', 'SynamicErrors', 'SynamicTemplateError', 'SynamicGetCParsingError',
     'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
     'SynamicInvalidNumberFormat', 'SynamicModelParsingError',
     'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError',
@@ -134,10 +134,6 @@ Error Type: {self.error_type}
 Details:
 {str(jinja_ex)}
 """
-
-
-class SynamicQueryParsingError(SynamicError):
-    """Raised when there is an error in lexing or parsing query string."""
 
 
 class SynamicGetCParsingError(SynamicError):
