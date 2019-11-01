@@ -17,9 +17,9 @@ __all__ = [
     # exception classes
     'SynamicError', 'SynamicErrors', 'SynamicTemplateError', 'SynamicQueryParsingError', 'SynamicGetCParsingError',
     'SynamicGetCError', 'SynamicPreProcessorNotFound', 'SynamicMarkerNotFound', 'SynamicMarkNotFound',
-    'SynamicInvalidNumberFormat', 'SynamicModelParsingError', 'SynamicInvalidDateTimeFormat',
+    'SynamicInvalidNumberFormat', 'SynamicModelParsingError',
     'SynamicSettingsError', 'SynamicInvalidCPathComponentError', 'SynamicPathDoesNotExistError',
-    'SynamicSydParseError', 'SynamicFSError', 'SynamicDataError', 'SynamicMarkerIsNotPublic', 'SynamicSiteNotFound',
+    'SynamicFSError', 'SynamicDataError', 'SynamicMarkerIsNotPublic', 'SynamicSiteNotFound',
     'SynamicUserNotFound',
 ]
 
@@ -168,10 +168,6 @@ class SynamicInvalidNumberFormat(SynamicError):
     """When number format is invalid"""
 
 
-class SynamicInvalidDateTimeFormat(SynamicError):
-    """When date, time or datetime is invalid"""
-
-
 class SynamicModelParsingError(SynamicError):
     """When model cannot be parsed properly"""
 
@@ -186,10 +182,6 @@ class SynamicInvalidCPathComponentError(SynamicError):
 
 class SynamicPathDoesNotExistError(SynamicError):
     """When the path is non existent"""
-
-
-class SynamicSydParseError(SynamicError):
-    """Syd parse error in curlybrace parser."""
 
 
 class SynamicFSError(SynamicError):
