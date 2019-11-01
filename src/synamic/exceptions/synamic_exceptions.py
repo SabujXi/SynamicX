@@ -160,10 +160,6 @@ class SynamicInvalidNumberFormat(SynamicError):
     """When number format is invalid"""
 
 
-class SynamicModelParsingError(SynamicError):
-    """When model cannot be parsed properly"""
-
-
 class SynamicSettingsError(SynamicError):
     """Error related to settings and settings values"""
 
