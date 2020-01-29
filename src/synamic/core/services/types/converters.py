@@ -1,9 +1,8 @@
-from synamic.core.object_manager.query import SimpleQueryParser
+from synamic.core.object_managers import SimpleQueryParser
 from synamic.core.standalones.functions.date_time import parse_datetime, parse_date, parse_time
 from .types import Html, Markdown
 import re
 import datetime
-from synamic.exceptions import SynamicMarkNotFound
 from synamic.exceptions import SynamicInvalidNumberFormat
 
 

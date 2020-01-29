@@ -9,18 +9,18 @@
 """
 import os
 import jinja2
-from synamic.core.contracts import SynamicContract
+from synamic.core.contracts import AbcSynamic
 from synamic.core.synamic.sites.sites import Sites
 from synamic.core.synamic.router import RouterService
 from synamic.core.default_data import DefaultDataManager
-from synamic.core.standalones.functions.decorators import loaded, not_loaded
-from synamic.core.object_manager import ObjectManager
+from synamic.core.standalones.functions.decorators import not_loaded
+from synamic.core.object_managers import FsObjectManager
 from synamic.core.services.filesystem.path_tree import PathTree
-from synamic.exceptions import get_source_snippet_from_text, SynamicTemplateError
+from synamic.exceptions import SynamicTemplateError
 from synamic.core.upload_manager.upload_manager import UploadManager
 
 
-class Synamic(SynamicContract):
+class Synamic(AbcSynamic):
     def __init__(self, root_site_root):
         assert os.path.exists(root_site_root)
         assert os.path.isdir(root_site_root)
@@ -30,7 +30,7 @@ class Synamic(SynamicContract):
         self.__default_data = DefaultDataManager()
 
         # Object Manager
-        self.__object_manager = ObjectManager(self)
+        self.__object_manager = FsObjectManager(self)
 
         self.__path_tree = PathTree(self)
 

@@ -281,7 +281,7 @@ class _SiteWrapper:
     def __init__(self, site):
         self.__site = site
         self.__blacklisted_attrs = {'load', 'add_service', 'get_service', 'synamic', 'parent', 'root',
-                                    'default_data', 'object_manager', 'parent', 'sites', 'router', 'builder',
+                                    'default_data', 'object_managers', 'parent', 'sites', 'router', 'builder',
                                     'site_wrapper'}
 
     def __getattr__(self, key):
